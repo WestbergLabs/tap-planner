@@ -1,63 +1,34 @@
 # Tap Planner
 
-Tap Planner is a simple planning tool for Pinter owners.
+Tap Planner is a web app for Pinter owners who want to know:
 
-Choose a BrewPack and the date you want to tap it, and Tap Planner works backward to calculate when brewing should begin.
+> When should I start brewing so my beer is ready on a specific tap day?
 
-## Purpose
+The app works backward from the desired tapping date and calculates the date brewing should begin.
 
-Tap Planner answers one question:
+Tap Planner is a planning tool only. It is not intended to replace the official Pinter app.
 
-> When should I start brewing so my beer is ready for a specific tapping day?
+## What Tap Planner Does
 
-This project is not intended to replace the official Pinter app.
+Users select:
 
-The official Pinter app remains the source for:
+- A BrewPack
+- A desired tapping date
+- A recommended or minimum schedule
+- The number of cold-crash days
 
-- Brewing instructions
-- Active brew guidance
-- Carbonation settings
-- BrewPack-specific directions
-- Notifications during an active brew
+Tap Planner then calculates:
 
-Tap Planner is only intended to help users plan before brewing begins.
-
-## Current Features
-
-- Select a BrewPack
-- Select a desired tapping date
-- Choose a recommended or minimum schedule
-- Select the number of cold-crash days
-- Calculate the required brew start date
-- Display the planned stages:
-  - Brewing
-  - Cold crashing
-  - Conditioning
-  - Tapping
-
-## Schedule Calculation
-
-Tap Planner calculates the required lead time using:
-
-```text
-Total lead time =
-Brewing days
-+ Cold-crash days
-+ Conditioning days
-```
-
-The brew date is calculated backward from the desired tapping date:
-
-```text
-Brew date =
-Tapping date
+- Brew start date
+- Cold-crash start date
+- Conditioning start date
+- Tap date
 - Total lead time
-```
 
 Example:
 
 ```text
-Desired tapping date: July 28, 2026
+Desired tap date: July 28, 2026
 
 Brewing:       8 days
 Cold crashing: 2 days
@@ -69,6 +40,126 @@ Condition:     July 25, 2026
 Tap:           July 28, 2026
 ```
 
+## What Tap Planner Does Not Do
+
+Tap Planner does not provide:
+
+- Brewing instructions
+- Active brew monitoring
+- Carbonation guidance
+- Fermentation troubleshooting
+- BrewPack preparation steps
+- Notifications for an active brew
+
+Users should follow the official Pinter app and current manufacturer instructions during the brewing process.
+
+## Current Features
+
+- BrewPack selection
+- Desired tap-date calendar
+- Recommended and minimum schedule options
+- Cold-crash selection
+- Backward date calculation
+- Brew timeline display
+- Mobile-friendly interface
+
+## Schedule Calculation
+
+Tap Planner calculates total lead time using:
+
+```text
+Total lead time =
+Brewing days
++ Cold-crash days
++ Conditioning days
+```
+
+The brew start date is then calculated using:
+
+```text
+Brew start date =
+Desired tap date
+- Total lead time
+```
+
+## Using the Web App
+
+Tap Planner is intended to be deployed as a public website.
+
+Once deployed, users will:
+
+1. Open Tap Planner in a web browser.
+2. Select a BrewPack.
+3. Select the desired tap date.
+4. Select the schedule type.
+5. Select the number of cold-crash days.
+6. Click **Calculate start date**.
+7. Follow the displayed planning timeline.
+8. Use the official Pinter app when brew day arrives.
+
+The public website address will be added here before the first release.
+
+## Development Setup
+
+The following instructions are for developers who want to run or modify Tap Planner locally.
+
+### Requirements
+
+Install:
+
+- Node.js
+- pnpm
+- Git
+
+### Clone the Repository
+
+```powershell
+git clone <repository-url>
+cd tap-planner
+```
+
+Replace `<repository-url>` with the GitHub repository URL.
+
+### Install Dependencies
+
+```powershell
+pnpm install
+```
+
+### Start the Development Server
+
+```powershell
+pnpm dev
+```
+
+Open the app in a browser:
+
+```text
+http://localhost:3000
+```
+
+Use `localhost` while developing on the same computer.
+
+### Stop the Development Server
+
+In the terminal running the app, press:
+
+```text
+Ctrl+C
+```
+
+### Create a Production Build
+
+```powershell
+pnpm build
+```
+
+### Run the Production Build Locally
+
+```powershell
+pnpm start
+```
+
 ## Technology
 
 - Next.js
@@ -76,46 +167,45 @@ Tap:           July 28, 2026
 - TypeScript
 - Tailwind CSS
 - pnpm
+- GitHub
+- Vercel
 
-## Running Locally
+Planned services:
 
-Install dependencies:
+- GitHub Actions for scheduled BrewPack imports
+- Supabase for BrewPack data, if a database is required
 
-```powershell
-pnpm install
-```
+## Deployment Plan
 
-Start the development server:
+Tap Planner is intended to use:
 
-```powershell
-pnpm dev
-```
+- GitHub for source control
+- Vercel for website hosting
+- GitHub Actions for scheduled data updates
+- Supabase for structured BrewPack data, if needed
 
-Open the application at:
-
-```text
-http://localhost:3000
-```
+Deployment instructions and the public website address will be added before Version 1.0.
 
 ## Project Timeline
 
-### Version 0.1 — Project Setup
+### Version 0.1 — Working Planner
 
 - [x] Create the Next.js project
 - [x] Configure TypeScript
 - [x] Configure Tailwind CSS
-- [x] Create the initial Tap Planner interface
-- [x] Add the BrewPack selector
-- [x] Add the tapping-date calendar
+- [x] Create the initial interface
+- [x] Add BrewPack selection
+- [x] Add the tap-date calendar
 - [x] Add recommended and minimum schedules
 - [x] Add cold-crash selection
 - [x] Calculate the brew start date
-- [x] Display the complete planning timeline
+- [x] Display the brew timeline
+- [x] Add initial project documentation
 
 ### Version 0.2 — BrewPack Data
 
-- [ ] Move BrewPack information out of the page component
-- [ ] Create a structured BrewPack data model
+- [ ] Move BrewPack data out of the page component
+- [ ] Create a reusable BrewPack data model
 - [ ] Add the official Pinter BrewPack catalog
 - [ ] Store recommended brewing times
 - [ ] Store minimum brewing times
@@ -127,11 +217,12 @@ http://localhost:3000
 
 - [ ] Build an importer for official Pinter BrewPack data
 - [ ] Validate imported schedules
-- [ ] Detect new and discontinued BrewPacks
+- [ ] Detect newly added BrewPacks
+- [ ] Detect discontinued BrewPacks
 - [ ] Detect schedule changes
-- [ ] Preserve previous data when an import fails
-- [ ] Run the importer through GitHub Actions
-- [ ] Display when BrewPack data was last checked
+- [ ] Preserve previous data if an import fails
+- [ ] Run the importer with GitHub Actions
+- [ ] Display when data was last checked
 
 ### Version 0.4 — Planning Improvements
 
@@ -139,24 +230,26 @@ http://localhost:3000
 - [ ] Add a shareable planning summary
 - [ ] Add copy-to-clipboard functionality
 - [ ] Add calendar export
-- [ ] Improve mobile layout and accessibility
-- [ ] Add clear explanations for schedule options
+- [ ] Improve mobile accessibility
+- [ ] Add clearer schedule explanations
 
-### Version 1.0 — First Public Release
+### Version 1.0 — Public Web App
 
 - [ ] Complete the official BrewPack catalog
 - [ ] Complete automatic data validation
-- [ ] Deploy the application
-- [ ] Publish project documentation
-- [ ] Test desktop and mobile browsers
-- [ ] Release the first stable public version
+- [ ] Deploy the app to Vercel
+- [ ] Add the public website address
+- [ ] Test desktop browsers
+- [ ] Test mobile browsers
+- [ ] Publish release documentation
+- [ ] Release the first stable version
 
 ## Possible Future Features
 
-These are outside the initial scope and are not commitments for Version 1:
+These features are outside the current Version 1 scope:
 
 - Multiple Pinter planning
-- Saved brewing plans
+- Saved brew plans
 - User accounts
 - Reminders
 - Community-tested schedules
@@ -167,7 +260,9 @@ These are outside the initial scope and are not commitments for Version 1:
 
 ## Disclaimer
 
-Tap Planner is an independent community planning tool and is not affiliated with, endorsed by, or sponsored by Pinter.
+Tap Planner is an independent community planning tool.
+
+It is not affiliated with, endorsed by, or sponsored by Pinter.
 
 Product names and trademarks belong to their respective owners. Always follow the official Pinter app and current manufacturer instructions when preparing and managing a brew.
 
