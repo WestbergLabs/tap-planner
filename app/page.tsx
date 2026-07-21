@@ -175,6 +175,13 @@ export default function Home() {
     }
   }
 
+  function clearBrewPack() {
+    setBrewPackId("");
+    setBrewPackSearch("");
+    setPickerOpen(false);
+    clearResult();
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -288,22 +295,36 @@ export default function Home() {
                 BrewPack
               </label>
 
-              <input
-                id="brewpack-search"
-                type="text"
-                value={brewPackSearch}
-                autoComplete="off"
-                placeholder="Search by name or style"
-                aria-expanded={pickerOpen}
-                aria-controls="brewpack-results"
-                onFocus={() => {
-                  setPickerOpen(true);
-                }}
-                onChange={(event) =>
-                  handleBrewPackSearch(event.target.value)
-                }
-                className="w-full rounded-xl border border-border-strong bg-field px-3 py-3 text-foreground outline-none placeholder:text-muted/60 focus:border-accent"
-              />
+              <div className="relative">
+                <input
+                  id="brewpack-search"
+                  type="text"
+                  value={brewPackSearch}
+                  autoComplete="off"
+                  placeholder="Search by name or style"
+                  aria-expanded={pickerOpen}
+                  aria-controls="brewpack-results"
+                  onFocus={() => {
+                    setPickerOpen(true);
+                  }}
+                  onChange={(event) =>
+                    handleBrewPackSearch(event.target.value)
+                  }
+                  className="w-full rounded-xl border border-border-strong bg-field py-3 pl-3 pr-12 text-foreground outline-none placeholder:text-muted/60 focus:border-accent"
+                />
+
+                {brewPackSearch && (
+                  <button
+                    type="button"
+                    onClick={clearBrewPack}
+                    aria-label="Clear selected BrewPack"
+                    title="Clear BrewPack"
+                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-xl leading-none text-muted transition hover:bg-accent-soft hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent"
+                  >
+                    <span aria-hidden="true">×</span>
+                  </button>
+                )}
+              </div>
 
               <p className="mt-2 text-xs leading-5 text-muted">
                 Try Dark Matter, stout, IPA, cider, or lager.
