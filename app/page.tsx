@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
+
 import { brewPacks } from "@/data/brewpacks";
 
 type ScheduleType = "recommended" | "minimum";
@@ -8,6 +15,8 @@ type ColdCrashDays = 0 | 1 | 2 | 3;
 
 type CalculationResult = {
   packName: string;
+  packStyle: string;
+  abv: number;
   brewDate: Date;
   coldCrashDate: Date | null;
   conditioningDate: Date;
@@ -59,10 +68,24 @@ function getTodayString(): string {
 }
 
 export default function Home() {
-  const [brewPackId, setBrewPackId] = useState("whole-nine-yards");
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  const activeBrewPacks = useMemo(
+    () =>
+      brewPacks
+        .filter((pack) => !pack.discontinued)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [],
+  );
+
+  const [brewPackId, setBrewPackId] = useState("");
+  const [brewPackSearch, setBrewPackSearch] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [tapDate, setTapDate] = useState("");
+
   const [schedule, setSchedule] =
     useState<ScheduleType>("recommended");
+
   const [coldCrashDays, setColdCrashDays] =
     useState<ColdCrashDays>(1);
 
@@ -71,27 +94,98 @@ export default function Home() {
 
   const [error, setError] = useState("");
 
+  const selectedPack = useMemo(
+    () =>
+      activeBrewPacks.find(
+        (pack) => pack.id === brewPackId,
+      ) ?? null,
+    [activeBrewPacks, brewPackId],
+  );
+
+  const filteredBrewPacks = useMemo(() => {
+    const search = brewPackSearch.trim().toLowerCase();
+
+    if (!search) {
+      return activeBrewPacks.slice(0, 8);
+    }
+
+    return activeBrewPacks
+      .filter((pack) => {
+        const searchableText =
+          `${pack.name} ${pack.style}`.toLowerCase();
+
+        return searchableText.includes(search);
+      })
+      .slice(0, 10);
+  }, [activeBrewPacks, brewPackSearch]);
+
+  useEffect(() => {
+    function handleOutsideClick(event: MouseEvent) {
+      if (
+        pickerRef.current &&
+        !pickerRef.current.contains(event.target as Node)
+      ) {
+        setPickerOpen(false);
+
+        if (selectedPack) {
+          setBrewPackSearch(selectedPack.name);
+        }
+      }
+    }
+
+    document.addEventListener("mousedown", handleOutsideClick);
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleOutsideClick,
+      );
+    };
+  }, [selectedPack]);
+
   function clearResult() {
     setResult(null);
     setError("");
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function selectBrewPack(packId: string) {
+    const pack = activeBrewPacks.find(
+      (item) => item.id === packId,
+    );
 
-    if (!tapDate) {
-      setResult(null);
-      setError("Select a desired tap date first.");
+    if (!pack) {
       return;
     }
 
-    const selectedPack = brewPacks.find(
-      (pack) => pack.id === brewPackId,
-    );
+    setBrewPackId(pack.id);
+    setBrewPackSearch(pack.name);
+    setPickerOpen(false);
+    clearResult();
+  }
+
+  function handleBrewPackSearch(value: string) {
+    setBrewPackSearch(value);
+    setPickerOpen(true);
+    clearResult();
+
+    if (selectedPack && value !== selectedPack.name) {
+      setBrewPackId("");
+    }
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
     if (!selectedPack) {
       setResult(null);
-      setError("The selected BrewPack could not be found.");
+      setError("Select a BrewPack from the search results.");
+      setPickerOpen(true);
+      return;
+    }
+
+    if (!tapDate) {
+      setResult(null);
+      setError("Select a desired tap date.");
       return;
     }
 
@@ -129,6 +223,8 @@ export default function Home() {
 
     setResult({
       packName: selectedPack.name,
+      packStyle: selectedPack.style,
+      abv: selectedPack.abv,
       brewDate: calculatedBrewDate,
       coldCrashDate,
       conditioningDate,
@@ -161,30 +257,106 @@ export default function Home() {
 
         <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
+            <div ref={pickerRef} className="relative">
               <label
-                htmlFor="brewpack"
+                htmlFor="brewpack-search"
                 className="mb-2 block text-sm font-medium text-slate-200"
               >
                 BrewPack
               </label>
 
-              <select
-                id="brewpack"
-                value={brewPackId}
-                onChange={(event) => {
-                  setBrewPackId(event.target.value);
-                  clearResult();
+              <input
+                id="brewpack-search"
+                type="text"
+                value={brewPackSearch}
+                autoComplete="off"
+                placeholder="Search by BrewPack name or style"
+                aria-expanded={pickerOpen}
+                aria-controls="brewpack-results"
+                onFocus={() => {
+                  setPickerOpen(true);
                 }}
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-3 text-white outline-none focus:border-amber-400"
-              >
-                {brewPacks.map((pack) => (
-                  <option key={pack.id} value={pack.id}>
-                    {pack.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(event) =>
+                  handleBrewPackSearch(event.target.value)
+                }
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-3 text-white outline-none placeholder:text-slate-600 focus:border-amber-400"
+              />
+
+              <p className="mt-2 text-xs text-slate-500">
+                Try a name or style such as Dark Matter, stout, IPA,
+                cider, or lager.
+              </p>
+
+              {pickerOpen && (
+                <div
+                  id="brewpack-results"
+                  className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-lg border border-slate-700 bg-slate-950 shadow-2xl"
+                >
+                  {filteredBrewPacks.length > 0 ? (
+                    filteredBrewPacks.map((pack) => (
+                      <button
+                        key={pack.id}
+                        type="button"
+                        onClick={() =>
+                          selectBrewPack(pack.id)
+                        }
+                        className="block w-full border-b border-slate-800 px-4 py-3 text-left transition last:border-b-0 hover:bg-slate-800 focus:bg-slate-800 focus:outline-none"
+                      >
+                        <span className="block font-medium text-white">
+                          {pack.name}
+                        </span>
+
+                        <span className="mt-1 block text-sm text-slate-400">
+                          {pack.style} · {pack.abv}% ABV
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="px-4 py-4 text-sm text-slate-400">
+                      No active BrewPacks match your search.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
+
+            {selectedPack && (
+              <div className="rounded-lg border border-slate-700 bg-slate-950/60 px-4 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-slate-200">
+                    {selectedPack.style}
+                  </p>
+
+                  <p className="rounded-full bg-amber-400/10 px-2.5 py-1 text-xs font-semibold text-amber-300">
+                    {selectedPack.abv}% ABV
+                  </p>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-800 pt-3 text-sm">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-slate-500">
+                      Recommended
+                    </p>
+
+                    <p className="mt-1 text-slate-300">
+                      {selectedPack.recommendedBrewDays} brew +{" "}
+                      {selectedPack.recommendedConditioningDays} condition
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-slate-500">
+                      Minimum
+                    </p>
+
+                    <p className="mt-1 text-slate-300">
+                      {selectedPack.minimumBrewDays} brew +{" "}
+                      {selectedPack.minimumConditioningDays} condition
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div>
               <label
@@ -207,60 +379,69 @@ export default function Home() {
               />
             </div>
 
-            <div>
-              <label
-                htmlFor="schedule"
-                className="mb-2 block text-sm font-medium text-slate-200"
-              >
-                Schedule
-              </label>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="schedule"
+                  className="mb-2 block text-sm font-medium text-slate-200"
+                >
+                  Schedule
+                </label>
 
-              <select
-                id="schedule"
-                value={schedule}
-                onChange={(event) => {
-                  setSchedule(
-                    event.target.value as ScheduleType,
-                  );
-                  clearResult();
-                }}
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-3 text-white outline-none focus:border-amber-400"
-              >
-                <option value="recommended">Recommended</option>
-                <option value="minimum">Minimum</option>
-              </select>
+                <select
+                  id="schedule"
+                  value={schedule}
+                  onChange={(event) => {
+                    setSchedule(
+                      event.target.value as ScheduleType,
+                    );
+                    clearResult();
+                  }}
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-3 text-white outline-none focus:border-amber-400"
+                >
+                  <option value="recommended">
+                    Recommended
+                  </option>
+
+                  <option value="minimum">
+                    Minimum
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="cold-crash"
+                  className="mb-2 block text-sm font-medium text-slate-200"
+                >
+                  Cold crash
+                </label>
+
+                <select
+                  id="cold-crash"
+                  value={coldCrashDays}
+                  onChange={(event) => {
+                    setColdCrashDays(
+                      Number(
+                        event.target.value,
+                      ) as ColdCrashDays,
+                    );
+
+                    clearResult();
+                  }}
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-3 text-white outline-none focus:border-amber-400"
+                >
+                  <option value={0}>None</option>
+                  <option value={1}>1 day</option>
+                  <option value={2}>2 days</option>
+                  <option value={3}>3 days</option>
+                </select>
+              </div>
             </div>
 
-            <div>
-              <label
-                htmlFor="cold-crash"
-                className="mb-2 block text-sm font-medium text-slate-200"
-              >
-                Cold crash
-              </label>
-
-              <select
-                id="cold-crash"
-                value={coldCrashDays}
-                onChange={(event) => {
-                  setColdCrashDays(
-                    Number(event.target.value) as ColdCrashDays,
-                  );
-                  clearResult();
-                }}
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-3 text-white outline-none focus:border-amber-400"
-              >
-                <option value={0}>No cold crash</option>
-                <option value={1}>1 day</option>
-                <option value={2}>2 days</option>
-                <option value={3}>3 days</option>
-              </select>
-
-              <p className="mt-2 text-xs text-slate-500">
-                Cold crashing is a separate stage between brewing and
-                conditioning.
-              </p>
-            </div>
+            <p className="-mt-2 text-xs text-slate-500">
+              Cold crashing is added between brewing and conditioning.
+            </p>
 
             {error && (
               <div
@@ -273,7 +454,7 @@ export default function Home() {
 
             <button
               type="submit"
-              className="w-full rounded-lg bg-amber-400 px-4 py-3 font-semibold text-slate-950 transition hover:bg-amber-300"
+              className="w-full rounded-lg bg-amber-400 px-4 py-3 font-semibold text-slate-950 transition hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-slate-900"
             >
               Calculate start date
             </button>
@@ -292,19 +473,25 @@ export default function Home() {
               </h2>
 
               <p className="mt-2 text-sm text-slate-400">
-                {result.totalLeadTime}-day {result.schedule} lead time
+                {result.totalLeadTime}-day {result.schedule} plan
+              </p>
+
+              <p className="mt-1 text-sm text-slate-300">
+                {result.packName} · {result.packStyle} · {result.abv}% ABV
               </p>
             </div>
 
             <div className="mt-6 space-y-5 border-t border-amber-400/20 pt-6">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Brew
-                </p>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Start brewing
+                  </p>
 
-                <p className="mt-1 font-medium">
-                  {formatDate(result.brewDate)}
-                </p>
+                  <p className="mt-1 font-medium">
+                    {formatDate(result.brewDate)}
+                  </p>
+                </div>
 
                 <p className="text-sm text-slate-400">
                   {result.brewDays} days
@@ -312,14 +499,16 @@ export default function Home() {
               </div>
 
               {result.coldCrashDate && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Begin cold crash
-                  </p>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Begin cold crash
+                    </p>
 
-                  <p className="mt-1 font-medium">
-                    {formatDate(result.coldCrashDate)}
-                  </p>
+                    <p className="mt-1 font-medium">
+                      {formatDate(result.coldCrashDate)}
+                    </p>
+                  </div>
 
                   <p className="text-sm text-slate-400">
                     {result.coldCrashDays} day
@@ -328,34 +517,38 @@ export default function Home() {
                 </div>
               )}
 
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Begin conditioning
-                </p>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Begin conditioning
+                  </p>
 
-                <p className="mt-1 font-medium">
-                  {formatDate(result.conditioningDate)}
-                </p>
+                  <p className="mt-1 font-medium">
+                    {formatDate(result.conditioningDate)}
+                  </p>
+                </div>
 
                 <p className="text-sm text-slate-400">
                   {result.conditioningDays} days
                 </p>
               </div>
 
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Tap day
-                </p>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Tap day
+                  </p>
 
-                <p className="mt-1 font-medium">
-                  {formatDate(result.tapDate)}
+                  <p className="mt-1 font-medium">
+                    {formatDate(result.tapDate)}
+                  </p>
+                </div>
+
+                <p className="text-sm font-medium text-amber-300">
+                  Ready
                 </p>
               </div>
             </div>
-
-            <p className="mt-6 text-center text-sm text-slate-300">
-              {result.packName}
-            </p>
           </section>
         )}
 
