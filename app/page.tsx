@@ -87,7 +87,7 @@ export default function Home() {
     useState<ScheduleType>("recommended");
 
   const [coldCrashDays, setColdCrashDays] =
-    useState<ColdCrashDays>(1);
+    useState<ColdCrashDays>(0);
 
   const [result, setResult] =
     useState<CalculationResult | null>(null);
