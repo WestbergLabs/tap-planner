@@ -10,7 +10,7 @@ Tap Planner is a planning tool only. It is not intended to replace the official 
 
 ## What Tap Planner Does
 
-Users select:
+Brewer select:
 
 - A BrewPack
 - A desired tapping date
