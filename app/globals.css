@@ -144,7 +144,7 @@ select,
 
 @media (max-width: 640px) {
   .tap-date-wrapper {
-    width: calc(100% - 4px);
+    width: calc(100% - 2px);
   }
 
   .tap-date-input {
