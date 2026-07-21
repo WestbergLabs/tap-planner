@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Tap Planner",
   description:
-    "Calculate when to start a Pinter brew so it is ready for your desired tap date.",
+    "Plan when to start your Pinter brew so it is ready for your desired tap date.",
 };
 
 export default function RootLayout({
