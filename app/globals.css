@@ -15,6 +15,16 @@
   --error-border: #d5a5a5;
   --error-bg: #fff1f1;
 
+  /* Subtle stage colors inspired by the official Pinter schedule. */
+  --stage-brew: #167f91;
+  --stage-brew-soft: #e6f4f6;
+  --stage-crash: #73787c;
+  --stage-crash-soft: #eef0f1;
+  --stage-condition: #b97800;
+  --stage-condition-soft: #fff4d8;
+  --stage-tap: #cf3f48;
+  --stage-tap-soft: #fff0f1;
+
   --shadow-card: 0 16px 36px rgba(44, 35, 26, 0.16);
   --shadow-result: 0 20px 48px rgba(44, 35, 26, 0.18);
   --shadow-dropdown: 0 20px 48px rgba(44, 35, 26, 0.2);
@@ -35,6 +45,14 @@
   --color-error: var(--error);
   --color-error-border: var(--error-border);
   --color-error-bg: var(--error-bg);
+  --color-stage-brew: var(--stage-brew);
+  --color-stage-brew-soft: var(--stage-brew-soft);
+  --color-stage-crash: var(--stage-crash);
+  --color-stage-crash-soft: var(--stage-crash-soft);
+  --color-stage-condition: var(--stage-condition);
+  --color-stage-condition-soft: var(--stage-condition-soft);
+  --color-stage-tap: var(--stage-tap);
+  --color-stage-tap-soft: var(--stage-tap-soft);
 
   --shadow-card: var(--shadow-card);
   --shadow-result: var(--shadow-result);
@@ -118,4 +136,12 @@ button {
     background-color 160ms ease,
     box-shadow 160ms ease,
     transform 160ms ease;
+}
+
+
+input[type="date"] {
+  display: block;
+  inline-size: 100%;
+  min-inline-size: 0;
+  max-inline-size: 100%;
 }

@@ -418,7 +418,7 @@ export default function Home() {
               </div>
             )}
 
-            <div>
+            <div className="min-w-0">
               <label
                 htmlFor="tap-date"
                 className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground"
@@ -435,7 +435,7 @@ export default function Home() {
                   setTapDate(event.target.value);
                   clearResult();
                 }}
-                className="w-full cursor-pointer rounded-xl border border-border-strong bg-field px-3 py-3 text-foreground outline-none focus:border-accent"
+                className="block w-full min-w-0 max-w-full cursor-pointer rounded-xl border border-border-strong bg-field px-3 py-3 text-base text-foreground outline-none focus:border-accent"
               />
             </div>
 
@@ -537,7 +537,7 @@ export default function Home() {
           <section className="mt-6 overflow-hidden rounded-[28px] border border-border bg-surface shadow-result">
             <div className="grid gap-5 border-b border-border p-5 sm:grid-cols-[1fr_auto] sm:items-end sm:p-6">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stage-brew">
                   Start brewing
                 </p>
 
@@ -561,10 +561,10 @@ export default function Home() {
             </div>
 
             <div className="divide-y divide-border">
-              <div className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 px-5 py-4 sm:px-6">
-                <span className="font-display text-xl text-accent">01</span>
+              <div className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 border-l-4 border-stage-brew px-5 py-4 sm:px-6">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-stage-brew-soft font-display text-lg text-stage-brew">01</span>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stage-brew">
                     Start brewing
                   </p>
                   <p className="mt-1 font-medium">
@@ -577,10 +577,10 @@ export default function Home() {
               </div>
 
               {result.coldCrashDate && (
-                <div className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 px-5 py-4 sm:px-6">
-                  <span className="font-display text-xl text-accent">02</span>
+                <div className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 border-l-4 border-stage-crash px-5 py-4 sm:px-6">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-stage-crash-soft font-display text-lg text-stage-crash">02</span>
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stage-crash">
                       Begin cold crash
                     </p>
                     <p className="mt-1 font-medium">
@@ -594,12 +594,12 @@ export default function Home() {
                 </div>
               )}
 
-              <div className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 px-5 py-4 sm:px-6">
-                <span className="font-display text-xl text-accent">
+              <div className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 border-l-4 border-stage-condition px-5 py-4 sm:px-6">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-stage-condition-soft font-display text-lg text-stage-condition">
                   {result.coldCrashDate ? "03" : "02"}
                 </span>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stage-condition">
                     Begin conditioning
                   </p>
                   <p className="mt-1 font-medium">
@@ -611,19 +611,19 @@ export default function Home() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 bg-accent-soft px-5 py-4 sm:px-6">
-                <span className="font-display text-xl text-accent">
+              <div className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 border-l-4 border-stage-tap bg-stage-tap-soft px-5 py-4 sm:px-6">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-stage-tap-soft font-display text-lg text-stage-tap">
                   {result.coldCrashDate ? "04" : "03"}
                 </span>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stage-tap">
                     Tap day
                   </p>
                   <p className="mt-1 font-semibold">
                     {formatDate(result.tapDate)}
                   </p>
                 </div>
-                <p className="text-xs font-bold uppercase tracking-[0.14em] text-accent">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-stage-tap">
                   Ready
                 </p>
               </div>
