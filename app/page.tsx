@@ -426,7 +426,7 @@ export default function Home() {
                 Desired tap date
               </label>
 
-              <div className="w-full max-w-full overflow-hidden rounded-xl">
+              <div className="tap-date-wrapper">
                 <input
                   id="tap-date"
                   type="date"
@@ -436,7 +436,7 @@ export default function Home() {
                     setTapDate(event.target.value);
                     clearResult();
                   }}
-                  className="tap-date-input block w-full min-w-0 max-w-full cursor-pointer rounded-xl border border-border-strong bg-field px-3 py-3 text-base text-foreground outline-none focus:border-accent"
+                  className="tap-date-input cursor-pointer rounded-xl border border-border-strong bg-field px-3 py-3 text-base text-foreground outline-none focus:border-accent"
                 />
               </div>
             </div>

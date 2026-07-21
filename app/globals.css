@@ -118,48 +118,36 @@ textarea {
 
 button,
 select,
-input[type="date"] {
-  cursor: pointer;
-}
 
-::selection {
-  background: var(--accent-soft);
-  color: var(--foreground);
-}
-
-
-input,
-select,
-button {
-  transition:
-    border-color 160ms ease,
-    background-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
-}
-
-
-input[type="date"] {
-  display: block;
-  inline-size: 100%;
-  min-inline-size: 0;
-  max-inline-size: 100%;
-}
-
-
-/* Keep the native mobile date picker inside the form width. */
-.tap-date-input {
-  box-sizing: border-box;
-  inline-size: 100%;
-  min-inline-size: 0;
-  max-inline-size: 100%;
+/* Native iOS date inputs can render wider than their CSS box. */
+.tap-date-wrapper {
+  width: 100%;
+  max-width: 100%;
   overflow: hidden;
+  border-radius: 0.75rem;
 }
 
-@supports (-webkit-touch-callout: none) {
+.tap-date-input {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.tap-date-input::-webkit-date-and-time-value {
+  min-width: 0;
+  text-align: left;
+}
+
+@media (max-width: 640px) {
+  .tap-date-wrapper {
+    width: calc(100% - 16px);
+  }
+
   .tap-date-input {
-    width: -webkit-fill-available;
-    min-width: 0;
-    max-width: 100%;
+    width: 100%;
   }
 }
