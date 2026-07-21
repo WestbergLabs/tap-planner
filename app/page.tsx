@@ -1,18 +1,10 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useState, type FormEvent } from "react";
+import { brewPacks } from "@/data/brewpacks";
 
 type ScheduleType = "recommended" | "minimum";
 type ColdCrashDays = 0 | 1 | 2 | 3;
-
-type BrewPack = {
-  id: string;
-  name: string;
-  recommendedBrewDays: number;
-  recommendedConditioningDays: number;
-  minimumBrewDays: number;
-  minimumConditioningDays: number;
-};
 
 type CalculationResult = {
   packName: string;
@@ -26,33 +18,6 @@ type CalculationResult = {
   totalLeadTime: number;
   schedule: ScheduleType;
 };
-
-const brewPacks: BrewPack[] = [
-  {
-    id: "whole-nine-yards",
-    name: "Whole Nine Yards",
-    recommendedBrewDays: 8,
-    recommendedConditioningDays: 3,
-    minimumBrewDays: 6,
-    minimumConditioningDays: 2,
-  },
-  {
-    id: "dark-matter",
-    name: "Dark Matter",
-    recommendedBrewDays: 5,
-    recommendedConditioningDays: 7,
-    minimumBrewDays: 4,
-    minimumConditioningDays: 5,
-  },
-  {
-    id: "fresh-press",
-    name: "Fresh Press",
-    recommendedBrewDays: 8,
-    recommendedConditioningDays: 3,
-    minimumBrewDays: 6,
-    minimumConditioningDays: 2,
-  },
-];
 
 function parseLocalDate(dateString: string): Date {
   const [year, month, day] = dateString.split("-").map(Number);
