@@ -8,7 +8,9 @@ import {
   type FormEvent,
 } from "react";
 
-import { brewPacks } from "@/data/brewpacks";
+import Image from "next/image";
+
+import { brewPacks } from "@/data/brewpacks.generated";
 
 type ScheduleType = "recommended" | "minimum";
 type ColdCrashDays = 0 | 1 | 2 | 3;
@@ -173,6 +175,13 @@ export default function Home() {
     }
   }
 
+  function clearBrewPack() {
+    setBrewPackId("");
+    setBrewPackSearch("");
+    setPickerOpen(false);
+    clearResult();
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -238,59 +247,93 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-12 text-white">
-      <div className="mx-auto max-w-xl">
-        <header className="mb-8 text-center">
-          <p className="mb-2 text-sm font-semibold uppercase tracking-[0.3em] text-amber-400">
-            Plan your first pour
-          </p>
+    <main className="min-h-screen bg-transparent px-4 py-10 text-foreground sm:py-14">
+      <div className="mx-auto max-w-2xl">
+        <header className="mb-9 border-b border-border pb-7">
+          <div className="relative isolate mb-7 min-h-56 overflow-hidden rounded-[28px] border border-border bg-foreground shadow-hero">
+            <Image
+              src="/tap-handles.jpg"
+              alt="A row of beer taps behind a bar"
+              fill
+              priority
+              sizes="(max-width: 768px) 100vw, 672px"
+              className="object-cover object-[center_42%]"
+            />
 
-          <h1 className="text-4xl font-bold tracking-tight">
-            Tap Planner
-          </h1>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-black/5" />
 
-          <p className="mt-3 text-slate-300">
-            Choose a BrewPack and tap date. We’ll tell you when to
-            start.
+            <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-orange-200">
+                Brew schedule calculator
+              </p>
+
+              <h1 className="mt-2 font-display text-5xl font-semibold uppercase leading-none tracking-tight sm:text-6xl">
+                Tap Planner
+              </h1>
+            </div>
+          </div>
+
+          <p className="max-w-xl text-base leading-7 text-muted">
+            Pick the day you want to pour. We’ll work backward and
+            build the schedule.
           </p>
         </header>
 
-        <section className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <section className="overflow-hidden rounded-[28px] border border-border bg-surface shadow-card">
+          <div className="rounded-t-[28px] border-b border-border px-5 py-4 sm:px-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+              Build your schedule
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6 p-5 sm:p-6">
             <div ref={pickerRef} className="relative">
               <label
                 htmlFor="brewpack-search"
-                className="mb-2 block text-sm font-medium text-slate-200"
+                className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground"
               >
                 BrewPack
               </label>
 
-              <input
-                id="brewpack-search"
-                type="text"
-                value={brewPackSearch}
-                autoComplete="off"
-                placeholder="Search by BrewPack name or style"
-                aria-expanded={pickerOpen}
-                aria-controls="brewpack-results"
-                onFocus={() => {
-                  setPickerOpen(true);
-                }}
-                onChange={(event) =>
-                  handleBrewPackSearch(event.target.value)
-                }
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-3 text-white outline-none placeholder:text-slate-600 focus:border-amber-400"
-              />
+              <div className="relative">
+                <input
+                  id="brewpack-search"
+                  type="text"
+                  value={brewPackSearch}
+                  autoComplete="off"
+                  placeholder="Search by name or style"
+                  aria-expanded={pickerOpen}
+                  aria-controls="brewpack-results"
+                  onFocus={() => {
+                    setPickerOpen(true);
+                  }}
+                  onChange={(event) =>
+                    handleBrewPackSearch(event.target.value)
+                  }
+                  className="w-full rounded-xl border border-border-strong bg-field py-3 pl-3 pr-12 text-foreground outline-none placeholder:text-muted/60 focus:border-accent"
+                />
 
-              <p className="mt-2 text-xs text-slate-500">
-                Try a name or style such as Dark Matter, stout, IPA,
-                cider, or lager.
+                {brewPackSearch && (
+                  <button
+                    type="button"
+                    onClick={clearBrewPack}
+                    aria-label="Clear selected BrewPack"
+                    title="Clear BrewPack"
+                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-xl leading-none text-muted transition hover:bg-accent-soft hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent"
+                  >
+                    <span aria-hidden="true">×</span>
+                  </button>
+                )}
+              </div>
+
+              <p className="mt-2 text-xs leading-5 text-muted">
+                Try Dark Matter, stout, IPA, cider, or lager.
               </p>
 
               {pickerOpen && (
                 <div
                   id="brewpack-results"
-                  className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-lg border border-slate-700 bg-slate-950 shadow-2xl"
+                  className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-border-strong bg-surface shadow-dropdown"
                 >
                   {filteredBrewPacks.length > 0 ? (
                     filteredBrewPacks.map((pack) => (
@@ -300,19 +343,25 @@ export default function Home() {
                         onClick={() =>
                           selectBrewPack(pack.id)
                         }
-                        className="block w-full border-b border-slate-800 px-4 py-3 text-left transition last:border-b-0 hover:bg-slate-800 focus:bg-slate-800 focus:outline-none"
+                        className="grid w-full grid-cols-[1fr_auto] gap-4 border-b border-border px-4 py-3 text-left last:border-b-0 hover:bg-background focus:bg-background focus:outline-none"
                       >
-                        <span className="block font-medium text-white">
-                          {pack.name}
+                        <span>
+                          <span className="block font-medium">
+                            {pack.name}
+                          </span>
+
+                          <span className="mt-1 block text-sm text-muted">
+                            {pack.style}
+                          </span>
                         </span>
 
-                        <span className="mt-1 block text-sm text-slate-400">
-                          {pack.style} · {pack.abv}% ABV
+                        <span className="self-center font-display text-lg text-accent">
+                          {pack.abv}%
                         </span>
                       </button>
                     ))
                   ) : (
-                    <p className="px-4 py-4 text-sm text-slate-400">
+                    <p className="px-4 py-4 text-sm text-muted">
                       No active BrewPacks match your search.
                     </p>
                   )}
@@ -321,36 +370,47 @@ export default function Home() {
             </div>
 
             {selectedPack && (
-              <div className="rounded-lg border border-slate-700 bg-slate-950/60 px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-slate-200">
-                    {selectedPack.style}
-                  </p>
+              <div className="border-y border-border py-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+                      On tap
+                    </p>
+                    <h2 className="mt-1 font-display text-2xl uppercase leading-tight">
+                      {selectedPack.name}
+                    </h2>
+                    <p className="mt-1 text-sm text-muted">
+                      {selectedPack.style}
+                    </p>
+                  </div>
 
-                  <p className="rounded-full bg-amber-400/10 px-2.5 py-1 text-xs font-semibold text-amber-300">
-                    {selectedPack.abv}% ABV
-                  </p>
+                  <div className="border-l border-border pl-4 text-right">
+                    <p className="font-display text-3xl leading-none text-accent">
+                      {selectedPack.abv}%
+                    </p>
+                    <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                      ABV
+                    </p>
+                  </div>
                 </div>
 
-                <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-800 pt-3 text-sm">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-slate-500">
+                <div className="mt-4 grid grid-cols-2 border-t border-border pt-4 text-sm">
+                  <div className="pr-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
                       Recommended
                     </p>
-
-                    <p className="mt-1 text-slate-300">
-                      {selectedPack.recommendedBrewDays} brew +{" "}
+                    <p className="mt-1">
+                      {selectedPack.recommendedBrewDays} brew /{" "}
                       {selectedPack.recommendedConditioningDays} condition
                     </p>
                   </div>
 
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-slate-500">
+                  <div className="border-l border-border pl-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
                       Minimum
                     </p>
-
-                    <p className="mt-1 text-slate-300">
-                      {selectedPack.minimumBrewDays} brew +{" "}
+                    <p className="mt-1">
+                      {selectedPack.minimumBrewDays} brew /{" "}
                       {selectedPack.minimumConditioningDays} condition
                     </p>
                   </div>
@@ -361,7 +421,7 @@ export default function Home() {
             <div>
               <label
                 htmlFor="tap-date"
-                className="mb-2 block text-sm font-medium text-slate-200"
+                className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground"
               >
                 Desired tap date
               </label>
@@ -375,44 +435,57 @@ export default function Home() {
                   setTapDate(event.target.value);
                   clearResult();
                 }}
-                className="w-full cursor-pointer rounded-lg border border-slate-700 bg-slate-950 px-3 py-3 text-white outline-none [color-scheme:dark] focus:border-amber-400"
+                className="w-full cursor-pointer rounded-xl border border-border-strong bg-field px-3 py-3 text-foreground outline-none focus:border-accent"
               />
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2">
-              <div>
-                <label
-                  htmlFor="schedule"
-                  className="mb-2 block text-sm font-medium text-slate-200"
-                >
+              <fieldset>
+                <legend className="mb-3 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground">
                   Schedule
-                </label>
+                </legend>
 
-                <select
-                  id="schedule"
-                  value={schedule}
-                  onChange={(event) => {
-                    setSchedule(
-                      event.target.value as ScheduleType,
-                    );
-                    clearResult();
-                  }}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-3 text-white outline-none focus:border-amber-400"
-                >
-                  <option value="recommended">
-                    Recommended
-                  </option>
+                <div className="space-y-3">
+                  <label className="flex cursor-pointer items-center gap-3">
+                    <input
+                      type="radio"
+                      name="schedule"
+                      value="recommended"
+                      checked={schedule === "recommended"}
+                      onChange={() => {
+                        setSchedule("recommended");
+                        clearResult();
+                      }}
+                      className="h-4 w-4 accent-accent"
+                    />
+                    <span className="text-sm font-medium">
+                      Recommended
+                    </span>
+                  </label>
 
-                  <option value="minimum">
-                    Minimum
-                  </option>
-                </select>
-              </div>
+                  <label className="flex cursor-pointer items-center gap-3">
+                    <input
+                      type="radio"
+                      name="schedule"
+                      value="minimum"
+                      checked={schedule === "minimum"}
+                      onChange={() => {
+                        setSchedule("minimum");
+                        clearResult();
+                      }}
+                      className="h-4 w-4 accent-accent"
+                    />
+                    <span className="text-sm font-medium">
+                      Minimum
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
 
               <div>
                 <label
                   htmlFor="cold-crash"
-                  className="mb-2 block text-sm font-medium text-slate-200"
+                  className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground"
                 >
                   Cold crash
                 </label>
@@ -426,10 +499,9 @@ export default function Home() {
                         event.target.value,
                       ) as ColdCrashDays,
                     );
-
                     clearResult();
                   }}
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-3 text-white outline-none focus:border-amber-400"
+                  className="w-full rounded-xl border border-border-strong bg-field px-3 py-3 text-foreground outline-none focus:border-accent"
                 >
                   <option value={0}>None</option>
                   <option value={1}>1 day</option>
@@ -439,14 +511,14 @@ export default function Home() {
               </div>
             </div>
 
-            <p className="-mt-2 text-xs text-slate-500">
+            <p className="-mt-3 text-xs leading-5 text-muted">
               Cold crashing is added between brewing and conditioning.
             </p>
 
             {error && (
               <div
                 role="alert"
-                className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300"
+                className="rounded-xl border border-error-border bg-error-bg px-4 py-3 text-sm text-error"
               >
                 {error}
               </div>
@@ -454,7 +526,7 @@ export default function Home() {
 
             <button
               type="submit"
-              className="w-full rounded-lg bg-amber-400 px-4 py-3 font-semibold text-slate-950 transition hover:bg-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-slate-900"
+              className="w-full rounded-xl bg-accent px-4 py-3.5 text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
             >
               Calculate start date
             </button>
@@ -462,89 +534,96 @@ export default function Home() {
         </section>
 
         {result && (
-          <section className="mt-6 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-6">
-            <div className="text-center">
-              <p className="text-sm font-semibold uppercase tracking-wide text-amber-300">
-                Start brewing
-              </p>
+          <section className="mt-6 overflow-hidden rounded-[28px] border border-border bg-surface shadow-result">
+            <div className="grid gap-5 border-b border-border p-5 sm:grid-cols-[1fr_auto] sm:items-end sm:p-6">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+                  Start brewing
+                </p>
 
-              <h2 className="mt-2 text-2xl font-bold">
-                {formatDate(result.brewDate)}
-              </h2>
+                <h2 className="mt-2 font-display text-3xl uppercase leading-tight sm:text-4xl">
+                  {formatDate(result.brewDate)}
+                </h2>
 
-              <p className="mt-2 text-sm text-slate-400">
-                {result.totalLeadTime}-day {result.schedule} plan
-              </p>
+                <p className="mt-2 text-sm text-muted">
+                  {result.packName} · {result.packStyle} · {result.abv}% ABV
+                </p>
+              </div>
 
-              <p className="mt-1 text-sm text-slate-300">
-                {result.packName} · {result.packStyle} · {result.abv}% ABV
-              </p>
+              <div className="border-t border-border pt-4 text-left sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0 sm:text-right">
+                <p className="font-display text-4xl leading-none text-accent">
+                  {result.totalLeadTime}
+                </p>
+                <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                  Days total
+                </p>
+              </div>
             </div>
 
-            <div className="mt-6 space-y-5 border-t border-amber-400/20 pt-6">
-              <div className="flex items-start justify-between gap-4">
+            <div className="divide-y divide-border">
+              <div className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 px-5 py-4 sm:px-6">
+                <span className="font-display text-xl text-accent">01</span>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
                     Start brewing
                   </p>
-
                   <p className="mt-1 font-medium">
                     {formatDate(result.brewDate)}
                   </p>
                 </div>
-
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-muted">
                   {result.brewDays} days
                 </p>
               </div>
 
               {result.coldCrashDate && (
-                <div className="flex items-start justify-between gap-4">
+                <div className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 px-5 py-4 sm:px-6">
+                  <span className="font-display text-xl text-accent">02</span>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
                       Begin cold crash
                     </p>
-
                     <p className="mt-1 font-medium">
                       {formatDate(result.coldCrashDate)}
                     </p>
                   </div>
-
-                  <p className="text-sm text-slate-400">
+                  <p className="text-sm text-muted">
                     {result.coldCrashDays} day
                     {result.coldCrashDays === 1 ? "" : "s"}
                   </p>
                 </div>
               )}
 
-              <div className="flex items-start justify-between gap-4">
+              <div className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 px-5 py-4 sm:px-6">
+                <span className="font-display text-xl text-accent">
+                  {result.coldCrashDate ? "03" : "02"}
+                </span>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
                     Begin conditioning
                   </p>
-
                   <p className="mt-1 font-medium">
                     {formatDate(result.conditioningDate)}
                   </p>
                 </div>
-
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-muted">
                   {result.conditioningDays} days
                 </p>
               </div>
 
-              <div className="flex items-start justify-between gap-4">
+              <div className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 bg-accent-soft px-5 py-4 sm:px-6">
+                <span className="font-display text-xl text-accent">
+                  {result.coldCrashDate ? "04" : "03"}
+                </span>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
                     Tap day
                   </p>
-
-                  <p className="mt-1 font-medium">
+                  <p className="mt-1 font-semibold">
                     {formatDate(result.tapDate)}
                   </p>
                 </div>
-
-                <p className="text-sm font-medium text-amber-300">
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-accent">
                   Ready
                 </p>
               </div>
@@ -552,10 +631,16 @@ export default function Home() {
           </section>
         )}
 
-        <p className="mt-6 text-center text-sm text-slate-500">
-          Planning only. Follow the official Pinter app for brewing
-          instructions and active brew guidance.
-        </p>
+        <footer className="mt-6 space-y-2 text-center text-xs leading-5 text-muted">
+          <p>
+            Planning only. Follow the official Pinter app for brewing
+            instructions and active brew guidance.
+          </p>
+
+          <p>
+            Header photo by Karl Joshua Bernal on Unsplash.
+          </p>
+        </footer>
       </div>
     </main>
   );
