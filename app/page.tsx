@@ -418,7 +418,7 @@ export default function Home() {
               </div>
             )}
 
-            <div className="min-w-0">
+            <div className="min-w-0 max-w-full">
               <label
                 htmlFor="tap-date"
                 className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground"
@@ -426,17 +426,19 @@ export default function Home() {
                 Desired tap date
               </label>
 
-              <input
-                id="tap-date"
-                type="date"
-                min={getTodayString()}
-                value={tapDate}
-                onChange={(event) => {
-                  setTapDate(event.target.value);
-                  clearResult();
-                }}
-                className="block w-full min-w-0 max-w-full cursor-pointer rounded-xl border border-border-strong bg-field px-3 py-3 text-base text-foreground outline-none focus:border-accent"
-              />
+              <div className="w-full max-w-full overflow-hidden rounded-xl">
+                <input
+                  id="tap-date"
+                  type="date"
+                  min={getTodayString()}
+                  value={tapDate}
+                  onChange={(event) => {
+                    setTapDate(event.target.value);
+                    clearResult();
+                  }}
+                  className="tap-date-input block w-full min-w-0 max-w-full cursor-pointer rounded-xl border border-border-strong bg-field px-3 py-3 text-base text-foreground outline-none focus:border-accent"
+                />
+              </div>
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2">

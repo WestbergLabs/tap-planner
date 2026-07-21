@@ -145,3 +145,21 @@ input[type="date"] {
   min-inline-size: 0;
   max-inline-size: 100%;
 }
+
+
+/* Keep the native mobile date picker inside the form width. */
+.tap-date-input {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  overflow: hidden;
+}
+
+@supports (-webkit-touch-callout: none) {
+  .tap-date-input {
+    width: -webkit-fill-available;
+    min-width: 0;
+    max-width: 100%;
+  }
+}
