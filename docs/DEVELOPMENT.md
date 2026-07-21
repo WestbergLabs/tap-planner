@@ -24,7 +24,7 @@ Technical setup, project structure, BrewPack importing, automated monitoring, an
     </td>
     <td width="25%" align="center">
       <strong>Package manager</strong><br><br>
-      pnpm
+      pnpm 11.15.1
     </td>
     <td width="25%" align="center">
       <strong>Hosting</strong><br><br>
@@ -70,8 +70,8 @@ Technical setup, project structure, BrewPack importing, automated monitoring, an
 
 | Requirement | Purpose |
 |---|---|
-| Node.js | Runs the Next.js application and importer |
-| pnpm | Installs dependencies and runs scripts |
+| Node.js 22 | Runs the Next.js application and importer |
+| pnpm 11.15.1 | Installs dependencies and runs scripts |
 | Git | Version control and branch management |
 
 ### Clone and install
@@ -119,6 +119,7 @@ pnpm build
 ```text
 .github/
   workflows/
+    ci.yml
     monitor-brewpacks.yml
 
 app/
@@ -127,7 +128,6 @@ app/
   page.tsx
 
 data/
-  brewpacks.ts
   brewpacks.generated.ts
 
 public/
@@ -144,6 +144,7 @@ scripts/
 | `app/layout.tsx` | Application metadata and root layout |
 | `data/brewpacks.generated.ts` | Generated BrewPack catalog used by the app |
 | `scripts/import-brewpacks.ts` | Scrapes, validates, and writes BrewPack data |
+| `.github/workflows/ci.yml` | Runs lint and build checks on pull requests and pushes to `main` |
 | `.github/workflows/monitor-brewpacks.yml` | Scheduled BrewPack monitoring workflow |
 | `public/tap-handles.jpg` | Local hero image |
 
@@ -244,7 +245,7 @@ The importer also:
 - applies stable slug overrides where needed
 - writes deterministic output
 
-The generated file does not include a changing timestamp, so Git detects only real catalog changes.
+The generated file does not include a changing timestamp, so Git detects only real catalog changes. The importer also requires a valid `Hopper Included` value and fails loudly if Pinter removes or changes that field.
 
 ---
 
@@ -268,6 +269,8 @@ It runs every Monday and can also be started manually from the repository's **Ac
 | Compare | Checks for meaningful data changes |
 | Validate | Runs lint and a production build |
 | Review | Opens or updates a pull request |
+
+A successful no-change run confirms that the source page still parses correctly. A failed scheduled run can intentionally signal that Pinter changed the source-page structure and the importer needs maintenance.
 
 The monitor can detect:
 

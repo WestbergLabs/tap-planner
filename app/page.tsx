@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type KeyboardEvent,
 } from "react";
 
 import Image from "next/image";
@@ -71,6 +72,7 @@ function getTodayString(): string {
 
 export default function Home() {
   const pickerRef = useRef<HTMLDivElement>(null);
+  const resultRef = useRef<HTMLElement>(null);
 
   const activeBrewPacks = useMemo(
     () =>
@@ -83,6 +85,7 @@ export default function Home() {
   const [brewPackId, setBrewPackId] = useState("");
   const [brewPackSearch, setBrewPackSearch] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [tapDate, setTapDate] = useState("");
 
   const [schedule, setSchedule] =
@@ -145,6 +148,16 @@ export default function Home() {
     };
   }, [selectedPack]);
 
+  useEffect(() => {
+    if (!result) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      resultRef.current?.focus();
+    });
+  }, [result]);
+
   function clearResult() {
     setResult(null);
     setError("");
@@ -162,12 +175,14 @@ export default function Home() {
     setBrewPackId(pack.id);
     setBrewPackSearch(pack.name);
     setPickerOpen(false);
+    setHighlightedIndex(-1);
     clearResult();
   }
 
   function handleBrewPackSearch(value: string) {
     setBrewPackSearch(value);
     setPickerOpen(true);
+    setHighlightedIndex(0);
     clearResult();
 
     if (selectedPack && value !== selectedPack.name) {
@@ -175,10 +190,55 @@ export default function Home() {
     }
   }
 
+  function handleBrewPackKeyDown(
+    event: KeyboardEvent<HTMLInputElement>,
+  ) {
+    if (event.key === "Escape") {
+      setPickerOpen(false);
+      setHighlightedIndex(-1);
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setPickerOpen(true);
+      setHighlightedIndex((currentIndex) =>
+        Math.min(currentIndex + 1, filteredBrewPacks.length - 1),
+      );
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setPickerOpen(true);
+      setHighlightedIndex((currentIndex) =>
+        currentIndex <= 0
+          ? filteredBrewPacks.length - 1
+          : currentIndex - 1,
+      );
+      return;
+    }
+
+    if (
+      event.key === "Enter" &&
+      pickerOpen &&
+      highlightedIndex >= 0
+    ) {
+      const highlightedPack =
+        filteredBrewPacks[highlightedIndex];
+
+      if (highlightedPack) {
+        event.preventDefault();
+        selectBrewPack(highlightedPack.id);
+      }
+    }
+  }
+
   function clearBrewPack() {
     setBrewPackId("");
     setBrewPackSearch("");
     setPickerOpen(false);
+    setHighlightedIndex(-1);
     clearResult();
   }
 
@@ -299,18 +359,26 @@ export default function Home() {
                 <input
                   id="brewpack-search"
                   type="text"
+                  role="combobox"
                   value={brewPackSearch}
                   autoComplete="off"
                   placeholder="Search by name or style"
                   aria-expanded={pickerOpen}
                   aria-controls="brewpack-results"
+                  aria-autocomplete="list"
+                  aria-activedescendant={
+                    pickerOpen && highlightedIndex >= 0
+                      ? `brewpack-option-${filteredBrewPacks[highlightedIndex]?.id}`
+                      : undefined
+                  }
                   onFocus={() => {
                     setPickerOpen(true);
                   }}
                   onChange={(event) =>
                     handleBrewPackSearch(event.target.value)
                   }
-                  className="w-full rounded-xl border border-border-strong bg-field py-3 pl-3 pr-12 text-foreground outline-none placeholder:text-muted/60 focus:border-accent"
+                  onKeyDown={handleBrewPackKeyDown}
+                  className="w-full rounded-xl border border-border-strong bg-field py-3 pl-3 pr-12 text-foreground outline-none placeholder:text-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/30"
                 />
 
                 {brewPackSearch && (
@@ -333,17 +401,27 @@ export default function Home() {
               {pickerOpen && (
                 <div
                   id="brewpack-results"
+                  role="listbox"
+                  aria-label="Matching BrewPacks"
                   className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-border-strong bg-surface shadow-dropdown"
                 >
                   {filteredBrewPacks.length > 0 ? (
-                    filteredBrewPacks.map((pack) => (
+                    filteredBrewPacks.map((pack, index) => (
                       <button
                         key={pack.id}
+                        id={`brewpack-option-${pack.id}`}
                         type="button"
+                        role="option"
+                        aria-selected={index === highlightedIndex}
                         onClick={() =>
                           selectBrewPack(pack.id)
                         }
-                        className="grid w-full grid-cols-[1fr_auto] gap-4 border-b border-border px-4 py-3 text-left last:border-b-0 hover:bg-background focus:bg-background focus:outline-none"
+                        onMouseEnter={() => setHighlightedIndex(index)}
+                        className={`grid w-full grid-cols-[1fr_auto] gap-4 border-b border-border px-4 py-3 text-left last:border-b-0 focus:outline-none ${
+                          index === highlightedIndex
+                            ? "bg-background"
+                            : "hover:bg-background"
+                        }`}
                       >
                         <span>
                           <span className="block font-medium">
@@ -436,7 +514,7 @@ export default function Home() {
                     setTapDate(event.target.value);
                     clearResult();
                   }}
-                  className="tap-date-input cursor-pointer rounded-xl border border-border-strong bg-field px-3 py-3 text-base text-foreground outline-none focus:border-accent"
+                  className="tap-date-input cursor-pointer rounded-xl border border-border-strong bg-field px-3 py-3 text-base text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
                 />
               </div>
             </div>
@@ -503,7 +581,7 @@ export default function Home() {
                     );
                     clearResult();
                   }}
-                  className="w-full rounded-xl border border-border-strong bg-field px-3 py-3 text-foreground outline-none focus:border-accent"
+                  className="w-full rounded-xl border border-border-strong bg-field px-3 py-3 text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
                 >
                   <option value={0}>None</option>
                   <option value={1}>1 day</option>
@@ -536,14 +614,23 @@ export default function Home() {
         </section>
 
         {result && (
-          <section className="mt-6 overflow-hidden rounded-[28px] border border-border bg-surface shadow-result">
+          <section
+            ref={resultRef}
+            tabIndex={-1}
+            aria-live="polite"
+            aria-labelledby="schedule-result-heading"
+            className="mt-6 overflow-hidden rounded-[28px] border border-border bg-surface shadow-result outline-none focus:ring-2 focus:ring-accent/30"
+          >
             <div className="grid gap-5 border-b border-border p-5 sm:grid-cols-[1fr_auto] sm:items-end sm:p-6">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stage-brew">
                   Start brewing
                 </p>
 
-                <h2 className="mt-2 font-display text-3xl uppercase leading-tight sm:text-4xl">
+                <h2
+                  id="schedule-result-heading"
+                  className="mt-2 font-display text-3xl uppercase leading-tight sm:text-4xl"
+                >
                   {formatDate(result.brewDate)}
                 </h2>
 

@@ -144,7 +144,16 @@ function parseBrewPacks(html: string): BrewPack[] {
       return;
     }
 
-    const hopperValue = fields.get("hopper included") ?? "";
+    const hopperValue = getField(
+      fields,
+      "hopper included",
+    ).toLowerCase();
+
+    if (hopperValue !== "yes" && hopperValue !== "no") {
+      throw new Error(
+        `Unexpected Hopper Included value for ${name}: "${hopperValue}"`,
+      );
+    }
 
     const candidate: BrewPack = {
       id: SLUG_OVERRIDES[name] ?? slugify(name),
@@ -168,7 +177,7 @@ function parseBrewPacks(html: string): BrewPack[] {
       ),
       abv: parseAbv(getField(fields, "abv")),
       yeast: getField(fields, "yeast"),
-      hopperIncluded: hopperValue.toLowerCase() === "yes",
+      hopperIncluded: hopperValue === "yes",
       ...(discontinued ? { discontinued: true } : {}),
     };
 
