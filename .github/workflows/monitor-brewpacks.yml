@@ -1,0 +1,105 @@
+name: Monitor Pinter BrewPacks
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 7 * * 1"
+      timezone: "America/Chicago"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: monitor-pinter-brewpacks
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    name: Check BrewPack catalog
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Import current BrewPack catalog
+        run: pnpm import:brewpacks
+
+      - name: Check for catalog changes
+        id: catalog
+        shell: bash
+        run: |
+          if git diff --quiet -- data/brewpacks.generated.ts; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No BrewPack catalog changes detected."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "BrewPack catalog changes detected."
+            git diff -- data/brewpacks.generated.ts
+          fi
+
+      - name: Validate changed catalog
+        if: steps.catalog.outputs.changed == 'true'
+        run: |
+          pnpm lint
+          pnpm build
+
+      - name: Commit catalog update
+        if: steps.catalog.outputs.changed == 'true'
+        shell: bash
+        run: |
+          branch="automation/brewpack-catalog-update"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git switch -C "$branch"
+          git add data/brewpacks.generated.ts
+          git commit -m "chore: update BrewPack catalog"
+          git push --force-with-lease origin "$branch"
+
+      - name: Open or update pull request
+        if: steps.catalog.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          branch="automation/brewpack-catalog-update"
+
+          existing_pr="$(
+            gh pr list \
+              --head "$branch" \
+              --base main \
+              --state open \
+              --json number \
+              --jq '.[0].number // empty'
+          )"
+
+          if [ -n "$existing_pr" ]; then
+            echo "Updated existing pull request #$existing_pr."
+          else
+            gh pr create \
+              --base main \
+              --head "$branch" \
+              --title "chore: update BrewPack catalog" \
+              --body "The scheduled BrewPack monitor detected changes on Pinter's public support page.
+
+This pull request was generated automatically.
+
+Please review the catalog diff before merging. The workflow validated the generated data with the importer, lint, and production build."
+          fi
