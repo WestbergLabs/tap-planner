@@ -93,13 +93,17 @@ jobs:
           if [ -n "$existing_pr" ]; then
             echo "Updated existing pull request #$existing_pr."
           else
+            cat > pr-body.md <<'EOF'
+          The scheduled BrewPack monitor detected changes on Pinter's public support page.
+
+          This pull request was generated automatically.
+
+          Please review the catalog diff before merging. The workflow validated the generated data with the importer, lint, and production build.
+          EOF
+
             gh pr create \
               --base main \
               --head "$branch" \
               --title "chore: update BrewPack catalog" \
-              --body "The scheduled BrewPack monitor detected changes on Pinter's public support page.
-
-This pull request was generated automatically.
-
-Please review the catalog diff before merging. The workflow validated the generated data with the importer, lint, and production build."
+              --body-file pr-body.md
           fi
