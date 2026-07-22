@@ -3,6 +3,7 @@
 import {
   Suspense,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type FormEvent,
@@ -11,6 +12,8 @@ import {
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
+import BrewPackPicker from "@/components/BrewPackPicker";
+import { brewPacks, type BrewPack } from "@/data/brewpacks.generated";
 import {
   calculateSchedule,
   formatDate,
@@ -18,8 +21,10 @@ import {
   parseLocalDate,
 } from "@/lib/schedule";
 
+type StartMode = "brewpack" | "scratch";
+
 type CustomResult = {
-  recipeName: string;
+  scheduleName: string;
   style: string;
   abv: string;
   fermentationDate: Date;
@@ -33,7 +38,7 @@ type CustomResult = {
 };
 
 type FieldErrors = {
-  recipeName?: string;
+  scheduleName?: string;
   abv?: string;
   fermentationDays?: string;
   coldCrashDays?: string;
@@ -49,9 +54,24 @@ function CustomPlanner() {
 
   // Prefill from URL query params only (no localStorage, cookies, or storage).
   const wasPrefilled = searchParams.get("prefill") === "brewpack";
+  const prefilledName = searchParams.get("name") ?? "";
 
-  const [recipeName, setRecipeName] = useState(
-    () => searchParams.get("name") ?? "",
+  const activeBrewPacks = useMemo(
+    () =>
+      brewPacks
+        .filter((pack) => !pack.discontinued)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [],
+  );
+
+  // Default to starting from an official BrewPack.
+  const [startMode, setStartMode] = useState<StartMode>("brewpack");
+  const [selectedBrewPackId, setSelectedBrewPackId] = useState(
+    () => searchParams.get("id") ?? "",
+  );
+
+  const [scheduleName, setScheduleName] = useState(() =>
+    wasPrefilled && prefilledName ? `${prefilledName} - Custom` : "",
   );
   const [style, setStyle] = useState(() => searchParams.get("style") ?? "");
   const [abv, setAbv] = useState(() => searchParams.get("abv") ?? "");
@@ -85,11 +105,48 @@ function CustomPlanner() {
     setResult(null);
   }
 
+  // Selecting a BrewPack seeds the form with its official timing. Every field
+  // stays editable afterwards.
+  function handleSelectBrewPack(pack: BrewPack) {
+    setSelectedBrewPackId(pack.id);
+    setScheduleName(`${pack.name} - Custom`);
+    setStyle(pack.style);
+    setAbv(String(pack.abv));
+    setFermentationDays(String(pack.recommendedBrewDays));
+    setConditioningDays(String(pack.recommendedConditioningDays));
+    setColdCrashDays("0");
+    setErrors({});
+    clearResult();
+  }
+
+  function handleClearBrewPack() {
+    setSelectedBrewPackId("");
+    clearResult();
+  }
+
+  function handleModeChange(mode: StartMode) {
+    setStartMode(mode);
+    setErrors({});
+    clearResult();
+
+    // Start from scratch clears everything except a tap date the user has
+    // already chosen on this page.
+    if (mode === "scratch") {
+      setSelectedBrewPackId("");
+      setScheduleName("");
+      setStyle("");
+      setAbv("");
+      setFermentationDays("");
+      setConditioningDays("");
+      setColdCrashDays("0");
+    }
+  }
+
   function validate(): FieldErrors {
     const nextErrors: FieldErrors = {};
 
-    if (!recipeName.trim()) {
-      nextErrors.recipeName = "Enter a recipe name.";
+    if (!scheduleName.trim()) {
+      nextErrors.scheduleName = "Enter a schedule name.";
     }
 
     if (abv.trim() !== "") {
@@ -172,7 +229,7 @@ function CustomPlanner() {
     });
 
     setResult({
-      recipeName: recipeName.trim(),
+      scheduleName: scheduleName.trim(),
       style: style.trim(),
       abv: abv.trim(),
       fermentationDate,
@@ -192,6 +249,9 @@ function CustomPlanner() {
         result.abv ? `${result.abv}% ABV` : "",
       ].filter(Boolean)
     : [];
+
+  const showBrewPackNotice =
+    startMode === "brewpack" && selectedBrewPackId !== "";
 
   return (
     <main className="min-h-screen bg-transparent px-4 py-10 text-foreground sm:py-14">
@@ -213,19 +273,9 @@ function CustomPlanner() {
           </h1>
 
           <p className="mt-4 max-w-xl text-base leading-7 text-muted">
-            Enter your own recipe timing or adjust an official BrewPack
-            schedule.
+            Start from an official BrewPack or enter your own recipe timing.
           </p>
         </header>
-
-        {wasPrefilled && (
-          <div
-            role="status"
-            className="mb-6 rounded-2xl border border-stage-brew/40 bg-stage-brew-soft px-5 py-4 text-sm leading-6 text-foreground"
-          >
-            Starting with official BrewPack timing. Adjust any value below.
-          </div>
-        )}
 
         <section className="overflow-hidden rounded-[28px] border border-border bg-surface shadow-card">
           <div className="rounded-t-[28px] border-b border-border px-5 py-4 sm:px-6">
@@ -239,38 +289,106 @@ function CustomPlanner() {
             noValidate
             className="space-y-6 p-5 sm:p-6"
           >
+            <fieldset>
+              <legend className="mb-3 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground">
+                Starting point
+              </legend>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label
+                  className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition ${
+                    startMode === "brewpack"
+                      ? "border-accent bg-accent-soft"
+                      : "border-border-strong bg-field hover:border-accent"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="start-mode"
+                    value="brewpack"
+                    checked={startMode === "brewpack"}
+                    onChange={() => handleModeChange("brewpack")}
+                    className="h-4 w-4 accent-accent"
+                  />
+                  <span className="text-sm font-medium">
+                    Start from an official BrewPack
+                  </span>
+                </label>
+
+                <label
+                  className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition ${
+                    startMode === "scratch"
+                      ? "border-accent bg-accent-soft"
+                      : "border-border-strong bg-field hover:border-accent"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="start-mode"
+                    value="scratch"
+                    checked={startMode === "scratch"}
+                    onChange={() => handleModeChange("scratch")}
+                    className="h-4 w-4 accent-accent"
+                  />
+                  <span className="text-sm font-medium">
+                    Start from scratch
+                  </span>
+                </label>
+              </div>
+            </fieldset>
+
+            {startMode === "brewpack" && (
+              <BrewPackPicker
+                brewPacks={activeBrewPacks}
+                selectedId={selectedBrewPackId}
+                onSelect={handleSelectBrewPack}
+                onClear={handleClearBrewPack}
+                onEdit={clearResult}
+                hint="Search for a BrewPack to start from its official timing."
+              />
+            )}
+
+            {showBrewPackNotice && (
+              <div
+                role="status"
+                className="rounded-2xl border border-stage-brew/40 bg-stage-brew-soft px-5 py-4 text-sm leading-6 text-foreground"
+              >
+                Starting with official BrewPack timing. Adjust any value below.
+              </div>
+            )}
+
             <div>
               <label
-                htmlFor="recipe-name"
+                htmlFor="schedule-name"
                 className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground"
               >
-                Recipe name
+                Schedule name
               </label>
 
               <input
-                id="recipe-name"
+                id="schedule-name"
                 type="text"
-                value={recipeName}
+                value={scheduleName}
                 autoComplete="off"
                 placeholder="My house pale ale"
                 aria-required="true"
-                aria-invalid={errors.recipeName ? true : undefined}
+                aria-invalid={errors.scheduleName ? true : undefined}
                 aria-describedby={
-                  errors.recipeName ? "recipe-name-error" : undefined
+                  errors.scheduleName ? "schedule-name-error" : undefined
                 }
                 onChange={(event) => {
-                  setRecipeName(event.target.value);
+                  setScheduleName(event.target.value);
                   clearResult();
                 }}
                 className="w-full rounded-xl border border-border-strong bg-field px-3 py-3 text-foreground outline-none placeholder:text-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/30"
               />
 
-              {errors.recipeName && (
+              {errors.scheduleName && (
                 <p
-                  id="recipe-name-error"
+                  id="schedule-name-error"
                   className="mt-2 text-sm text-error"
                 >
-                  {errors.recipeName}
+                  {errors.scheduleName}
                 </p>
               )}
             </div>
@@ -532,7 +650,7 @@ function CustomPlanner() {
                 </h2>
 
                 <p className="mt-2 text-sm text-muted">
-                  {[result.recipeName, ...metaParts].join(" · ")}
+                  {[result.scheduleName, ...metaParts].join(" · ")}
                 </p>
               </div>
 

@@ -147,6 +147,7 @@ scripts/
 |---|---|
 | `app/page.tsx` | Official BrewPack planner interface at `/` |
 | `app/custom/page.tsx` | Custom recipe planner at `/custom` |
+| `components/BrewPackPicker.tsx` | Accessible BrewPack search combobox shared by both planners |
 | `lib/schedule.ts` | Shared date and schedule-calculation utilities used by both planners |
 | `app/globals.css` | Global design, responsive layout, and mobile fixes |
 | `app/layout.tsx` | Application metadata and root layout |
@@ -203,11 +204,18 @@ app/custom/page.tsx        →  /custom
 
 It lets a user schedule their own recipe, or adjust an official BrewPack's timing, without touching the compact official planner at `/`.
 
+### Starting point
+
+A **Starting point** toggle sits at the top of the form:
+
+- **Start from an official BrewPack** (default) reveals the shared `BrewPackPicker`. Selecting a pack seeds the schedule name (`BrewPack Name - Custom`), style, ABV, fermentation days (recommended brew days), conditioning days (recommended conditioning days), and cold-crash days (0). Every seeded field stays editable, and a notice confirms the official timing was applied.
+- **Start from scratch** clears the BrewPack selection and all recipe fields, keeping only a tap date the user has already entered on this page.
+
 ### Fields and validation
 
 | Field | Required | Rule |
 |---|:---:|---|
-| Recipe name | Yes | Non-empty |
+| Schedule name | Yes | Non-empty |
 | Style | No | Free text |
 | ABV | No | Decimal, 0–30 |
 | Fermentation days | Yes | Whole number, minimum 1 |
@@ -219,7 +227,7 @@ Validation is strict: negative values are rejected, inline messages are associat
 
 ### Prefilling from an official BrewPack
 
-The **Customize timing** action on the main planner links to `/custom` and passes the selected BrewPack's current values — name, style, ABV, the chosen brew (fermentation), cold-crash, and conditioning durations, and the tap date when already entered — as **URL query parameters only**. The BrewPack's brew duration is interpreted as fermentation days. All prefilled fields remain fully editable, and a notice indicates when values were prefilled.
+The **Customize timing** action on the main planner links to `/custom` and passes the selected BrewPack's current values — id, name, style, ABV, the chosen brew (fermentation), cold-crash, and conditioning durations, and the tap date when already entered — as **URL query parameters only**. The BrewPack's brew duration is interpreted as fermentation days, and the `id` preselects the pack in the picker. All prefilled fields remain fully editable, and a notice indicates when values were prefilled.
 
 No `localStorage`, `sessionStorage`, `IndexedDB`, cookies, database, or accounts are used, so a browser refresh on `/custom` simply re-reads the query parameters.
 

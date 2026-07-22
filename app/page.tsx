@@ -6,12 +6,12 @@ import {
   useRef,
   useState,
   type FormEvent,
-  type KeyboardEvent,
 } from "react";
 
 import Image from "next/image";
 import Link from "next/link";
 
+import BrewPackPicker from "@/components/BrewPackPicker";
 import { brewPacks } from "@/data/brewpacks.generated";
 import {
   calculateSchedule,
@@ -39,7 +39,6 @@ type CalculationResult = {
 };
 
 export default function Home() {
-  const pickerRef = useRef<HTMLDivElement>(null);
   const resultRef = useRef<HTMLElement>(null);
 
   const activeBrewPacks = useMemo(
@@ -51,9 +50,6 @@ export default function Home() {
   );
 
   const [brewPackId, setBrewPackId] = useState("");
-  const [brewPackSearch, setBrewPackSearch] = useState("");
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [tapDate, setTapDate] = useState("");
 
   const [schedule, setSchedule] =
@@ -95,6 +91,7 @@ export default function Home() {
 
     const params = new URLSearchParams({
       prefill: "brewpack",
+      id: selectedPack.id,
       name: selectedPack.name,
       style: selectedPack.style,
       abv: String(selectedPack.abv),
@@ -109,47 +106,6 @@ export default function Home() {
 
     return `/custom?${params.toString()}`;
   }, [selectedPack, schedule, coldCrashDays, tapDate]);
-
-  const filteredBrewPacks = useMemo(() => {
-    const search = brewPackSearch.trim().toLowerCase();
-
-    if (!search) {
-      return activeBrewPacks.slice(0, 8);
-    }
-
-    return activeBrewPacks
-      .filter((pack) => {
-        const searchableText =
-          `${pack.name} ${pack.style}`.toLowerCase();
-
-        return searchableText.includes(search);
-      })
-      .slice(0, 10);
-  }, [activeBrewPacks, brewPackSearch]);
-
-  useEffect(() => {
-    function handleOutsideClick(event: MouseEvent) {
-      if (
-        pickerRef.current &&
-        !pickerRef.current.contains(event.target as Node)
-      ) {
-        setPickerOpen(false);
-
-        if (selectedPack) {
-          setBrewPackSearch(selectedPack.name);
-        }
-      }
-    }
-
-    document.addEventListener("mousedown", handleOutsideClick);
-
-    return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleOutsideClick,
-      );
-    };
-  }, [selectedPack]);
 
   useEffect(() => {
     if (!result) {
@@ -166,82 +122,13 @@ export default function Home() {
     setError("");
   }
 
-  function selectBrewPack(packId: string) {
-    const pack = activeBrewPacks.find(
-      (item) => item.id === packId,
-    );
-
-    if (!pack) {
-      return;
-    }
-
+  function handleSelectBrewPack(pack: (typeof activeBrewPacks)[number]) {
     setBrewPackId(pack.id);
-    setBrewPackSearch(pack.name);
-    setPickerOpen(false);
-    setHighlightedIndex(-1);
     clearResult();
-  }
-
-  function handleBrewPackSearch(value: string) {
-    setBrewPackSearch(value);
-    setPickerOpen(true);
-    setHighlightedIndex(0);
-    clearResult();
-
-    if (selectedPack && value !== selectedPack.name) {
-      setBrewPackId("");
-    }
-  }
-
-  function handleBrewPackKeyDown(
-    event: KeyboardEvent<HTMLInputElement>,
-  ) {
-    if (event.key === "Escape") {
-      setPickerOpen(false);
-      setHighlightedIndex(-1);
-      return;
-    }
-
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      setPickerOpen(true);
-      setHighlightedIndex((currentIndex) =>
-        Math.min(currentIndex + 1, filteredBrewPacks.length - 1),
-      );
-      return;
-    }
-
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      setPickerOpen(true);
-      setHighlightedIndex((currentIndex) =>
-        currentIndex <= 0
-          ? filteredBrewPacks.length - 1
-          : currentIndex - 1,
-      );
-      return;
-    }
-
-    if (
-      event.key === "Enter" &&
-      pickerOpen &&
-      highlightedIndex >= 0
-    ) {
-      const highlightedPack =
-        filteredBrewPacks[highlightedIndex];
-
-      if (highlightedPack) {
-        event.preventDefault();
-        selectBrewPack(highlightedPack.id);
-      }
-    }
   }
 
   function clearBrewPack() {
     setBrewPackId("");
-    setBrewPackSearch("");
-    setPickerOpen(false);
-    setHighlightedIndex(-1);
     clearResult();
   }
 
@@ -251,7 +138,6 @@ export default function Home() {
     if (!selectedPack) {
       setResult(null);
       setError("Select a BrewPack from the search results.");
-      setPickerOpen(true);
       return;
     }
 
@@ -343,105 +229,14 @@ export default function Home() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6 p-5 sm:p-6">
-            <div ref={pickerRef} className="relative">
-              <label
-                htmlFor="brewpack-search"
-                className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground"
-              >
-                BrewPack
-              </label>
-
-              <div className="relative">
-                <input
-                  id="brewpack-search"
-                  type="text"
-                  role="combobox"
-                  value={brewPackSearch}
-                  autoComplete="off"
-                  placeholder="Search by name or style"
-                  aria-expanded={pickerOpen}
-                  aria-controls="brewpack-results"
-                  aria-autocomplete="list"
-                  aria-activedescendant={
-                    pickerOpen && highlightedIndex >= 0
-                      ? `brewpack-option-${filteredBrewPacks[highlightedIndex]?.id}`
-                      : undefined
-                  }
-                  onFocus={() => {
-                    setPickerOpen(true);
-                  }}
-                  onChange={(event) =>
-                    handleBrewPackSearch(event.target.value)
-                  }
-                  onKeyDown={handleBrewPackKeyDown}
-                  className="w-full rounded-xl border border-border-strong bg-field py-3 pl-3 pr-12 text-foreground outline-none placeholder:text-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/30"
-                />
-
-                {brewPackSearch && (
-                  <button
-                    type="button"
-                    onClick={clearBrewPack}
-                    aria-label="Clear selected BrewPack"
-                    title="Clear BrewPack"
-                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-xl leading-none text-muted transition hover:bg-accent-soft hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent"
-                  >
-                    <span aria-hidden="true">×</span>
-                  </button>
-                )}
-              </div>
-
-              <p className="mt-2 text-xs leading-5 text-muted">
-                Try Dark Matter, stout, IPA, cider, or lager.
-              </p>
-
-              {pickerOpen && (
-                <div
-                  id="brewpack-results"
-                  role="listbox"
-                  aria-label="Matching BrewPacks"
-                  className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-2xl border border-border-strong bg-surface shadow-dropdown"
-                >
-                  {filteredBrewPacks.length > 0 ? (
-                    filteredBrewPacks.map((pack, index) => (
-                      <button
-                        key={pack.id}
-                        id={`brewpack-option-${pack.id}`}
-                        type="button"
-                        role="option"
-                        aria-selected={index === highlightedIndex}
-                        onClick={() =>
-                          selectBrewPack(pack.id)
-                        }
-                        onMouseEnter={() => setHighlightedIndex(index)}
-                        className={`grid w-full grid-cols-[1fr_auto] gap-4 border-b border-border px-4 py-3 text-left last:border-b-0 focus:outline-none ${
-                          index === highlightedIndex
-                            ? "bg-background"
-                            : "hover:bg-background"
-                        }`}
-                      >
-                        <span>
-                          <span className="block font-medium">
-                            {pack.name}
-                          </span>
-
-                          <span className="mt-1 block text-sm text-muted">
-                            {pack.style}
-                          </span>
-                        </span>
-
-                        <span className="self-center font-display text-lg text-accent">
-                          {pack.abv}%
-                        </span>
-                      </button>
-                    ))
-                  ) : (
-                    <p className="px-4 py-4 text-sm text-muted">
-                      No active BrewPacks match your search.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
+            <BrewPackPicker
+              brewPacks={activeBrewPacks}
+              selectedId={brewPackId}
+              onSelect={handleSelectBrewPack}
+              onClear={clearBrewPack}
+              onEdit={clearResult}
+              hint="Try Dark Matter, stout, IPA, cider, or lager."
+            />
 
             <p className="-mt-2 text-sm leading-6 text-muted">
               Using your own recipe or need different timing?{" "}
