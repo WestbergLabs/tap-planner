@@ -202,7 +202,7 @@ The custom planner lives at:
 app/custom/page.tsx        →  /custom
 ```
 
-It lets a user schedule their own recipe, or adjust an official BrewPack's timing, without touching the compact official planner at `/`.
+It lets a user schedule their own recipe, or adjust an official BrewPack's timing, without touching the compact official planner at `/`. A compact hero banner (the shared `public/tap-handles.jpg`, roughly 200px tall, cropped with `object-cover` and darkened) sits at the top so the form stays near the top of the page.
 
 ### Starting point
 
