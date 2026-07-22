@@ -1,72 +1,59 @@
 <div align="center">
 
-# Tap Planner Developer Documentation
+# Tap Planner
 
-Technical setup, project structure, BrewPack importing, automated monitoring, and deployment.
+**Developer Documentation**
 
-[Back to the project README](../README.md)
+Work backward from tap day. Tap Planner turns a target date into a brew schedule.
+
+[![Framework](https://img.shields.io/badge/Framework-Next.js-000000?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![Language](https://img.shields.io/badge/Language-TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Package Manager](https://img.shields.io/badge/pnpm-11.15.1-F69220?style=flat-square&logo=pnpm&logoColor=white)](https://pnpm.io/)
+[![Hosting](https://img.shields.io/badge/Hosting-Vercel-000000?style=flat-square&logo=vercel&logoColor=white)](https://vercel.com/)
+
+[Live app](https://tap-planner.vercel.app/) · [Repository](https://github.com/WestbergLabs/tap-planner) · [Back to the project README](../README.md)
 
 </div>
 
----
-
-## Quick reference
-
-<table>
-  <tr>
-    <td width="25%" align="center">
-      <strong>Framework</strong><br><br>
-      Next.js
-    </td>
-    <td width="25%" align="center">
-      <strong>Language</strong><br><br>
-      TypeScript
-    </td>
-    <td width="25%" align="center">
-      <strong>Package manager</strong><br><br>
-      pnpm 11.15.1
-    </td>
-    <td width="25%" align="center">
-      <strong>Hosting</strong><br><br>
-      Vercel
-    </td>
-  </tr>
-</table>
-
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <strong>Production app</strong><br><br>
-      <a href="https://tap-planner.vercel.app/">https://tap-planner.vercel.app/</a>
-    </td>
-    <td width="50%" valign="top">
-      <strong>Repository</strong><br><br>
-      <a href="https://github.com/WestbergLabs/tap-planner">WestbergLabs/tap-planner</a>
-    </td>
-  </tr>
-</table>
-
----
+<br>
 
 ## Contents
 
-- [Local setup](#local-setup)
+- [Overview](#overview)
+- [Getting started](#getting-started)
 - [Common commands](#common-commands)
 - [Project structure](#project-structure)
-- [Application flow](#application-flow)
+- [How scheduling works](#how-scheduling-works)
+- [Official planner](#official-planner)
 - [Custom recipe planner](#custom-recipe-planner)
 - [Calendar export](#calendar-export)
-- [BrewPack data](#brewpack-data)
-- [BrewPack importer](#brewpack-importer)
-- [Automatic catalog monitoring](#automatic-catalog-monitoring)
+- [BrewPack data pipeline](#brewpack-data-pipeline)
+  - [Data model](#data-model)
+  - [Importer](#importer)
+  - [Automatic catalog monitoring](#automatic-catalog-monitoring)
 - [Deployment](#deployment)
 - [Data and image policy](#data-and-image-policy)
 - [Current scope](#current-scope)
-- [Future improvements](#future-improvements)
+- [Roadmap](#roadmap)
 
 ---
 
-## Local setup
+## Overview
+
+Tap Planner is a small Next.js app for people using Pinter's home brewing system. Pick a BrewPack (or your own recipe) and a date you want to tap it, and Tap Planner works backward through fermentation, an optional cold crash, and conditioning to tell you exactly when to start brewing — then lets you drop the whole schedule into your calendar.
+
+There are two planners sharing one calculation engine:
+
+| Planner | Route | Use it when... |
+|---|---|---|
+| **Official** | `/` | You're brewing a real Pinter BrewPack and want its recommended or minimum timing |
+| **Custom** | `/custom` | You're brewing your own recipe, or want to override a BrewPack's default timing |
+
+No accounts, no database, nothing stored server-side. Everything lives in the URL and the browser for the length of one calculation.
+
+---
+
+## Getting started
 
 ### Requirements
 
@@ -76,25 +63,16 @@ Technical setup, project structure, BrewPack importing, automated monitoring, an
 | pnpm 11.15.1 | Installs dependencies and runs scripts |
 | Git | Version control and branch management |
 
-### Clone and install
+### Clone, install, run
 
 ```powershell
 git clone https://github.com/WestbergLabs/tap-planner.git
 cd tap-planner
 pnpm install
-```
-
-### Start the development server
-
-```powershell
 pnpm dev
 ```
 
-Open:
-
-```text
-http://localhost:3000
-```
+Then open [http://localhost:3000](http://localhost:3000).
 
 ---
 
@@ -107,7 +85,7 @@ http://localhost:3000
 | `pnpm build` | Create a production build |
 | `pnpm import:brewpacks` | Fetch and regenerate BrewPack data |
 
-Before pushing a change, run:
+Before pushing a change, always run both:
 
 ```powershell
 pnpm lint
@@ -121,98 +99,77 @@ pnpm build
 ```text
 .github/
   workflows/
-    ci.yml
-    monitor-brewpacks.yml
+    ci.yml                    # Lint + build on PRs and pushes to main
+    monitor-brewpacks.yml     # Scheduled BrewPack monitoring
 
 app/
   custom/
-    page.tsx
-  globals.css
-  layout.tsx
-  page.tsx
+    page.tsx                  # Custom recipe planner  →  /custom
+  globals.css                 # Global design, responsive layout, mobile fixes
+  layout.tsx                  # App metadata and root layout
+  page.tsx                    # Official BrewPack planner  →  /
+
+components/
+  BrewPackPicker.tsx           # Accessible BrewPack search combobox, shared by both planners
 
 data/
-  brewpacks.generated.ts
+  brewpacks.generated.ts       # Generated BrewPack catalog used by the app
 
 lib/
-  calendar.ts
-  schedule.ts
+  calendar.ts                  # Browser-only .ics calendar generation, shared by both planners
+  schedule.ts                  # Date + schedule-calculation utilities, shared by both planners
 
 public/
-  tap-handles.jpg
+  tap-handles.jpg              # Local hero image
 
 scripts/
-  import-brewpacks.ts
+  import-brewpacks.ts          # Scrapes, validates, and writes BrewPack data
 ```
 
-| Path | Purpose |
-|---|---|
-| `app/page.tsx` | Official BrewPack planner interface at `/` |
-| `app/custom/page.tsx` | Custom recipe planner at `/custom` |
-| `components/BrewPackPicker.tsx` | Accessible BrewPack search combobox shared by both planners |
-| `lib/schedule.ts` | Shared date and schedule-calculation utilities used by both planners |
-| `lib/calendar.ts` | Shared, browser-only `.ics` calendar generation used by both planners |
-| `app/globals.css` | Global design, responsive layout, and mobile fixes |
-| `app/layout.tsx` | Application metadata and root layout |
-| `data/brewpacks.generated.ts` | Generated BrewPack catalog used by the app |
-| `scripts/import-brewpacks.ts` | Scrapes, validates, and writes BrewPack data |
-| `.github/workflows/ci.yml` | Runs lint and build checks on pull requests and pushes to `main` |
-| `.github/workflows/monitor-brewpacks.yml` | Scheduled BrewPack monitoring workflow |
-| `public/tap-handles.jpg` | Local hero image |
+`lib/schedule.ts` and `lib/calendar.ts` are the two files worth knowing well — nearly everything else in the app is UI built on top of them.
 
 ---
 
-## Application flow
+## How scheduling works
 
-<table>
-  <tr>
-    <td width="25%" align="center">
-      <strong>1</strong><br><br>
-      User selects a BrewPack
-    </td>
-    <td width="25%" align="center">
-      <strong>2</strong><br><br>
-      User selects a tap date
-    </td>
-    <td width="25%" align="center">
-      <strong>3</strong><br><br>
-      Timing and cold crash are chosen
-    </td>
-    <td width="25%" align="center">
-      <strong>4</strong><br><br>
-      Tap Planner calculates backward
-    </td>
-  </tr>
-</table>
-
-The date calculation is:
+Both planners solve the same equation, just with different labels for the first stage:
 
 ```text
-brewing time + cold-crash time + conditioning time = total lead time
+(fermentation or brewing) + cold crash + conditioning = total lead time
 ```
 
-Tap Planner subtracts the total lead time from the requested tap date and builds each stage from that start date.
+Tap Planner subtracts the total lead time from the requested tap date, then lays each stage out from that start date forward.
 
-The date helpers (`parseLocalDate`, `addDays`, `subtractDays`, `formatDate`, `getTodayString`) and the backward `calculateSchedule` function live in `lib/schedule.ts` so both the official and custom planners share identical logic rather than duplicating it.
+```mermaid
+flowchart LR
+    A["Pick a BrewPack\nor start from scratch"] --> B["Choose a tap date"]
+    B --> C["Set fermentation,\ncold crash & conditioning days"]
+    C --> D["Schedule calculated\nbackward from tap date"]
+    D --> E["Add stages to\ncalendar (.ics)"]
+```
+
+All date math — `parseLocalDate`, `addDays`, `subtractDays`, `formatDate`, `getTodayString`, and the backward `calculateSchedule` function — lives in `lib/schedule.ts`, so the official and custom planners never duplicate this logic.
+
+---
+
+## Official planner
+
+`app/page.tsx` is the default, compact planner at `/`. It uses the shared `BrewPackPicker` to search the generated catalog, then calculates forward from the pack's recommended or minimum brew and conditioning days.
+
+A **Customize timing** action on this page links to `/custom`, carrying the selected BrewPack's current values along as URL query parameters — see [Custom recipe planner](#custom-recipe-planner) below.
 
 ---
 
 ## Custom recipe planner
 
-The custom planner lives at:
-
-```text
-app/custom/page.tsx        →  /custom
-```
-
-It lets a user schedule their own recipe, or adjust an official BrewPack's timing, without touching the compact official planner at `/`. A compact hero banner (the shared `public/tap-handles.jpg`, roughly 200px tall, cropped with `object-cover` and darkened) sits at the top so the form stays near the top of the page.
+`app/custom/page.tsx` (`/custom`) lets you schedule your own recipe, or adjust an official BrewPack's timing, without touching the compact official planner. A short hero banner (the shared `public/tap-handles.jpg`, ~200px, cropped and darkened) keeps the form near the top of the page.
 
 ### Starting point
 
-A **Starting point** toggle sits at the top of the form:
+A **Starting point** toggle sits above the form:
 
-- **Start from an official BrewPack** (default) reveals the shared `BrewPackPicker`. Selecting a pack seeds the schedule name (`BrewPack Name - Custom`), style, ABV, fermentation days (recommended brew days), conditioning days (recommended conditioning days), and cold-crash days (0). Every seeded field stays editable, and a notice confirms the official timing was applied.
-- **Start from scratch** clears the BrewPack selection and all recipe fields, keeping only a tap date the user has already entered on this page.
+- **Start from an official BrewPack** *(default)* — reveals the shared `BrewPackPicker`. Selecting a pack seeds the schedule name (`BrewPack Name - Custom`), style, ABV, fermentation days (recommended brew days), conditioning days, and cold-crash days (`0`). Every seeded field stays editable, and a notice confirms the official timing was applied.
+- **Start from scratch** — clears the BrewPack selection and all recipe fields, keeping only a tap date already entered on the page.
 
 ### Fields and validation
 
@@ -226,73 +183,70 @@ A **Starting point** toggle sits at the top of the form:
 | Conditioning days | Yes | Whole number, minimum 1 |
 | Desired tap date | Yes | Date on or after today |
 
-Validation is strict: negative values are rejected, inline messages are associated with their fields via `aria-describedby`, and no schedule is calculated until every required value is valid. The custom planner uses the term **Fermentation** rather than **Brewing** because the timing is user-defined.
+Validation is strict — negative values are rejected, inline messages are tied to their fields via `aria-describedby`, and nothing is calculated until every required value is valid. The custom planner uses **Fermentation** rather than **Brewing**, since the timing here is user-defined rather than a Pinter recommendation.
 
 ### Prefilling from an official BrewPack
 
-The **Customize timing** action on the main planner links to `/custom` and passes the selected BrewPack's current values — id, name, style, ABV, the chosen brew (fermentation), cold-crash, and conditioning durations, and the tap date when already entered — as **URL query parameters only**. The BrewPack's brew duration is interpreted as fermentation days, and the `id` preselects the pack in the picker. All prefilled fields remain fully editable, and a notice indicates when values were prefilled.
+The **Customize timing** action on the official planner passes the selected pack's id, name, style, ABV, brew (interpreted as fermentation) days, cold-crash days, conditioning days, and tap date (if entered) as **URL query parameters only**. The `id` preselects the pack in the picker, and every prefilled field remains fully editable with a notice indicating it was prefilled.
 
-No `localStorage`, `sessionStorage`, `IndexedDB`, cookies, database, or accounts are used, so a browser refresh on `/custom` simply re-reads the query parameters.
+No `localStorage`, `sessionStorage`, `IndexedDB`, cookies, database, or accounts are involved — a refresh on `/custom` simply re-reads the query parameters.
 
 ### Calculation
-
-The custom planner uses the same backward calculation as the official planner:
 
 ```text
 fermentation days + cold-crash days + conditioning days = total lead time
 ```
 
-The cold-crash stage is omitted from the result when cold-crash days are 0.
+The cold-crash stage is omitted from the result whenever cold-crash days are `0`.
 
-> Custom recipes are never stored. Recipe details exist only in the browser for the current calculation and are discarded when the page is left.
+> **Nothing is stored.** Custom recipe details exist only in the browser for the current calculation and are discarded when the page is left.
 
 ---
 
 ## Calendar export
 
-Once a schedule has been calculated, both planners show a secondary **Add schedule to calendar** action inside the result card. It downloads a single standards-compliant `.ics` file containing one all-day event per stage:
+Once a schedule is calculated, both planners show an **Add schedule to calendar** action in the result card. It downloads one standards-compliant `.ics` file with an all-day event per stage:
 
-- **Official planner:** Start brewing, Begin cold crash (only when cold-crash days > 0), Begin conditioning, Tap day.
-- **Custom planner:** Start fermentation, Begin cold crash (only when cold-crash days > 0), Begin conditioning, Tap day.
+| Planner | Stages exported |
+|---|---|
+| Official | Start brewing → Begin cold crash *(only if cold-crash days > 0)* → Begin conditioning → Tap day |
+| Custom | Start fermentation → Begin cold crash *(only if cold-crash days > 0)* → Begin conditioning → Tap day |
 
-Each stage event **spans its full date range** rather than appearing as a single day: it starts on the stage's start date and ends (exclusively) on the following stage's start date. Only the tap-day event is a single day. Event titles are prefixed with the BrewPack or schedule name (for example, `Dark Matter: Tap day` or `Dark Matter - Custom: Start fermentation`), and each description includes the schedule name, style and ABV when available, the stage, the stage duration in days, the selected timing mode for official BrewPacks, the total lead time, a note that the schedule was generated by Tap Planner, and the live application URL.
+Each stage event **spans its full date range** — starting on the stage's start date and ending (exclusively) on the next stage's start date. Only the tap-day event is a single day. Titles are prefixed with the BrewPack or schedule name (e.g. `Dark Matter: Tap day`, `Dark Matter - Custom: Start fermentation`), and each description includes the schedule name, style/ABV when available, the stage duration, the timing mode (official planner), the total lead time, and the live app URL.
 
-### Shared module
+### Shared module — `lib/calendar.ts`
 
-All `.ics` generation lives in one place so the two pages never duplicate it:
+All `.ics` generation lives in one place so the two pages never duplicate it. The module owns:
 
-```text
-lib/calendar.ts
-```
+- calendar-text escaping (backslashes, commas, semicolons, newlines)
+- `YYYYMMDD` date formatting and exclusive all-day end-date math
+- UID and safe filename generation
+- full `VCALENDAR` assembly and triggering the download
 
-The module handles calendar-text escaping (backslashes, commas, semicolons, newlines), `YYYYMMDD` date formatting, exclusive all-day end-date math, UID generation, safe filename generation, complete `VCALENDAR` assembly, and triggering the download. It contains no schedule-calculation logic — `lib/schedule.ts` remains authoritative for the stage dates, which each page passes in already computed.
+It contains **no** schedule-calculation logic — `lib/schedule.ts` remains the single source of truth for stage dates, which each page passes in already computed.
 
 ### All-day event handling
 
-Events are all-day, using local calendar dates rather than UTC timestamps so a stage never shifts to a neighbouring day because of the viewer's time zone:
+Events use local calendar dates, not UTC timestamps, so a stage never shifts to a neighboring day because of the viewer's time zone:
 
 ```text
 DTSTART;VALUE=DATE:YYYYMMDD
 DTEND;VALUE=DATE:YYYYMMDD
 ```
 
-All-day iCalendar end dates are **exclusive**, so each stage's `DTEND` is the **start date of the following stage** — which correctly displays that stage through the day before. No extra day is added to these multi-day spans. Only the single-day tap event uses `DTEND` = the day after `DTSTART` (via `exclusiveEndDate`). Because each page supplies both the start and exclusive-end date for every stage, `lib/schedule.ts` stays the single source of truth for the dates and the calendar module never re-derives them.
+All-day iCalendar end dates are **exclusive**, so each stage's `DTEND` is the *start date of the following stage* (correctly displaying that stage through the day before, with no extra day added). Only the single-day tap event uses `DTEND` = the day after `DTSTART`, via `exclusiveEndDate`.
 
 ### Privacy
 
-Export happens entirely in the browser via a `Blob` and an object URL (revoked after download). Event UIDs are derived from the stage name, schedule name, and stage start date, so no database is needed. **No calendar account access is requested**, no external calendar API is called, and no calendar data is stored. After a successful download the result card announces a confirmation through `aria-live="polite"`; it never claims that events were added to a calendar automatically.
+Export happens entirely client-side, via a `Blob` and an object URL that's revoked after download. Event UIDs are derived from the stage name, schedule name, and stage start date — no database required. **No calendar account access is requested**, no external calendar API is called, and nothing is stored. After a successful download, the result card announces a confirmation via `aria-live="polite"`, and never claims events were added automatically.
 
 ---
 
-## BrewPack data
+## BrewPack data pipeline
 
-The application uses:
+### Data model
 
-```text
-data/brewpacks.generated.ts
-```
-
-Each BrewPack record contains:
+Generated catalog: `data/brewpacks.generated.ts`
 
 | Field | Description |
 |---|---|
@@ -308,143 +262,88 @@ Each BrewPack record contains:
 | `hopperIncluded` | Whether a Hopper is included |
 | `discontinued` | Optional discontinued marker |
 
-Discontinued BrewPacks remain in the generated data but are hidden from normal search results.
+Discontinued BrewPacks stay in the generated data but are hidden from normal search results.
 
----
+### Importer
 
-## BrewPack importer
+`scripts/import-brewpacks.ts` — run manually with `pnpm import:brewpacks`.
 
-The importer is located at:
-
-```text
-scripts/import-brewpacks.ts
+```mermaid
+flowchart LR
+    A[Fetch source page] --> B[Parse BrewPack fields]
+    B --> C[Validate with Zod]
+    C --> D[Check record safety]
+    D --> E[Write generated catalog]
 ```
 
-Run it manually with:
-
-```powershell
-pnpm import:brewpacks
-```
-
-### Importer workflow
-
-<table>
-  <tr>
-    <td width="20%" align="center"><strong>1</strong><br><br>Fetch source page</td>
-    <td width="20%" align="center"><strong>2</strong><br><br>Parse BrewPack fields</td>
-    <td width="20%" align="center"><strong>3</strong><br><br>Validate with Zod</td>
-    <td width="20%" align="center"><strong>4</strong><br><br>Check record safety</td>
-    <td width="20%" align="center"><strong>5</strong><br><br>Write generated catalog</td>
-  </tr>
-</table>
-
-The importer also:
+It also:
 
 - rejects suspiciously small result sets
 - checks for duplicate IDs
 - identifies discontinued packs
 - applies stable slug overrides where needed
-- writes deterministic output
+- writes fully deterministic output (no changing timestamp, so Git only ever diffs real catalog changes)
 
-The generated file does not include a changing timestamp, so Git detects only real catalog changes. The importer also requires a valid `Hopper Included` value and fails loudly if Pinter removes or changes that field.
+The importer requires a valid `Hopper Included` value and fails loudly if Pinter removes or changes that field.
 
----
+### Automatic catalog monitoring
 
-## Automatic catalog monitoring
+Workflow: `.github/workflows/monitor-brewpacks.yml` — runs every Monday, or on demand from the **Actions** tab.
 
-The workflow is located at:
-
-```text
-.github/workflows/monitor-brewpacks.yml
+```mermaid
+flowchart LR
+    A[Checkout repo] --> B[Install with pnpm]
+    B --> C[Regenerate catalog]
+    C --> D{Meaningful\nchanges?}
+    D -->|Yes| E[Lint + build]
+    E --> F[Open / update PR]
+    D -->|No| G[No action — run confirms\nsource page still parses]
 ```
 
-It runs every Monday and can also be started manually from the repository's **Actions** tab.
-
-### Workflow behavior
-
-| Stage | Action |
-|---|---|
-| Checkout | Loads the current repository |
-| Install | Installs dependencies with pnpm |
-| Import | Regenerates the BrewPack catalog |
-| Compare | Checks for meaningful data changes |
-| Validate | Runs lint and a production build |
-| Review | Opens or updates a pull request |
-
-A successful no-change run confirms that the source page still parses correctly. A failed scheduled run can intentionally signal that Pinter changed the source-page structure and the importer needs maintenance.
-
-The monitor can detect:
+A failed scheduled run is itself a signal — it usually means Pinter changed the source page's structure and the importer needs maintenance. The monitor detects:
 
 | Change | Covered |
 |---|:---:|
-| New or removed BrewPacks | Yes |
-| Brew or conditioning time changes | Yes |
-| ABV or style changes | Yes |
-| Yeast or Hopper changes | Yes |
-| Discontinued-status changes | Yes |
-| Source-page parsing failures | Yes |
+| New or removed BrewPacks | ✅ |
+| Brew or conditioning time changes | ✅ |
+| ABV or style changes | ✅ |
+| Yeast or Hopper changes | ✅ |
+| Discontinued-status changes | ✅ |
+| Source-page parsing failures | ✅ |
 
-> Catalog updates are never merged automatically. A maintainer must review and merge the pull request.
+> Catalog updates are never merged automatically — a maintainer always reviews and merges the pull request.
 
 ---
 
 ## Deployment
 
-Tap Planner is deployed through Vercel.
+Tap Planner deploys through Vercel. Merges to `main` deploy to production automatically; every branch gets its own preview deployment.
 
-Changes merged into `main` are deployed to production automatically.
-
-### Recommended workflow
-
-<table>
-  <tr>
-    <td width="20%" align="center"><strong>1</strong><br><br>Create branch</td>
-    <td width="20%" align="center"><strong>2</strong><br><br>Make changes</td>
-    <td width="20%" align="center"><strong>3</strong><br><br>Lint and build</td>
-    <td width="20%" align="center"><strong>4</strong><br><br>Review preview</td>
-    <td width="20%" align="center"><strong>5</strong><br><br>Merge to main</td>
-  </tr>
-</table>
-
-Typical validation:
-
-```powershell
-pnpm lint
-pnpm build
+```mermaid
+flowchart LR
+    A[Create branch] --> B[Make changes]
+    B --> C[pnpm lint && pnpm build]
+    C --> D[Review Vercel preview]
+    D --> E[Merge to main]
+    E --> F[Production deploy]
 ```
-
-Vercel creates preview deployments for branches and deploys `main` to production after merge.
 
 ---
 
 ## Data and image policy
 
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <strong>BrewPack data</strong><br><br>
-      BrewPack specifications are sourced from publicly available Pinter documentation.
-    </td>
-    <td width="50%" valign="top">
-      <strong>Product artwork</strong><br><br>
-      Official BrewPack product artwork is not included because no redistribution license has been confirmed.
-    </td>
-  </tr>
-</table>
+| | |
+|---|---|
+| **BrewPack data** | Sourced from publicly available Pinter documentation. |
+| **Product artwork** | Not included — no redistribution license has been confirmed for official BrewPack product artwork. |
 
-The local header image is stored at:
-
-```text
-public/tap-handles.jpg
-```
-
-Any required attribution should remain visible wherever the image is used.
+The local header image is stored at `public/tap-handles.jpg`. Any required attribution should stay visible wherever it's used.
 
 ---
 
 ## Current scope
 
-Tap Planner focuses on schedule planning.
+Tap Planner focuses on schedule planning, not brewing itself.
 
 | Included | Not included |
 |---|---|
@@ -456,19 +355,19 @@ Tap Planner focuses on schedule planning.
 | Backward date calculation | Account or device management |
 | BrewPack catalog monitoring | |
 
-The official Pinter app remains the source for active brewing instructions and support.
+The official Pinter app remains the source of truth for active brewing instructions and support.
 
 ---
 
-## Future improvements
+## Roadmap
 
 | Idea | Status |
 |---|---|
-| Calendar export | Shipped (all-day `.ics`, browser-only) |
+| Calendar export | ✅ Shipped (all-day `.ics`, browser-only) |
 | Saved schedules | Planned candidate |
 | Shareable schedule links | Planned candidate |
 | Accessibility refinements | Ongoing |
-| BrewPack imagery | Requires appropriate permission: emaild Pinter awaiting response
+| BrewPack imagery | Blocked — Pinter emailed for permission, awaiting response |
 
 ---
 
