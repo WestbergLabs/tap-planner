@@ -10,8 +10,15 @@ import {
 } from "react";
 
 import Image from "next/image";
+import Link from "next/link";
 
 import { brewPacks } from "@/data/brewpacks.generated";
+import {
+  calculateSchedule,
+  formatDate,
+  getTodayString,
+  parseLocalDate,
+} from "@/lib/schedule";
 
 type ScheduleType = "recommended" | "minimum";
 type ColdCrashDays = 0 | 1 | 2 | 3;
@@ -30,45 +37,6 @@ type CalculationResult = {
   totalLeadTime: number;
   schedule: ScheduleType;
 };
-
-function parseLocalDate(dateString: string): Date {
-  const [year, month, day] = dateString.split("-").map(Number);
-
-  return new Date(year, month - 1, day, 12, 0, 0);
-}
-
-function subtractDays(date: Date, days: number): Date {
-  const result = new Date(date);
-  result.setDate(result.getDate() - days);
-
-  return result;
-}
-
-function addDays(date: Date, days: number): Date {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-
-  return result;
-}
-
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
-}
-
-function getTodayString(): string {
-  const today = new Date();
-
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
 
 export default function Home() {
   const pickerRef = useRef<HTMLDivElement>(null);
@@ -106,6 +74,41 @@ export default function Home() {
       ) ?? null,
     [activeBrewPacks, brewPackId],
   );
+
+  // Build a /custom link that prefills the custom planner with the selected
+  // BrewPack's currently chosen timing. The BrewPack's brew duration is passed
+  // as fermentation days. Prefill travels via URL query params only.
+  const customizeHref = useMemo(() => {
+    if (!selectedPack) {
+      return null;
+    }
+
+    const brewDays =
+      schedule === "recommended"
+        ? selectedPack.recommendedBrewDays
+        : selectedPack.minimumBrewDays;
+
+    const conditioningDays =
+      schedule === "recommended"
+        ? selectedPack.recommendedConditioningDays
+        : selectedPack.minimumConditioningDays;
+
+    const params = new URLSearchParams({
+      prefill: "brewpack",
+      name: selectedPack.name,
+      style: selectedPack.style,
+      abv: String(selectedPack.abv),
+      fermentation: String(brewDays),
+      coldCrash: String(coldCrashDays),
+      conditioning: String(conditioningDays),
+    });
+
+    if (tapDate) {
+      params.set("tap", tapDate);
+    }
+
+    return `/custom?${params.toString()}`;
+  }, [selectedPack, schedule, coldCrashDays, tapDate]);
 
   const filteredBrewPacks = useMemo(() => {
     const search = brewPackSearch.trim().toLowerCase();
@@ -270,23 +273,16 @@ export default function Home() {
 
     const selectedTapDate = parseLocalDate(tapDate);
 
-    const totalLeadTime =
-      brewDays + coldCrashDays + conditioningDays;
-
-    const calculatedBrewDate = subtractDays(
-      selectedTapDate,
+    const {
+      fermentationDate,
+      coldCrashDate,
+      conditioningDate,
       totalLeadTime,
-    );
-
-    const coldCrashDate =
-      coldCrashDays > 0
-        ? addDays(calculatedBrewDate, brewDays)
-        : null;
-
-    const conditioningDate = addDays(
-      calculatedBrewDate,
-      brewDays + coldCrashDays,
-    );
+    } = calculateSchedule(selectedTapDate, {
+      fermentationDays: brewDays,
+      coldCrashDays,
+      conditioningDays,
+    });
 
     setError("");
 
@@ -294,7 +290,7 @@ export default function Home() {
       packName: selectedPack.name,
       packStyle: selectedPack.style,
       abv: selectedPack.abv,
-      brewDate: calculatedBrewDate,
+      brewDate: fermentationDate,
       coldCrashDate,
       conditioningDate,
       tapDate: selectedTapDate,
@@ -447,6 +443,16 @@ export default function Home() {
               )}
             </div>
 
+            <p className="-mt-2 text-sm leading-6 text-muted">
+              Using your own recipe or need different timing?{" "}
+              <Link
+                href="/custom"
+                className="font-semibold text-accent underline decoration-accent/40 underline-offset-2 transition hover:text-accent-hover hover:decoration-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
+              >
+                Build a custom schedule →
+              </Link>
+            </p>
+
             {selectedPack && (
               <div className="border-y border-border py-4">
                 <div className="flex items-start justify-between gap-4">
@@ -493,6 +499,20 @@ export default function Home() {
                     </p>
                   </div>
                 </div>
+
+                {customizeHref && (
+                  <div className="mt-4 border-t border-border pt-4">
+                    <Link
+                      href={customizeHref}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:text-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
+                    >
+                      Customize timing →
+                    </Link>
+                    <p className="mt-2 text-xs leading-5 text-muted">
+                      Adjust this BrewPack’s schedule on the custom planner.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
