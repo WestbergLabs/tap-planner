@@ -258,10 +258,11 @@ function CustomPlanner() {
     <main className="min-h-screen bg-transparent px-4 py-10 text-foreground sm:py-14">
       <div className="mx-auto max-w-2xl">
         <header className="mb-9 border-b border-border pb-7">
-          {/* Compact hero: shorter than the main page hero (min-h-56) so the
-              form stays near the top. Cropped with object-cover and darkened
-              so the overlaid text stays legible. */}
-          <div className="relative isolate mb-7 min-h-[200px] overflow-hidden rounded-[28px] border border-border bg-foreground shadow-hero">
+          {/* Decorative hero banner. The title and supporting text sit below
+              the image rather than over it, so no dark overlay is needed —
+              only the back button stays on the image. Kept compact so the
+              form remains near the top. */}
+          <div className="relative mb-6 min-h-[180px] overflow-hidden rounded-[28px] border border-border bg-foreground shadow-hero">
             <Image
               src="/tap-handles.jpg"
               alt="A row of beer taps behind a bar"
@@ -271,8 +272,6 @@ function CustomPlanner() {
               className="object-cover object-[center_42%]"
             />
 
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/10" />
-
             <div className="absolute inset-x-0 top-0 p-5 sm:p-6">
               <Link
                 href="/"
@@ -281,21 +280,19 @@ function CustomPlanner() {
                 ← Back to BrewPack planner
               </Link>
             </div>
-
-            <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-orange-200">
-                Brew schedule calculator
-              </p>
-
-              <h1 className="mt-2 font-display text-4xl font-semibold uppercase leading-none tracking-tight sm:text-5xl">
-                Custom Schedule
-              </h1>
-
-              <p className="mt-3 max-w-xl text-sm leading-6 text-white/85">
-                Start from an official BrewPack or enter your own recipe timing.
-              </p>
-            </div>
           </div>
+
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">
+            Brew schedule calculator
+          </p>
+
+          <h1 className="mt-2 font-display text-5xl font-semibold uppercase leading-none tracking-tight sm:text-6xl">
+            Custom Schedule
+          </h1>
+
+          <p className="mt-4 max-w-xl text-base leading-7 text-muted">
+            Start from an official BrewPack or enter your own recipe timing.
+          </p>
         </header>
 
         <section className="overflow-hidden rounded-[28px] border border-border bg-surface shadow-card">
