@@ -27,22 +27,26 @@
 <p>
 Tap Planner is a simple scheduling tool for Pinter owners. Pick an official BrewPack,
 choose the day you want it ready, and Tap Planner calculates the full timeline from
-brew day through tap day.
+brew day through tap day — then export it straight to your calendar.
 </p>
 
 <table>
   <tr>
-    <td align="center" width="33%">
+    <td align="center" width="25%">
       <strong>🍺 Pick a BrewPack</strong><br><br>
       Search by name or style and load the official timing details.
     </td>
-    <td align="center" width="33%">
+    <td align="center" width="25%">
       <strong>📅 Choose tap day</strong><br><br>
       Select the date you want your drink ready to pour.
     </td>
-    <td align="center" width="33%">
+    <td align="center" width="25%">
       <strong>✅ Get your schedule</strong><br><br>
       See exactly when to brew, cold crash, condition, and tap.
+    </td>
+    <td align="center" width="25%">
+      <strong>📆 Export it</strong><br><br>
+      Download an all-day calendar file for every stage in one click.
     </td>
   </tr>
 </table>
@@ -138,13 +142,42 @@ brew day through tap day.
 
 <hr>
 
-<h2>📆 Calendar export</h2>
+<h2>📆 Add your schedule to your calendar</h2>
 
-<p align="center">
-Once a schedule is calculated, <strong>Add schedule to calendar</strong> downloads a standard
-<code>.ics</code> file — an all-day event for each stage — that opens in Apple Calendar, Google
-Calendar, Outlook, and most calendar apps. The file is generated entirely in your browser;
-no calendar account access is requested and nothing is stored.
+<p>
+Once a schedule is calculated — on both the official and custom planners — an
+<strong>Add schedule to calendar</strong> button appears in the result. One click downloads a
+standard <code>.ics</code> file you can open in <strong>Apple Calendar</strong>,
+<strong>Google Calendar</strong>, <strong>Outlook</strong>, and most other calendar apps.
+</p>
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>📅 Full timeline, not just a reminder</h3>
+      <p>
+      Each stage becomes an all-day event that <strong>spans its real date range</strong> —
+      brewing through cold crash, cold crash through conditioning, conditioning through tap —
+      so your calendar shows the whole brew at a glance. Tap day lands as a single day. Cold
+      crash is only included when you actually use it.
+      </p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>🔒 Yours alone</h3>
+      <p>
+      The file is generated <strong>entirely in your browser</strong>. Tap Planner never asks
+      for calendar account access, never talks to a calendar service, and stores nothing. You
+      download a file and open it yourself — nothing is added to any calendar automatically.
+      </p>
+    </td>
+  </tr>
+</table>
+
+<p>
+Every event is titled with the BrewPack or schedule name (for example,
+<code>Dark Matter: Tap day</code>) and carries a short description with the style, ABV,
+stage, stage duration, the timing mode for official BrewPacks, and the total lead time. Dates
+use time-zone-safe all-day values, so a stage never drifts by a day no matter where you open it.
 </p>
 
 <hr>
