@@ -21,6 +21,7 @@ import {
   getTodayString,
   parseLocalDate,
 } from "@/lib/schedule";
+import { downloadSchedule, type CalendarStage } from "@/lib/calendar";
 
 type StartMode = "brewpack" | "scratch";
 
@@ -90,6 +91,10 @@ function CustomPlanner() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [result, setResult] = useState<CustomResult | null>(null);
 
+  // Confirmation shown after a calendar file is downloaded. Cleared with the
+  // result so it never lingers over a freshly calculated schedule.
+  const [downloadMessage, setDownloadMessage] = useState("");
+
   // Move focus to the result region once a schedule has been calculated.
   useEffect(() => {
     if (!result) {
@@ -104,6 +109,38 @@ function CustomPlanner() {
   // Any edit invalidates the previous result so stale schedules never linger.
   function clearResult() {
     setResult(null);
+    setDownloadMessage("");
+  }
+
+  // Build the calendar events from the calculated result and download one .ics
+  // file. Cold crash is included only when it is part of the schedule.
+  function handleExportCalendar() {
+    if (!result) {
+      return;
+    }
+
+    const stages: CalendarStage[] = [
+      { name: "Start fermentation", date: result.fermentationDate },
+    ];
+
+    if (result.coldCrashDate) {
+      stages.push({ name: "Begin cold crash", date: result.coldCrashDate });
+    }
+
+    stages.push({ name: "Begin conditioning", date: result.conditioningDate });
+    stages.push({ name: "Tap day", date: result.tapDate });
+
+    downloadSchedule({
+      name: result.scheduleName,
+      style: result.style || undefined,
+      abv: result.abv || undefined,
+      totalLeadTime: result.totalLeadTime,
+      stages,
+    });
+
+    setDownloadMessage(
+      "Calendar file downloaded. Open it to add the schedule to your calendar.",
+    );
   }
 
   // Selecting a BrewPack seeds the form with its official timing. Every field
@@ -753,6 +790,25 @@ function CustomPlanner() {
                   Ready
                 </p>
               </div>
+            </div>
+
+            <div className="border-t border-border p-5 sm:p-6">
+              <button
+                type="button"
+                onClick={handleExportCalendar}
+                className="w-full rounded-xl border border-border-strong bg-field px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface sm:w-auto"
+              >
+                Add schedule to calendar
+              </button>
+
+              <p className="mt-3 text-xs leading-5 text-muted">
+                Downloads a calendar file that can be opened with Apple
+                Calendar, Google Calendar, Outlook, and most calendar apps.
+              </p>
+
+              <p aria-live="polite" className="mt-3 text-xs leading-5 text-stage-brew">
+                {downloadMessage}
+              </p>
             </div>
           </section>
         )}
