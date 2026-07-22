@@ -520,7 +520,7 @@ export default function Home() {
                   {result.totalLeadTime}
                 </p>
                 <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-                  DAYS LEAD TIME 
+                  DAYS BEFORE TAP 
                 </p>
               </div>
             </div>
