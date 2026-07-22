@@ -737,7 +737,7 @@ function CustomPlanner() {
                   {result.totalLeadTime}
                 </p>
                 <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-                  DAYS BEFORE TAPl
+                  DAYS BEFORE TAP
                 </p>
               </div>
             </div>
