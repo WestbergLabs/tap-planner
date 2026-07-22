@@ -365,7 +365,7 @@ The official Pinter app remains the source for active brewing instructions and s
 | Saved schedules | Planned candidate |
 | Shareable schedule links | Planned candidate |
 | Accessibility refinements | Ongoing |
-| BrewPack imagery | Requires appropriate permission | emaild Pinter awaiting response |
+| BrewPack imagery | Requires appropriate permission: emaild Pinter awaiting response
 
 ---
 
