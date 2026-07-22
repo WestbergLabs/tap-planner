@@ -19,7 +19,11 @@ import {
   getTodayString,
   parseLocalDate,
 } from "@/lib/schedule";
-import { downloadSchedule, type CalendarStage } from "@/lib/calendar";
+import {
+  downloadSchedule,
+  exclusiveEndDate,
+  type CalendarStage,
+} from "@/lib/calendar";
 
 type ScheduleType = "recommended" | "minimum";
 type ColdCrashDays = 0 | 1 | 2 | 3;
@@ -135,16 +139,35 @@ export default function Home() {
       return;
     }
 
+    // Each stage spans until the next stage begins (exclusive DTEND). Brewing
+    // ends where cold crash starts, or at conditioning when no cold crash.
     const stages: CalendarStage[] = [
-      { name: "Start brewing", date: result.brewDate },
+      {
+        name: "Start brewing",
+        start: result.brewDate,
+        end: result.coldCrashDate ?? result.conditioningDate,
+      },
     ];
 
     if (result.coldCrashDate) {
-      stages.push({ name: "Begin cold crash", date: result.coldCrashDate });
+      stages.push({
+        name: "Begin cold crash",
+        start: result.coldCrashDate,
+        end: result.conditioningDate,
+      });
     }
 
-    stages.push({ name: "Begin conditioning", date: result.conditioningDate });
-    stages.push({ name: "Tap day", date: result.tapDate });
+    stages.push({
+      name: "Begin conditioning",
+      start: result.conditioningDate,
+      end: result.tapDate,
+    });
+
+    stages.push({
+      name: "Tap day",
+      start: result.tapDate,
+      end: exclusiveEndDate(result.tapDate),
+    });
 
     downloadSchedule({
       name: result.packName,

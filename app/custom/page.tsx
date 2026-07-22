@@ -21,7 +21,11 @@ import {
   getTodayString,
   parseLocalDate,
 } from "@/lib/schedule";
-import { downloadSchedule, type CalendarStage } from "@/lib/calendar";
+import {
+  downloadSchedule,
+  exclusiveEndDate,
+  type CalendarStage,
+} from "@/lib/calendar";
 
 type StartMode = "brewpack" | "scratch";
 
@@ -119,16 +123,35 @@ function CustomPlanner() {
       return;
     }
 
+    // Each stage spans until the next stage begins (exclusive DTEND).
+    // Fermentation ends where cold crash starts, or at conditioning when none.
     const stages: CalendarStage[] = [
-      { name: "Start fermentation", date: result.fermentationDate },
+      {
+        name: "Start fermentation",
+        start: result.fermentationDate,
+        end: result.coldCrashDate ?? result.conditioningDate,
+      },
     ];
 
     if (result.coldCrashDate) {
-      stages.push({ name: "Begin cold crash", date: result.coldCrashDate });
+      stages.push({
+        name: "Begin cold crash",
+        start: result.coldCrashDate,
+        end: result.conditioningDate,
+      });
     }
 
-    stages.push({ name: "Begin conditioning", date: result.conditioningDate });
-    stages.push({ name: "Tap day", date: result.tapDate });
+    stages.push({
+      name: "Begin conditioning",
+      start: result.conditioningDate,
+      end: result.tapDate,
+    });
+
+    stages.push({
+      name: "Tap day",
+      start: result.tapDate,
+      end: exclusiveEndDate(result.tapDate),
+    });
 
     downloadSchedule({
       name: result.scheduleName,

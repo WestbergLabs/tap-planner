@@ -17,12 +17,20 @@ const APP_URL = "https://tap-planner.vercel.app/";
 /** Product identifier for the generated calendar. */
 const PRODID = "-//Tap Planner//Brew Schedule//EN";
 
-/** A single all-day stage to turn into one calendar event. */
+/**
+ * A single all-day stage to turn into one calendar event. Each stage spans a
+ * range: it begins on `start` and ends the day before `end`, because all-day
+ * iCalendar end dates are exclusive. Multi-day stages therefore set `end` to
+ * the following stage's start date; the single-day tap event sets `end` to the
+ * day after `start`.
+ */
 export type CalendarStage = {
   /** Human-readable stage label, e.g. "Start brewing" or "Tap day". */
   name: string;
-  /** The local calendar date the stage begins. */
-  date: Date;
+  /** The local calendar date the stage begins (inclusive DTSTART). */
+  start: Date;
+  /** The local calendar date the stage ends (exclusive DTEND). */
+  end: Date;
 };
 
 /**
@@ -81,13 +89,24 @@ export function formatICSDate(date: Date): string {
 
 /**
  * All-day iCalendar end dates are exclusive, so a single-day event ends on the
- * following calendar day. Returns a new Date one day after the given date.
+ * following calendar day. Returns a new Date one day after the given date. Used
+ * for the tap-day event; multi-day stages instead end on the next stage's start
+ * date, so no extra day is added there.
  */
 export function exclusiveEndDate(date: Date): Date {
   const end = new Date(date);
   end.setDate(end.getDate() + 1);
 
   return end;
+}
+
+/**
+ * Whole-day span between an inclusive start and an exclusive end. Stage dates
+ * are anchored at local noon, so a DST transition can make the raw difference
+ * 23 or 25 hours; rounding keeps the day count exact.
+ */
+export function daysBetween(start: Date, end: Date): number {
+  return Math.round((end.getTime() - start.getTime()) / 86_400_000);
 }
 
 /** Format a Date as a UTC `YYYYMMDDTHHMMSSZ` timestamp for DTSTAMP. */
@@ -155,7 +174,11 @@ function foldLine(line: string): string {
 }
 
 /** Assemble the multi-line, escaped DESCRIPTION for one event. */
-function buildDescription(schedule: CalendarSchedule, stageName: string): string {
+function buildDescription(
+  schedule: CalendarSchedule,
+  stageName: string,
+  durationDays: number,
+): string {
   const lines = [schedule.name];
 
   if (schedule.style) {
@@ -167,6 +190,7 @@ function buildDescription(schedule: CalendarSchedule, stageName: string): string
   }
 
   lines.push(`Stage: ${stageName}`);
+  lines.push(`Duration: ${durationDays} day${durationDays === 1 ? "" : "s"}`);
 
   if (schedule.timingMode) {
     lines.push(`Timing: ${schedule.timingMode}`);
@@ -198,14 +222,16 @@ export function buildCalendar(schedule: CalendarSchedule, now: Date = new Date()
   ];
 
   for (const stage of schedule.stages) {
+    const duration = daysBetween(stage.start, stage.end);
+
     lines.push(
       "BEGIN:VEVENT",
-      `UID:${buildEventUID(stage.name, schedule.name, stage.date)}`,
+      `UID:${buildEventUID(stage.name, schedule.name, stage.start)}`,
       `DTSTAMP:${dtStamp}`,
-      `DTSTART;VALUE=DATE:${formatICSDate(stage.date)}`,
-      `DTEND;VALUE=DATE:${formatICSDate(exclusiveEndDate(stage.date))}`,
+      `DTSTART;VALUE=DATE:${formatICSDate(stage.start)}`,
+      `DTEND;VALUE=DATE:${formatICSDate(stage.end)}`,
       `SUMMARY:${escapeICSText(`${schedule.name}: ${stage.name}`)}`,
-      `DESCRIPTION:${buildDescription(schedule, stage.name)}`,
+      `DESCRIPTION:${buildDescription(schedule, stage.name, duration)}`,
       "END:VEVENT",
     );
   }
