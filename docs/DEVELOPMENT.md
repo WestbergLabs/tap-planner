@@ -54,6 +54,7 @@ Technical setup, project structure, BrewPack importing, automated monitoring, an
 - [Common commands](#common-commands)
 - [Project structure](#project-structure)
 - [Application flow](#application-flow)
+- [Custom recipe planner](#custom-recipe-planner)
 - [BrewPack data](#brewpack-data)
 - [BrewPack importer](#brewpack-importer)
 - [Automatic catalog monitoring](#automatic-catalog-monitoring)
@@ -123,12 +124,17 @@ pnpm build
     monitor-brewpacks.yml
 
 app/
+  custom/
+    page.tsx
   globals.css
   layout.tsx
   page.tsx
 
 data/
   brewpacks.generated.ts
+
+lib/
+  schedule.ts
 
 public/
   tap-handles.jpg
@@ -139,7 +145,10 @@ scripts/
 
 | Path | Purpose |
 |---|---|
-| `app/page.tsx` | Main Tap Planner interface and date calculations |
+| `app/page.tsx` | Official BrewPack planner interface at `/` |
+| `app/custom/page.tsx` | Custom recipe planner at `/custom` |
+| `components/BrewPackPicker.tsx` | Accessible BrewPack search combobox shared by both planners |
+| `lib/schedule.ts` | Shared date and schedule-calculation utilities used by both planners |
 | `app/globals.css` | Global design, responsive layout, and mobile fixes |
 | `app/layout.tsx` | Application metadata and root layout |
 | `data/brewpacks.generated.ts` | Generated BrewPack catalog used by the app |
@@ -180,6 +189,59 @@ brewing time + cold-crash time + conditioning time = total lead time
 ```
 
 Tap Planner subtracts the total lead time from the requested tap date and builds each stage from that start date.
+
+The date helpers (`parseLocalDate`, `addDays`, `subtractDays`, `formatDate`, `getTodayString`) and the backward `calculateSchedule` function live in `lib/schedule.ts` so both the official and custom planners share identical logic rather than duplicating it.
+
+---
+
+## Custom recipe planner
+
+The custom planner lives at:
+
+```text
+app/custom/page.tsx        →  /custom
+```
+
+It lets a user schedule their own recipe, or adjust an official BrewPack's timing, without touching the compact official planner at `/`. A compact hero banner (the shared `public/tap-handles.jpg`, roughly 200px tall, cropped with `object-cover` and darkened) sits at the top so the form stays near the top of the page.
+
+### Starting point
+
+A **Starting point** toggle sits at the top of the form:
+
+- **Start from an official BrewPack** (default) reveals the shared `BrewPackPicker`. Selecting a pack seeds the schedule name (`BrewPack Name - Custom`), style, ABV, fermentation days (recommended brew days), conditioning days (recommended conditioning days), and cold-crash days (0). Every seeded field stays editable, and a notice confirms the official timing was applied.
+- **Start from scratch** clears the BrewPack selection and all recipe fields, keeping only a tap date the user has already entered on this page.
+
+### Fields and validation
+
+| Field | Required | Rule |
+|---|:---:|---|
+| Schedule name | Yes | Non-empty |
+| Style | No | Free text |
+| ABV | No | Decimal, 0–30 |
+| Fermentation days | Yes | Whole number, minimum 1 |
+| Cold-crash days | Yes | Whole number, minimum 0 (default 0) |
+| Conditioning days | Yes | Whole number, minimum 1 |
+| Desired tap date | Yes | Date on or after today |
+
+Validation is strict: negative values are rejected, inline messages are associated with their fields via `aria-describedby`, and no schedule is calculated until every required value is valid. The custom planner uses the term **Fermentation** rather than **Brewing** because the timing is user-defined.
+
+### Prefilling from an official BrewPack
+
+The **Customize timing** action on the main planner links to `/custom` and passes the selected BrewPack's current values — id, name, style, ABV, the chosen brew (fermentation), cold-crash, and conditioning durations, and the tap date when already entered — as **URL query parameters only**. The BrewPack's brew duration is interpreted as fermentation days, and the `id` preselects the pack in the picker. All prefilled fields remain fully editable, and a notice indicates when values were prefilled.
+
+No `localStorage`, `sessionStorage`, `IndexedDB`, cookies, database, or accounts are used, so a browser refresh on `/custom` simply re-reads the query parameters.
+
+### Calculation
+
+The custom planner uses the same backward calculation as the official planner:
+
+```text
+fermentation days + cold-crash days + conditioning days = total lead time
+```
+
+The cold-crash stage is omitted from the result when cold-crash days are 0.
+
+> Custom recipes are never stored. Recipe details exist only in the browser for the current calculation and are discarded when the page is left.
 
 ---
 
@@ -349,9 +411,11 @@ Tap Planner focuses on schedule planning.
 |---|---|
 | BrewPack selection | Active brew instructions |
 | Recommended and minimum timing | Fermentation monitoring |
-| Optional cold-crash planning | Product support |
-| Backward date calculation | Safety guidance |
-| BrewPack catalog monitoring | Account or device management |
+| Custom recipe scheduling | Saved or stored recipes |
+| Adjusting official BrewPack timing | Product support |
+| Optional cold-crash planning | Safety guidance |
+| Backward date calculation | Account or device management |
+| BrewPack catalog monitoring | |
 
 The official Pinter app remains the source for active brewing instructions and support.
 

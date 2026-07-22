@@ -104,6 +104,40 @@ brew day through tap day.
 
 <hr>
 
+<h2>Two ways to plan</h2>
+
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <h3>🍺 Official BrewPacks</h3>
+      <p>
+      Pick an official Pinter BrewPack and let Tap Planner load its recommended
+      and minimum timing, then work backward from your tap date.
+      </p>
+    </td>
+    <td width="33%" valign="top">
+      <h3>🧪 Custom recipes</h3>
+      <p>
+      Planning your own recipe or different timing? Build a fully custom
+      schedule at <code>/custom</code> — set your own fermentation, cold-crash,
+      and conditioning days.
+      </p>
+    </td>
+    <td width="33%" valign="top">
+      <h3>🎛️ Adjusted timing</h3>
+      <p>
+      Start from an official BrewPack and tweak it. <strong>Customize timing</strong>
+      opens the custom planner prefilled with that BrewPack's schedule, ready
+      to adjust.
+      </p>
+    </td>
+  </tr>
+</table>
+
+<p align="center"><em>Custom recipe details are used only to calculate your schedule and are never saved.</em></p>
+
+<hr>
+
 <h2>Automatic catalog monitoring</h2>
 
 <table>
