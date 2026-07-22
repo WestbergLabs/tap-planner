@@ -51,7 +51,7 @@ export default function BrewPackPicker({
   );
 
   // Reflect an externally applied selection (e.g. prefill) in the input by
-  // adjusting state during render when the selected id changes — avoids a
+  // adjusting state during render when the selected id changes -- avoids a
   // synchronous setState in an effect. When the selection is cleared we leave
   // whatever the user has typed in place.
   if (selectedId !== lastSelectedId) {
@@ -198,7 +198,7 @@ export default function BrewPackPicker({
             title="Clear BrewPack"
             className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-xl leading-none text-muted transition hover:bg-accent-soft hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent"
           >
-            <span aria-hidden="true">×</span>
+            <span aria-hidden="true">&times;</span>
           </button>
         )}
       </div>

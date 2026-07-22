@@ -259,7 +259,7 @@ function CustomPlanner() {
       <div className="mx-auto max-w-2xl">
         <header className="mb-9 border-b border-border pb-7">
           {/* Decorative hero banner. The title and supporting text sit below
-              the image rather than over it, so no dark overlay is needed —
+              the image rather than over it, so no dark overlay is needed --
               only the back button stays on the image. Kept compact so the
               form remains near the top. */}
           <div className="relative mb-6 min-h-[180px] overflow-hidden rounded-[28px] border border-border bg-foreground shadow-hero">
@@ -277,7 +277,7 @@ function CustomPlanner() {
                 href="/"
                 className="inline-flex items-center gap-1.5 rounded-full bg-black/35 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-white backdrop-blur transition hover:bg-black/55 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black/40"
               >
-                ← Back to BrewPack planner
+                &larr; Back to BrewPack planner
               </Link>
             </div>
           </div>
@@ -668,7 +668,7 @@ function CustomPlanner() {
                 </h2>
 
                 <p className="mt-2 text-sm text-muted">
-                  {[result.scheduleName, ...metaParts].join(" · ")}
+                  {[result.scheduleName, ...metaParts].join(" \u00B7 ")}
                 </p>
               </div>
 

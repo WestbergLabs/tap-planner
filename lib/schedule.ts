@@ -82,7 +82,7 @@ export type ScheduleStages = {
  * Calculate stage start dates from a desired tap date and stage durations.
  *
  * total lead time = fermentation + cold crash + conditioning
- * fermentation start = tap date − total lead time
+ * fermentation start = tap date - total lead time
  */
 export function calculateSchedule(
   tapDate: Date,

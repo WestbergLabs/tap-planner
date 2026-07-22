@@ -216,7 +216,7 @@ export default function Home() {
           </div>
 
           <p className="max-w-xl text-base leading-7 text-muted">
-            Pick the day you want to pour. We’ll work backward and
+            Pick the day you want to pour. We&rsquo;ll work backward and
             build the schedule.
           </p>
         </header>
@@ -244,7 +244,7 @@ export default function Home() {
                 href="/custom"
                 className="font-semibold text-accent underline decoration-accent/40 underline-offset-2 transition hover:text-accent-hover hover:decoration-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
               >
-                Build a custom schedule →
+                Build a custom schedule &rarr;
               </Link>
             </p>
 
@@ -301,10 +301,10 @@ export default function Home() {
                       href={customizeHref}
                       className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:text-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
                     >
-                      Customize timing →
+                      Customize timing &rarr;
                     </Link>
                     <p className="mt-2 text-xs leading-5 text-muted">
-                      Adjust this BrewPack’s schedule on the custom planner.
+                      Adjust this BrewPack&rsquo;s schedule on the custom planner.
                     </p>
                   </div>
                 )}
@@ -450,7 +450,7 @@ export default function Home() {
                 </h2>
 
                 <p className="mt-2 text-sm text-muted">
-                  {result.packName} · {result.packStyle} · {result.abv}% ABV
+                  {result.packName} &middot; {result.packStyle} &middot; {result.abv}% ABV
                 </p>
               </div>
 
