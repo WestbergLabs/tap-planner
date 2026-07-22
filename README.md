@@ -138,6 +138,17 @@ brew day through tap day.
 
 <hr>
 
+<h2>📆 Calendar export</h2>
+
+<p align="center">
+Once a schedule is calculated, <strong>Add schedule to calendar</strong> downloads a standard
+<code>.ics</code> file — an all-day event for each stage — that opens in Apple Calendar, Google
+Calendar, Outlook, and most calendar apps. The file is generated entirely in your browser;
+no calendar account access is requested and nothing is stored.
+</p>
+
+<hr>
+
 <h2>Automatic catalog monitoring</h2>
 
 <table>
