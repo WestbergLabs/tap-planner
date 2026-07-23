@@ -221,6 +221,7 @@ function hopperFromTags(tags: string[]): boolean {
 }
 
 type ProductSpecs = {
+  style: string | null;
   recommendedBrewDays: number | null;
   recommendedConditioningDays: number | null;
   minimumBrewDays: number | null;
@@ -228,6 +229,19 @@ type ProductSpecs = {
   abv: number | null;
   yeast: string | null;
 };
+
+// The product page prints the style as the subtitle under the title, e.g.
+// "Double IPA 8.0%" or "Pale Ale + Hopper 4.5%". Drop the trailing ABV and the
+// "+ Hopper" note (hopper is tracked separately) to get just the style.
+function cleanStyle(raw: string): string | null {
+  const style = cleanText(raw)
+    .replace(/\s*\d+(?:\.\d+)?\s*%.*/, "")
+    .replace(/\s*\+\s*Hopper\b/i, "")
+    .replace(/[\s\-+]+$/, "")
+    .trim();
+
+  return style || null;
+}
 
 function matchInt(text: string, pattern: RegExp): number | null {
   const match = text.match(pattern);
@@ -244,6 +258,13 @@ function matchFloat(text: string, pattern: RegExp): number | null {
 function parseProductSpecs(html: string): ProductSpecs {
   const $ = cheerio.load(html);
 
+  // Style subtitle lives in a <p class="h4 t-upper"> next to the title; pick
+  // the one that carries the ABV so we do not grab an unrelated heading.
+  const styleText = $("p.h4.t-upper")
+    .filter((_, el) => /\d+(?:\.\d+)?\s*%/.test($(el).text()))
+    .first()
+    .text();
+
   $("script, style, noscript").remove();
 
   const text = cleanText($.root().text());
@@ -253,6 +274,7 @@ function parseProductSpecs(html: string): ProductSpecs {
   );
 
   return {
+    style: cleanStyle(styleText),
     recommendedBrewDays: matchInt(
       text,
       /\bBrewing\s+(\d+)\s*Days\s+Recommended Conditioning/i,
@@ -402,9 +424,15 @@ async function buildCatalog(): Promise<{
 
     // Prefer the support page's explicit style / hopper flag for packs it
     // knows (clean, curated); fall back to the shop tags for brand-new packs.
+    // Known packs keep their curated support style (no churn); new packs take
+    // the product page's precise style (e.g. "Double IPA"), tag as fallback.
     const style =
       support?.style ??
-      required(styleFromTags(beer.tags), canonicalName, "style");
+      required(
+        specs.style ?? styleFromTags(beer.tags),
+        canonicalName,
+        "style",
+      );
     const hopperIncluded = support
       ? support.hopperIncluded
       : hopperFromTags(beer.tags);
