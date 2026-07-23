@@ -273,7 +273,7 @@ export const brewPacks: BrewPack[] = [
   {
     id: "lagunitas-super-cluster-remixed",
     name: "Lagunitas Super Cluster Remixed",
-    style: "IPA",
+    style: "Double IPA",
     recommendedBrewDays: 11,
     recommendedConditioningDays: 7,
     minimumBrewDays: 9,
@@ -417,7 +417,7 @@ export const brewPacks: BrewPack[] = [
   {
     id: "waltham-forest",
     name: "Waltham Forest",
-    style: "Hard Cider",
+    style: "Dark Fruit Hard Cider",
     recommendedBrewDays: 8,
     recommendedConditioningDays: 3,
     minimumBrewDays: 6,
