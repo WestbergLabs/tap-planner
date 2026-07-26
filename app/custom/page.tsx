@@ -18,8 +18,16 @@ import { brewPacks, type BrewPack } from "@/data/brewpacks.generated";
 import {
   calculateSchedule,
   formatDate,
+  formatShortDate,
+  getAvailableLeadDays,
+  getEarliestTapDate,
+  getRequiredLeadDays,
+  getToday,
   getTodayString,
+  isScheduleFeasible,
   parseLocalDate,
+  toDateInputValue,
+  type StageDurations,
 } from "@/lib/schedule";
 import {
   downloadSchedule,
@@ -114,6 +122,68 @@ function CustomPlanner() {
   function clearResult() {
     setResult(null);
     setDownloadMessage("");
+  }
+
+  // Live feasibility of the exact values currently entered. A custom recipe has
+  // no recommended/minimum concept, so we validate the durations as typed. The
+  // check runs only once the three timing fields are valid (same rules as
+  // `validate()`) and a tap date is present; otherwise there is nothing to
+  // evaluate yet and no message is shown.
+  const feasibility = useMemo(() => {
+    const fermentation = Number(fermentationDays);
+    const crash = Number(coldCrashDays);
+    const conditioning = Number(conditioningDays);
+
+    const fermentationValid =
+      fermentationDays.trim() !== "" &&
+      Number.isInteger(fermentation) &&
+      fermentation >= 1;
+    const crashValid =
+      coldCrashDays.trim() !== "" &&
+      Number.isInteger(crash) &&
+      crash >= 0;
+    const conditioningValid =
+      conditioningDays.trim() !== "" &&
+      Number.isInteger(conditioning) &&
+      conditioning >= 1;
+
+    if (!fermentationValid || !crashValid || !conditioningValid || !tapDate) {
+      return { evaluated: false as const };
+    }
+
+    const durations: StageDurations = {
+      fermentationDays: fermentation,
+      coldCrashDays: crash,
+      conditioningDays: conditioning,
+    };
+
+    const today = getToday();
+    const parsedTapDate = parseLocalDate(tapDate);
+    const available = getAvailableLeadDays(parsedTapDate, today);
+    const required = getRequiredLeadDays(durations);
+    const earliest = getEarliestTapDate(durations, today);
+
+    return {
+      evaluated: true as const,
+      durations,
+      parsedTapDate,
+      available,
+      required,
+      earliest,
+      // Guards past/today tap dates too: required is always >= 2, so a negative
+      // or zero available lead time is never feasible.
+      feasible: required <= available,
+    };
+  }, [fermentationDays, coldCrashDays, conditioningDays, tapDate]);
+
+  const calculateDisabled = feasibility.evaluated && !feasibility.feasible;
+
+  // Jump the tap-date field to the earliest date these exact durations can hit.
+  // Recomputing feasibility then reports the schedule as available.
+  function handleUseEarliest(earliest: Date) {
+    setTapDate(toDateInputValue(earliest));
+    setErrors((prev) => ({ ...prev, tapDate: undefined }));
+    clearResult();
   }
 
   // Build the calendar events from the calculated result and download one .ics
@@ -277,17 +347,31 @@ function CustomPlanner() {
     const crash = Number(coldCrashDays);
     const conditioning = Number(conditioningDays);
     const selectedTapDate = parseLocalDate(tapDate);
+    const durations: StageDurations = {
+      fermentationDays: fermentation,
+      coldCrashDays: crash,
+      conditioningDays: conditioning,
+    };
+    const today = getToday();
+
+    // Guardrails independent of the button's disabled state: never build or
+    // export a schedule whose brew would have to start before today. The live
+    // feasibility banner already explains why to the user.
+    if (
+      getAvailableLeadDays(selectedTapDate, today) < 0 ||
+      !isScheduleFeasible(selectedTapDate, durations, today)
+    ) {
+      setResult(null);
+      setDownloadMessage("");
+      return;
+    }
 
     const {
       fermentationDate,
       coldCrashDate,
       conditioningDate,
       totalLeadTime,
-    } = calculateSchedule(selectedTapDate, {
-      fermentationDays: fermentation,
-      coldCrashDays: crash,
-      conditioningDays: conditioning,
-    });
+    } = calculateSchedule(selectedTapDate, durations);
 
     setResult({
       scheduleName: scheduleName.trim(),
@@ -434,6 +518,48 @@ function CustomPlanner() {
                 Starting with official BrewPack timing. Adjust any value below.
               </div>
             )}
+
+            <div className="min-w-0 max-w-full">
+              <label
+                htmlFor="custom-tap-date"
+                className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground"
+              >
+                Desired tap date
+              </label>
+
+              <div className="tap-date-wrapper">
+                <input
+                  id="custom-tap-date"
+                  type="date"
+                  min={getTodayString()}
+                  value={tapDate}
+                  aria-required="true"
+                  aria-invalid={errors.tapDate ? true : undefined}
+                  aria-describedby={
+                    [
+                      errors.tapDate ? "custom-tap-date-error" : null,
+                      feasibility.evaluated ? "custom-feasibility" : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" ") || undefined
+                  }
+                  onChange={(event) => {
+                    setTapDate(event.target.value);
+                    clearResult();
+                  }}
+                  className="tap-date-input cursor-pointer rounded-xl border border-border-strong bg-field px-3 py-3 text-base text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+                />
+              </div>
+
+              {errors.tapDate && (
+                <p
+                  id="custom-tap-date-error"
+                  className="mt-2 text-sm text-error"
+                >
+                  {errors.tapDate}
+                </p>
+              )}
+            </div>
 
             <div>
               <label
@@ -655,41 +781,44 @@ function CustomPlanner() {
               it to 0 to skip it.
             </p>
 
-            <div className="min-w-0 max-w-full">
-              <label
-                htmlFor="custom-tap-date"
-                className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground"
-              >
-                Desired tap date
-              </label>
-
-              <div className="tap-date-wrapper">
-                <input
-                  id="custom-tap-date"
-                  type="date"
-                  min={getTodayString()}
-                  value={tapDate}
-                  aria-required="true"
-                  aria-invalid={errors.tapDate ? true : undefined}
-                  aria-describedby={
-                    errors.tapDate ? "custom-tap-date-error" : undefined
-                  }
-                  onChange={(event) => {
-                    setTapDate(event.target.value);
-                    clearResult();
-                  }}
-                  className="tap-date-input cursor-pointer rounded-xl border border-border-strong bg-field px-3 py-3 text-base text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
-                />
-              </div>
-
-              {errors.tapDate && (
-                <p
-                  id="custom-tap-date-error"
-                  className="mt-2 text-sm text-error"
-                >
-                  {errors.tapDate}
-                </p>
-              )}
+            {/* Live feasibility of the values as typed. Kept in a stable
+                aria-live region so the state change is announced. Availability
+                is never conveyed by color alone -- a bold status label leads
+                each message and the sentence states the outcome in words. */}
+            <div aria-live="polite">
+              {feasibility.evaluated &&
+                (feasibility.feasible ? (
+                  <div
+                    id="custom-feasibility"
+                    className="rounded-xl border border-stage-brew/40 bg-stage-brew-soft px-4 py-3 text-sm leading-6 text-foreground"
+                  >
+                    <span className="font-bold">Available.</span> This schedule
+                    can be ready by {formatShortDate(feasibility.parsedTapDate)}.
+                  </div>
+                ) : (
+                  <div
+                    id="custom-feasibility"
+                    className="rounded-xl border border-error-border bg-error-bg px-4 py-3 text-sm leading-6 text-error"
+                  >
+                    <span className="font-bold">Not enough time.</span>{" "}
+                    {feasibility.available < 0
+                      ? `That tap date has already passed. The earliest possible tap date is ${formatShortDate(
+                          feasibility.earliest,
+                        )}.`
+                      : `This schedule needs ${feasibility.required} days, but only ${feasibility.available} days are available. The earliest possible tap date is ${formatShortDate(
+                          feasibility.earliest,
+                        )}.`}
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => handleUseEarliest(feasibility.earliest)}
+                        className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border-strong bg-field px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
+                      >
+                        Use {formatShortDate(feasibility.earliest)}
+                      </button>
+                    </div>
+                  </div>
+                ))}
             </div>
 
             <p className="rounded-xl border border-border bg-field px-4 py-3 text-xs leading-5 text-muted">
@@ -699,7 +828,11 @@ function CustomPlanner() {
 
             <button
               type="submit"
-              className="w-full rounded-xl bg-accent px-4 py-3.5 text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
+              disabled={calculateDisabled}
+              aria-describedby={
+                calculateDisabled ? "custom-feasibility" : undefined
+              }
+              className="w-full rounded-xl bg-accent px-4 py-3.5 text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-accent"
             >
               Build custom schedule
             </button>

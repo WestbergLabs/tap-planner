@@ -26,6 +26,7 @@ Work backward from tap day. Tap Planner turns a target date into a brew schedule
 - [How scheduling works](#how-scheduling-works)
 - [Official planner](#official-planner)
 - [Custom recipe planner](#custom-recipe-planner)
+- [Feasibility checks (preview)](#feasibility-checks-preview)
 - [Calendar export](#calendar-export)
 - [BrewPack data pipeline](#brewpack-data-pipeline)
   - [Data model](#data-model)
@@ -148,7 +149,7 @@ flowchart LR
     D --> E["Add stages to\ncalendar (.ics)"]
 ```
 
-All date math — `parseLocalDate`, `addDays`, `subtractDays`, `formatDate`, `getTodayString`, and the backward `calculateSchedule` function — lives in `lib/schedule.ts`, so the official and custom planners never duplicate this logic.
+All date math — `parseLocalDate`, `addDays`, `subtractDays`, `formatDate`, `getTodayString`, and the backward `calculateSchedule` function — lives in `lib/schedule.ts`, so the official and custom planners never duplicate this logic. The same module also owns the [feasibility](#feasibility-checks-preview) helpers (`getAvailableLeadDays`, `getRequiredLeadDays`, `getEarliestTapDate`, `isScheduleFeasible`, `getOfficialTimingAvailability`) — feasibility never lives in `lib/calendar.ts`.
 
 ---
 
@@ -200,6 +201,46 @@ fermentation days + cold-crash days + conditioning days = total lead time
 The cold-crash stage is omitted from the result whenever cold-crash days are `0`.
 
 > **Nothing is stored.** Custom recipe details exist only in the browser for the current calculation and are discarded when the page is left.
+
+---
+
+## Feasibility checks (preview)
+
+> 🧪 **In preview / testing.** This feature currently lives on the `feature/brew-feasibility-checks` branch and its Vercel preview deployment — it is **not** yet shipped to production.
+
+Feasibility checks stop a user from ever creating or exporting a schedule that would require brewing *before today*. Both planners evaluate availability live, before calculation, and guard again at submit time.
+
+All the date math is shared in `lib/schedule.ts` (local-date based, no UTC/timezone shifting) so the two pages never disagree:
+
+| Helper | Returns |
+|---|---|
+| `getAvailableLeadDays(tapDate, today?)` | Calendar days between today and the tap date (negative if the tap date has passed) |
+| `getRequiredLeadDays(durations)` | `fermentation + cold crash + conditioning` |
+| `getEarliestTapDate(durations, today?)` | `today + required lead`, the soonest a schedule can tap |
+| `isScheduleFeasible(tapDate, durations, today?)` | `required <= available` — equivalently, the brew start is today or later |
+| `getOfficialTimingAvailability(tapDate, input, today?)` | `{ recommendedFits, minimumFits, earliestTapDateWithRecommended, earliestTapDateWithMinimum }` |
+
+### Official planner
+
+The form is reordered into a step-by-step flow — **tap date → BrewPack → timing → cold crash → calculate** — so availability is known before a mode is chosen. The tap-date field enforces `min` **and** is validated programmatically (the browser restriction alone isn't trusted). After a tap date and BrewPack are chosen, `getOfficialTimingAvailability` evaluates *both* modes against the selected cold crash, recomputing whenever the tap date, BrewPack, or cold-crash duration changes. Three states:
+
+| State | Condition | Behavior |
+|---|---|---|
+| **Available** | Both modes fit | Both timing options enabled; recommended stays default; teal confirmation message |
+| **Minimum only** | Only minimum fits | Recommended radio `disabled`; the effective mode falls back to minimum (derived during render, so a disabled mode can't be selected via stale state, keyboard, or submission); amber message |
+| **Not enough time** | Neither fits | Both radios and **Calculate** disabled; any stale result cleared; no calendar export; red message naming the earliest tap date achievable with minimum timing, plus a **Use {date}** action that fills the tap-date field |
+
+### Custom planner
+
+The tap date is moved above the recipe timing fields. A custom recipe has no recommended/minimum concept, so the **exact entered durations** are validated: once the three timing fields are valid and a tap date is present, the banner shows either a teal *"This schedule can be ready by {date}."* or a red *"This schedule needs N days, but only M days are available. The earliest possible tap date is {date}."* with a **Use {date}** action. When infeasible, **Calculate** is disabled, any stale result is cleared, and calendar export is unavailable. Prefilled BrewPack timing (from the official planner's **Customize timing** link) is validated as a plain custom schedule — and re-validated the instant any duration is edited — with no special-casing.
+
+### Earliest possible tap date
+
+The "earliest" shown in every message is `getEarliestTapDate(durations)` = `today + required lead time`, i.e. the soonest tap date whose brew starts today. On the official planner the message reports the minimum-timing earliest date, since that is the sooner of the two.
+
+### Guardrails
+
+Feasibility is never trusted to UI state alone. Each planner's **Calculate** handler independently re-checks, in order: tap date present → tap date is today or later → required fields valid → (official) the selected timing mode currently fits → the calculated brew start is today or later. If any check fails the handler does not calculate, does not export, clears stale results, and shows a message. Because the **Add schedule to calendar** action lives inside the result card, and any change that invalidates a schedule clears that result, **an invalid or stale schedule can never expose calendar export**.
 
 ---
 
@@ -364,6 +405,7 @@ The official Pinter app remains the source of truth for active brewing instructi
 | Idea | Status |
 |---|---|
 | Calendar export | ✅ Shipped (all-day `.ics`, browser-only) |
+| Feasibility checks | 🧪 In preview (`feature/brew-feasibility-checks`) |
 | Saved schedules | Planned candidate |
 | Shareable schedule links | Planned candidate |
 | Accessibility refinements | Ongoing |
