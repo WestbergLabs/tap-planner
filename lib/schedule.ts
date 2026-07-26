@@ -41,6 +41,23 @@ export function formatDate(date: Date): string {
   }).format(date);
 }
 
+/** Format a Date as a short "Month D" local date, e.g. "August 8". */
+export function formatShortDate(date: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+  }).format(date);
+}
+
+/** Format a Date as a `YYYY-MM-DD` local string, e.g. for a date input value. */
+export function toDateInputValue(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 /** Today's date as a `YYYY-MM-DD` string, suitable for a date input `min`. */
 export function getTodayString(): string {
   const today = new Date();
