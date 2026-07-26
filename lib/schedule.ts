@@ -53,6 +53,119 @@ export function getTodayString(): string {
 }
 
 /**
+ * Today's date as a local Date fixed at noon, matching `parseLocalDate`'s
+ * anchoring so day-difference math between today and a tap date is exact and
+ * never shifts across daylight-saving boundaries or time zones.
+ */
+export function getToday(): Date {
+  const now = new Date();
+
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
+}
+
+/**
+ * Whole calendar days from `from` to `to`. Both dates are read as local,
+ * noon-anchored values, so a DST transition (a 23- or 25-hour day) rounds back
+ * to a clean day count. Positive when `to` is after `from`, negative otherwise.
+ */
+export function daysBetweenDates(from: Date, to: Date): number {
+  return Math.round((to.getTime() - from.getTime()) / 86_400_000);
+}
+
+/**
+ * Days available to brew: the calendar days between today and the desired tap
+ * date. A schedule fits when its required lead time is no greater than this.
+ * Can be negative when the tap date is in the past.
+ */
+export function getAvailableLeadDays(tapDate: Date, today: Date = getToday()): number {
+  return daysBetweenDates(today, tapDate);
+}
+
+/** Total lead time a set of stage durations requires, in whole days. */
+export function getRequiredLeadDays({
+  fermentationDays,
+  coldCrashDays,
+  conditioningDays,
+}: StageDurations): number {
+  return fermentationDays + coldCrashDays + conditioningDays;
+}
+
+/**
+ * The earliest tap date these durations can achieve: today plus the required
+ * lead time, so the brew starts no earlier than today.
+ */
+export function getEarliestTapDate(
+  durations: StageDurations,
+  today: Date = getToday(),
+): Date {
+  return addDays(today, getRequiredLeadDays(durations));
+}
+
+/**
+ * Whether a schedule fits before the desired tap date. Feasible exactly when
+ * the required lead time is no greater than the available lead time, which is
+ * equivalent to the calculated brew start date being today or later.
+ */
+export function isScheduleFeasible(
+  tapDate: Date,
+  durations: StageDurations,
+  today: Date = getToday(),
+): boolean {
+  return getRequiredLeadDays(durations) <= getAvailableLeadDays(tapDate, today);
+}
+
+/** The two official timing modes plus the shared cold-crash selection. */
+export type OfficialTimingInput = {
+  recommendedBrewDays: number;
+  recommendedConditioningDays: number;
+  minimumBrewDays: number;
+  minimumConditioningDays: number;
+  coldCrashDays: number;
+};
+
+/**
+ * Feasibility of an official BrewPack's recommended and minimum timing for a
+ * given tap date and cold-crash selection, plus the earliest tap date each
+ * mode could reach with that cold crash.
+ */
+export type OfficialTimingAvailability = {
+  recommendedFits: boolean;
+  minimumFits: boolean;
+  earliestTapDateWithRecommended: Date;
+  earliestTapDateWithMinimum: Date;
+};
+
+/**
+ * Evaluate both official timing modes at once. Each mode combines its own brew
+ * and conditioning durations with the shared cold-crash days, so switching cold
+ * crash re-derives availability for both.
+ */
+export function getOfficialTimingAvailability(
+  tapDate: Date,
+  input: OfficialTimingInput,
+  today: Date = getToday(),
+): OfficialTimingAvailability {
+  const recommended: StageDurations = {
+    fermentationDays: input.recommendedBrewDays,
+    coldCrashDays: input.coldCrashDays,
+    conditioningDays: input.recommendedConditioningDays,
+  };
+
+  const minimum: StageDurations = {
+    fermentationDays: input.minimumBrewDays,
+    coldCrashDays: input.coldCrashDays,
+    conditioningDays: input.minimumConditioningDays,
+  };
+
+  return {
+    recommendedFits: isScheduleFeasible(tapDate, recommended, today),
+    minimumFits: isScheduleFeasible(tapDate, minimum, today),
+    earliestTapDateWithRecommended: getEarliestTapDate(recommended, today),
+    earliestTapDateWithMinimum: getEarliestTapDate(minimum, today),
+  };
+}
+
+/**
  * Durations for the three schedule stages, in whole days.
  *
  * `fermentationDays` is the first (active) stage. On the official planner this
