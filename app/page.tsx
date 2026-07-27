@@ -236,6 +236,17 @@ export default function Home() {
     clearResult();
   }
 
+  // Feasibility-panel recovery actions: jump the tap date to the earliest date
+  // that supports a given timing mode and select that mode. This behaves
+  // exactly like a manual date + mode change -- feasibility recomputes from the
+  // shared availability, the stale result is cleared, and the tap-date input
+  // updates -- but it never auto-calculates the final schedule.
+  function handleUseDate(date: Date, mode: ScheduleType) {
+    setTapDate(toDateInputValue(date));
+    setSchedule(mode);
+    clearResult();
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -517,6 +528,23 @@ export default function Home() {
                       This BrewPack can still be ready by{" "}
                       {formatShortDate(parseLocalDate(tapDate))} using minimum
                       timing.
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleUseDate(
+                              availability.earliestTapDateWithRecommended,
+                              "recommended",
+                            )
+                          }
+                          className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border-strong bg-field px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
+                        >
+                          Use recommended date:{" "}
+                          {formatShortDate(
+                            availability.earliestTapDateWithRecommended,
+                          )}
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -530,17 +558,15 @@ export default function Home() {
                       <div>
                         <button
                           type="button"
-                          onClick={() => {
-                            setTapDate(
-                              toDateInputValue(
-                                availability.earliestTapDateWithMinimum,
-                              ),
-                            );
-                            clearResult();
-                          }}
+                          onClick={() =>
+                            handleUseDate(
+                              availability.earliestTapDateWithMinimum,
+                              "minimum",
+                            )
+                          }
                           className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border-strong bg-field px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
                         >
-                          Use{" "}
+                          Use earliest minimum date:{" "}
                           {formatShortDate(
                             availability.earliestTapDateWithMinimum,
                           )}

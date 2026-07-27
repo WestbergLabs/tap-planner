@@ -26,7 +26,7 @@ Work backward from tap day. Tap Planner turns a target date into a brew schedule
 - [How scheduling works](#how-scheduling-works)
 - [Official planner](#official-planner)
 - [Custom recipe planner](#custom-recipe-planner)
-- [Feasibility checks (preview)](#feasibility-checks-preview)
+- [Feasibility checks](#feasibility-checks)
 - [Calendar export](#calendar-export)
 - [BrewPack data pipeline](#brewpack-data-pipeline)
   - [Data model](#data-model)
@@ -149,7 +149,7 @@ flowchart LR
     D --> E["Add stages to\ncalendar (.ics)"]
 ```
 
-All date math — `parseLocalDate`, `addDays`, `subtractDays`, `formatDate`, `getTodayString`, and the backward `calculateSchedule` function — lives in `lib/schedule.ts`, so the official and custom planners never duplicate this logic. The same module also owns the [feasibility](#feasibility-checks-preview) helpers (`getAvailableLeadDays`, `getRequiredLeadDays`, `getEarliestTapDate`, `isScheduleFeasible`, `getOfficialTimingAvailability`) — feasibility never lives in `lib/calendar.ts`.
+All date math — `parseLocalDate`, `addDays`, `subtractDays`, `formatDate`, `getTodayString`, and the backward `calculateSchedule` function — lives in `lib/schedule.ts`, so the official and custom planners never duplicate this logic. The same module also owns the [feasibility](#feasibility-checks) helpers (`getAvailableLeadDays`, `getRequiredLeadDays`, `getEarliestTapDate`, `isScheduleFeasible`, `getOfficialTimingAvailability`) — feasibility never lives in `lib/calendar.ts`.
 
 ---
 
@@ -204,9 +204,7 @@ The cold-crash stage is omitted from the result whenever cold-crash days are `0`
 
 ---
 
-## Feasibility checks (preview)
-
-> 🧪 **In preview / testing.** This feature currently lives on the `feature/brew-feasibility-checks` branch and its Vercel preview deployment — it is **not** yet shipped to production.
+## Feasibility checks
 
 The two planners treat a brew that would have to start *before today* very differently, and deliberately so:
 
@@ -232,8 +230,17 @@ The form is reordered into a step-by-step flow — **tap date → BrewPack → t
 | State | Condition | Behavior |
 |---|---|---|
 | **Available** | Both modes fit | Both timing options enabled; recommended stays default; teal confirmation message |
-| **Minimum only** | Only minimum fits | Recommended radio `disabled`; the effective mode falls back to minimum (derived during render, so a disabled mode can't be selected via stale state, keyboard, or submission); amber message |
-| **Not enough time** | Neither fits | Both radios and **Calculate** disabled; any stale result cleared; no calendar export; red message naming the earliest tap date achievable with minimum timing, plus a **Use {date}** action that fills the tap-date field |
+| **Minimum only** | Only minimum fits | Recommended radio `disabled`; the effective mode falls back to minimum (derived during render, so a disabled mode can't be selected via stale state, keyboard, or submission); amber message + a **Use recommended date: {date}** recovery action |
+| **Not enough time** | Neither fits | Both radios and **Calculate** disabled; any stale result cleared; no calendar export; red message + a **Use earliest minimum date: {date}** recovery action |
+
+#### Date recovery
+
+Rather than leaving the user to guess a workable date, both non-ideal states offer a one-click recovery action inside the message panel:
+
+- **Minimum only → Use recommended date:** jumps the tap date to `earliestTapDateWithRecommended` (today + recommended brew + selected cold crash + recommended conditioning) and selects **Recommended**, landing in the *Available* state.
+- **Not enough time → Use earliest minimum date:** jumps the tap date to `earliestTapDateWithMinimum` and selects **Minimum**, landing in *Minimum only* (or *Available* when the modes tie).
+
+Both actions reuse the shared `getOfficialTimingAvailability` dates, keep the BrewPack and cold-crash selection, clear any stale result (so calendar export disappears until the user recalculates), and behave exactly like a manual tap-date change — feasibility re-runs and the input visibly updates. They never auto-calculate the final schedule.
 
 ### Custom planner
 
@@ -420,7 +427,7 @@ The official Pinter app remains the source of truth for active brewing instructi
 | Idea | Status |
 |---|---|
 | Calendar export | ✅ Shipped (all-day `.ics`, browser-only) |
-| Feasibility checks | 🧪 In preview (`feature/brew-feasibility-checks`) |
+| Feasibility checks | ✅ Shipped (official recommended/minimum + custom advisory, with date recovery) |
 | Saved schedules | Planned candidate |
 | Shareable schedule links | Planned candidate |
 | Accessibility refinements | Ongoing |
