@@ -18,8 +18,13 @@ import { brewPacks, type BrewPack } from "@/data/brewpacks.generated";
 import {
   calculateSchedule,
   formatDate,
+  formatShortDate,
+  getEarliestTapDate,
+  getToday,
   getTodayString,
   parseLocalDate,
+  toDateInputValue,
+  type StageDurations,
 } from "@/lib/schedule";
 import {
   downloadSchedule,
@@ -114,6 +119,64 @@ function CustomPlanner() {
   function clearResult() {
     setResult(null);
     setDownloadMessage("");
+  }
+
+  // Live start-date preview for the exact values entered. A custom recipe has
+  // no authoritative recommended/minimum timing, so Tap Planner only reports
+  // the calculated start date and advises when it lands before today -- it
+  // never blocks the schedule or calls it impossible. Evaluated only once the
+  // three duration fields are valid (same rules as `validate()`) and a tap date
+  // is present; otherwise there is nothing to preview yet.
+  const startPreview = useMemo(() => {
+    const fermentation = Number(fermentationDays);
+    const crash = Number(coldCrashDays);
+    const conditioning = Number(conditioningDays);
+
+    const fermentationValid =
+      fermentationDays.trim() !== "" &&
+      Number.isInteger(fermentation) &&
+      fermentation >= 1;
+    const crashValid =
+      coldCrashDays.trim() !== "" &&
+      Number.isInteger(crash) &&
+      crash >= 0;
+    const conditioningValid =
+      conditioningDays.trim() !== "" &&
+      Number.isInteger(conditioning) &&
+      conditioning >= 1;
+
+    if (!fermentationValid || !crashValid || !conditioningValid || !tapDate) {
+      return { evaluated: false as const };
+    }
+
+    const durations: StageDurations = {
+      fermentationDays: fermentation,
+      coldCrashDays: crash,
+      conditioningDays: conditioning,
+    };
+
+    const today = getToday();
+    const parsedTapDate = parseLocalDate(tapDate);
+    const startDate = calculateSchedule(parsedTapDate, durations).fermentationDate;
+    const earliest = getEarliestTapDate(durations, today);
+
+    return {
+      evaluated: true as const,
+      durations,
+      parsedTapDate,
+      startDate,
+      earliest,
+      // Advisory only -- a start before today is a warning, never a block.
+      startsInPast: startDate.getTime() < today.getTime(),
+    };
+  }, [fermentationDays, coldCrashDays, conditioningDays, tapDate]);
+
+  // Jump the tap-date field to the earliest date these exact durations can
+  // start today. The user can always ignore this and keep their own tap date.
+  function handleUseEarliest(earliest: Date) {
+    setTapDate(toDateInputValue(earliest));
+    setErrors((prev) => ({ ...prev, tapDate: undefined }));
+    clearResult();
   }
 
   // Build the calendar events from the calculated result and download one .ics
@@ -277,17 +340,22 @@ function CustomPlanner() {
     const crash = Number(coldCrashDays);
     const conditioning = Number(conditioningDays);
     const selectedTapDate = parseLocalDate(tapDate);
+    const durations: StageDurations = {
+      fermentationDays: fermentation,
+      coldCrashDays: crash,
+      conditioningDays: conditioning,
+    };
 
+    // A custom start date before today is advisory, not invalid: the schedule
+    // is still calculated and can still be exported. Genuinely invalid input
+    // (blank / negative / nonnumeric / out-of-range / missing date) has already
+    // been blocked by `validate()` above.
     const {
       fermentationDate,
       coldCrashDate,
       conditioningDate,
       totalLeadTime,
-    } = calculateSchedule(selectedTapDate, {
-      fermentationDays: fermentation,
-      coldCrashDays: crash,
-      conditioningDays: conditioning,
-    });
+    } = calculateSchedule(selectedTapDate, durations);
 
     setResult({
       scheduleName: scheduleName.trim(),
@@ -313,6 +381,11 @@ function CustomPlanner() {
 
   const showBrewPackNotice =
     startMode === "brewpack" && selectedBrewPackId !== "";
+
+  // A calculated schedule whose fermentation start is before today. Used to
+  // retain an advisory before calendar export -- export stays available.
+  const resultStartsInPast =
+    result !== null && result.fermentationDate.getTime() < getToday().getTime();
 
   return (
     <main className="min-h-screen bg-transparent px-4 py-10 text-foreground sm:py-14">
@@ -434,6 +507,48 @@ function CustomPlanner() {
                 Starting with official BrewPack timing. Adjust any value below.
               </div>
             )}
+
+            <div className="min-w-0 max-w-full">
+              <label
+                htmlFor="custom-tap-date"
+                className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground"
+              >
+                Desired tap date
+              </label>
+
+              <div className="tap-date-wrapper">
+                <input
+                  id="custom-tap-date"
+                  type="date"
+                  min={getTodayString()}
+                  value={tapDate}
+                  aria-required="true"
+                  aria-invalid={errors.tapDate ? true : undefined}
+                  aria-describedby={
+                    [
+                      errors.tapDate ? "custom-tap-date-error" : null,
+                      startPreview.evaluated ? "custom-start-advisory" : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" ") || undefined
+                  }
+                  onChange={(event) => {
+                    setTapDate(event.target.value);
+                    clearResult();
+                  }}
+                  className="tap-date-input cursor-pointer rounded-xl border border-border-strong bg-field px-3 py-3 text-base text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+                />
+              </div>
+
+              {errors.tapDate && (
+                <p
+                  id="custom-tap-date-error"
+                  className="mt-2 text-sm text-error"
+                >
+                  {errors.tapDate}
+                </p>
+              )}
+            </div>
 
             <div>
               <label
@@ -655,41 +770,49 @@ function CustomPlanner() {
               it to 0 to skip it.
             </p>
 
-            <div className="min-w-0 max-w-full">
-              <label
-                htmlFor="custom-tap-date"
-                className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground"
-              >
-                Desired tap date
-              </label>
-
-              <div className="tap-date-wrapper">
-                <input
-                  id="custom-tap-date"
-                  type="date"
-                  min={getTodayString()}
-                  value={tapDate}
-                  aria-required="true"
-                  aria-invalid={errors.tapDate ? true : undefined}
-                  aria-describedby={
-                    errors.tapDate ? "custom-tap-date-error" : undefined
-                  }
-                  onChange={(event) => {
-                    setTapDate(event.target.value);
-                    clearResult();
-                  }}
-                  className="tap-date-input cursor-pointer rounded-xl border border-border-strong bg-field px-3 py-3 text-base text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
-                />
-              </div>
-
-              {errors.tapDate && (
-                <p
-                  id="custom-tap-date-error"
-                  className="mt-2 text-sm text-error"
-                >
-                  {errors.tapDate}
-                </p>
-              )}
+            {/* Live start-date preview. Advisory only: a start before today is
+                a warning, never a block. Kept in a stable aria-live region so
+                the change is announced, and the outcome is stated in words -- a
+                bold lead label plus a full sentence -- never by color alone. */}
+            <div aria-live="polite">
+              {startPreview.evaluated &&
+                (startPreview.startsInPast ? (
+                  <div
+                    id="custom-start-advisory"
+                    role="status"
+                    className="rounded-xl border border-stage-condition/40 bg-stage-condition-soft px-4 py-3 text-sm leading-6 text-foreground"
+                  >
+                    <span className="font-bold">Check your start date.</span>{" "}
+                    Based on your current settings, this schedule would have
+                    started on {formatShortDate(startPreview.startDate)}.
+                    <br />
+                    If you have already started this brew, you can continue with
+                    this schedule. Otherwise, move the tap date later or shorten
+                    one or more stages.
+                    <br />
+                    Suggested earliest tap date using these durations:{" "}
+                    {formatShortDate(startPreview.earliest)}.
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => handleUseEarliest(startPreview.earliest)}
+                        className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border-strong bg-field px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
+                      >
+                        Use {formatShortDate(startPreview.earliest)}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    id="custom-start-advisory"
+                    role="status"
+                    className="rounded-xl border border-stage-brew/40 bg-stage-brew-soft px-4 py-3 text-sm leading-6 text-foreground"
+                  >
+                    <span className="font-bold">On schedule.</span> This
+                    schedule begins {formatShortDate(startPreview.startDate)} and
+                    can be ready by {formatShortDate(startPreview.parsedTapDate)}.
+                  </div>
+                ))}
             </div>
 
             <p className="rounded-xl border border-border bg-field px-4 py-3 text-xs leading-5 text-muted">
@@ -816,6 +939,17 @@ function CustomPlanner() {
             </div>
 
             <div className="border-t border-border p-5 sm:p-6">
+              {resultStartsInPast && (
+                <div
+                  role="status"
+                  className="mb-4 rounded-xl border border-stage-condition/40 bg-stage-condition-soft px-4 py-3 text-xs leading-5 text-foreground"
+                >
+                  <span className="font-bold">Heads up.</span> This calendar
+                  includes stages that began before today. Continue only if this
+                  brew is already underway.
+                </div>
+              )}
+
               <button
                 type="button"
                 onClick={handleExportCalendar}

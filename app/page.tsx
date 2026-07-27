@@ -16,8 +16,14 @@ import { brewPacks } from "@/data/brewpacks.generated";
 import {
   calculateSchedule,
   formatDate,
+  formatShortDate,
+  getAvailableLeadDays,
+  getOfficialTimingAvailability,
+  getToday,
   getTodayString,
+  isScheduleFeasible,
   parseLocalDate,
+  toDateInputValue,
 } from "@/lib/schedule";
 import {
   downloadSchedule,
@@ -80,6 +86,43 @@ export default function Home() {
     [activeBrewPacks, brewPackId],
   );
 
+  // Feasibility of both official timing modes for the current tap date, pack,
+  // and cold crash. Recomputed whenever any of those change; the timing mode
+  // itself does not affect which modes fit, so it is intentionally not a
+  // dependency. Null until both a tap date and a BrewPack are chosen.
+  const availability = useMemo(() => {
+    if (!selectedPack || !tapDate) {
+      return null;
+    }
+
+    return getOfficialTimingAvailability(
+      parseLocalDate(tapDate),
+      {
+        recommendedBrewDays: selectedPack.recommendedBrewDays,
+        recommendedConditioningDays: selectedPack.recommendedConditioningDays,
+        minimumBrewDays: selectedPack.minimumBrewDays,
+        minimumConditioningDays: selectedPack.minimumConditioningDays,
+        coldCrashDays,
+      },
+      getToday(),
+    );
+  }, [selectedPack, tapDate, coldCrashDays]);
+
+  // Derived feasibility states. With no availability yet (missing tap date or
+  // BrewPack) nothing is disabled so the defaults remain usable.
+  const recommendedDisabled = availability ? !availability.recommendedFits : false;
+  const minimumDisabled = availability ? !availability.minimumFits : false;
+  const neitherFits = availability
+    ? !availability.recommendedFits && !availability.minimumFits
+    : false;
+
+  // Recommended can never be the effective choice while it does not fit. Derive
+  // the effective mode during render instead of mutating state in an effect, so
+  // a disabled recommended option can't survive via stale state or submission.
+  // The selection state is only ever changed by an explicit user click.
+  const effectiveSchedule: ScheduleType =
+    recommendedDisabled && schedule === "recommended" ? "minimum" : schedule;
+
   // Build a /custom link that prefills the custom planner with the selected
   // BrewPack's currently chosen timing. The BrewPack's brew duration is passed
   // as fermentation days. Prefill travels via URL query params only.
@@ -89,12 +132,12 @@ export default function Home() {
     }
 
     const brewDays =
-      schedule === "recommended"
+      effectiveSchedule === "recommended"
         ? selectedPack.recommendedBrewDays
         : selectedPack.minimumBrewDays;
 
     const conditioningDays =
-      schedule === "recommended"
+      effectiveSchedule === "recommended"
         ? selectedPack.recommendedConditioningDays
         : selectedPack.minimumConditioningDays;
 
@@ -114,7 +157,7 @@ export default function Home() {
     }
 
     return `/custom?${params.toString()}`;
-  }, [selectedPack, schedule, coldCrashDays, tapDate]);
+  }, [selectedPack, effectiveSchedule, coldCrashDays, tapDate]);
 
   useEffect(() => {
     if (!result) {
@@ -196,40 +239,97 @@ export default function Home() {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!selectedPack) {
-      setResult(null);
-      setError("Select a BrewPack from the search results.");
-      return;
-    }
-
+    // Guardrails: validate independently of the UI's disabled state. A stale or
+    // manipulated form must never produce or export a schedule that begins
+    // brewing before today.
     if (!tapDate) {
       setResult(null);
       setError("Select a desired tap date.");
       return;
     }
 
+    if (!selectedPack) {
+      setResult(null);
+      setError("Select a BrewPack from the search results.");
+      return;
+    }
+
+    const selectedTapDate = parseLocalDate(tapDate);
+    const today = getToday();
+
+    // Reject a tap date before today even if the browser's min attribute was
+    // bypassed.
+    if (getAvailableLeadDays(selectedTapDate, today) < 0) {
+      setResult(null);
+      setError("The tap date must be today or later.");
+      return;
+    }
+
+    // Recompute availability here rather than trusting the memo, then confirm
+    // the chosen timing mode actually fits.
+    const currentAvailability = getOfficialTimingAvailability(
+      selectedTapDate,
+      {
+        recommendedBrewDays: selectedPack.recommendedBrewDays,
+        recommendedConditioningDays: selectedPack.recommendedConditioningDays,
+        minimumBrewDays: selectedPack.minimumBrewDays,
+        minimumConditioningDays: selectedPack.minimumConditioningDays,
+        coldCrashDays,
+      },
+      today,
+    );
+
+    const chosenFits =
+      effectiveSchedule === "recommended"
+        ? currentAvailability.recommendedFits
+        : currentAvailability.minimumFits;
+
+    if (!chosenFits) {
+      setResult(null);
+      setDownloadMessage("");
+
+      if (!currentAvailability.minimumFits) {
+        setError(
+          `${selectedPack.name} cannot be ready by ${formatShortDate(selectedTapDate)}. The earliest available tap date using minimum timing is ${formatShortDate(currentAvailability.earliestTapDateWithMinimum)}.`,
+        );
+      } else {
+        setError(
+          `There is not enough time for the recommended schedule. This BrewPack can still be ready by ${formatShortDate(selectedTapDate)} using minimum timing.`,
+        );
+      }
+
+      return;
+    }
+
     const brewDays =
-      schedule === "recommended"
+      effectiveSchedule === "recommended"
         ? selectedPack.recommendedBrewDays
         : selectedPack.minimumBrewDays;
 
     const conditioningDays =
-      schedule === "recommended"
+      effectiveSchedule === "recommended"
         ? selectedPack.recommendedConditioningDays
         : selectedPack.minimumConditioningDays;
 
-    const selectedTapDate = parseLocalDate(tapDate);
+    const chosenDurations = {
+      fermentationDays: brewDays,
+      coldCrashDays,
+      conditioningDays,
+    };
+
+    // Final backstop: the calculated brew start date must be today or later.
+    if (!isScheduleFeasible(selectedTapDate, chosenDurations, today)) {
+      setResult(null);
+      setError("This schedule would require brewing before today.");
+      return;
+    }
 
     const {
       fermentationDate,
       coldCrashDate,
       conditioningDate,
       totalLeadTime,
-    } = calculateSchedule(selectedTapDate, {
-      fermentationDays: brewDays,
-      coldCrashDays,
-      conditioningDays,
-    });
+    } = calculateSchedule(selectedTapDate, chosenDurations);
 
     setError("");
 
@@ -245,7 +345,7 @@ export default function Home() {
       coldCrashDays,
       conditioningDays,
       totalLeadTime,
-      schedule,
+      schedule: effectiveSchedule,
     });
   }
 
@@ -290,6 +390,32 @@ export default function Home() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6 p-5 sm:p-6">
+            <div className="min-w-0 max-w-full">
+              <label
+                htmlFor="tap-date"
+                className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground"
+              >
+                Desired tap date
+              </label>
+
+              <div className="tap-date-wrapper">
+                <input
+                  id="tap-date"
+                  type="date"
+                  min={getTodayString()}
+                  value={tapDate}
+                  onChange={(event) => {
+                    setTapDate(event.target.value);
+                    clearResult();
+                  }}
+                  aria-describedby={
+                    availability ? "timing-availability" : undefined
+                  }
+                  className="tap-date-input cursor-pointer rounded-xl border border-border-strong bg-field px-3 py-3 text-base text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+                />
+              </div>
+            </div>
+
             <BrewPackPicker
               brewPacks={activeBrewPacks}
               selectedId={brewPackId}
@@ -372,64 +498,113 @@ export default function Home() {
               </div>
             )}
 
-            <div className="min-w-0 max-w-full">
-              <label
-                htmlFor="tap-date"
-                className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground"
-              >
-                Desired tap date
-              </label>
+            <div id="timing-availability" aria-live="polite">
+              {availability && tapDate && selectedPack && (
+                <>
+                  {availability.recommendedFits && availability.minimumFits && (
+                    <div className="rounded-xl border border-stage-brew/40 bg-stage-brew-soft px-4 py-3 text-sm leading-6 text-foreground">
+                      <span className="font-bold">Available.</span>{" "}
+                      This BrewPack can be ready by{" "}
+                      {formatShortDate(parseLocalDate(tapDate))} using either
+                      recommended or minimum timing.
+                    </div>
+                  )}
 
-              <div className="tap-date-wrapper">
-                <input
-                  id="tap-date"
-                  type="date"
-                  min={getTodayString()}
-                  value={tapDate}
-                  onChange={(event) => {
-                    setTapDate(event.target.value);
-                    clearResult();
-                  }}
-                  className="tap-date-input cursor-pointer rounded-xl border border-border-strong bg-field px-3 py-3 text-base text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
-                />
-              </div>
+                  {!availability.recommendedFits && availability.minimumFits && (
+                    <div className="rounded-xl border border-stage-condition/40 bg-stage-condition-soft px-4 py-3 text-sm leading-6 text-foreground">
+                      <span className="font-bold">Minimum only.</span>{" "}
+                      There is not enough time for the recommended schedule.
+                      This BrewPack can still be ready by{" "}
+                      {formatShortDate(parseLocalDate(tapDate))} using minimum
+                      timing.
+                    </div>
+                  )}
+
+                  {neitherFits && (
+                    <div className="rounded-xl border border-error-border bg-error-bg px-4 py-3 text-sm leading-6 text-error">
+                      <span className="font-bold">Not enough time.</span>{" "}
+                      {selectedPack.name} cannot be ready by{" "}
+                      {formatShortDate(parseLocalDate(tapDate))}. The earliest
+                      available tap date using minimum timing is{" "}
+                      {formatShortDate(availability.earliestTapDateWithMinimum)}.
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTapDate(
+                              toDateInputValue(
+                                availability.earliestTapDateWithMinimum,
+                              ),
+                            );
+                            clearResult();
+                          }}
+                          className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border-strong bg-field px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
+                        >
+                          Use{" "}
+                          {formatShortDate(
+                            availability.earliestTapDateWithMinimum,
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             <div className="grid gap-5 sm:grid-cols-2">
-              <fieldset>
+              <fieldset
+                aria-describedby={
+                  availability ? "timing-availability" : undefined
+                }
+              >
                 <legend className="mb-3 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground">
                   Schedule
                 </legend>
 
                 <div className="space-y-3">
-                  <label className="flex cursor-pointer items-center gap-3">
+                  <label
+                    className={`flex items-center gap-3 ${
+                      recommendedDisabled
+                        ? "cursor-not-allowed opacity-50"
+                        : "cursor-pointer"
+                    }`}
+                  >
                     <input
                       type="radio"
                       name="schedule"
                       value="recommended"
-                      checked={schedule === "recommended"}
+                      checked={effectiveSchedule === "recommended"}
+                      disabled={recommendedDisabled}
                       onChange={() => {
                         setSchedule("recommended");
                         clearResult();
                       }}
-                      className="h-4 w-4 accent-accent"
+                      className="h-4 w-4 accent-accent disabled:cursor-not-allowed"
                     />
                     <span className="text-sm font-medium">
                       Recommended
                     </span>
                   </label>
 
-                  <label className="flex cursor-pointer items-center gap-3">
+                  <label
+                    className={`flex items-center gap-3 ${
+                      minimumDisabled
+                        ? "cursor-not-allowed opacity-50"
+                        : "cursor-pointer"
+                    }`}
+                  >
                     <input
                       type="radio"
                       name="schedule"
                       value="minimum"
-                      checked={schedule === "minimum"}
+                      checked={effectiveSchedule === "minimum"}
+                      disabled={minimumDisabled}
                       onChange={() => {
                         setSchedule("minimum");
                         clearResult();
                       }}
-                      className="h-4 w-4 accent-accent"
+                      className="h-4 w-4 accent-accent disabled:cursor-not-allowed"
                     />
                     <span className="text-sm font-medium">
                       Minimum
@@ -482,7 +657,8 @@ export default function Home() {
 
             <button
               type="submit"
-              className="w-full rounded-xl bg-accent px-4 py-3.5 text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
+              disabled={neitherFits}
+              className="w-full rounded-xl bg-accent px-4 py-3.5 text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-accent"
             >
               Calculate start date
             </button>
