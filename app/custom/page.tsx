@@ -19,12 +19,9 @@ import {
   calculateSchedule,
   formatDate,
   formatShortDate,
-  getAvailableLeadDays,
   getEarliestTapDate,
-  getRequiredLeadDays,
   getToday,
   getTodayString,
-  isScheduleFeasible,
   parseLocalDate,
   toDateInputValue,
   type StageDurations,
@@ -124,12 +121,13 @@ function CustomPlanner() {
     setDownloadMessage("");
   }
 
-  // Live feasibility of the exact values currently entered. A custom recipe has
-  // no recommended/minimum concept, so we validate the durations as typed. The
-  // check runs only once the three timing fields are valid (same rules as
-  // `validate()`) and a tap date is present; otherwise there is nothing to
-  // evaluate yet and no message is shown.
-  const feasibility = useMemo(() => {
+  // Live start-date preview for the exact values entered. A custom recipe has
+  // no authoritative recommended/minimum timing, so Tap Planner only reports
+  // the calculated start date and advises when it lands before today -- it
+  // never blocks the schedule or calls it impossible. Evaluated only once the
+  // three duration fields are valid (same rules as `validate()`) and a tap date
+  // is present; otherwise there is nothing to preview yet.
+  const startPreview = useMemo(() => {
     const fermentation = Number(fermentationDays);
     const crash = Number(coldCrashDays);
     const conditioning = Number(conditioningDays);
@@ -159,27 +157,22 @@ function CustomPlanner() {
 
     const today = getToday();
     const parsedTapDate = parseLocalDate(tapDate);
-    const available = getAvailableLeadDays(parsedTapDate, today);
-    const required = getRequiredLeadDays(durations);
+    const startDate = calculateSchedule(parsedTapDate, durations).fermentationDate;
     const earliest = getEarliestTapDate(durations, today);
 
     return {
       evaluated: true as const,
       durations,
       parsedTapDate,
-      available,
-      required,
+      startDate,
       earliest,
-      // Guards past/today tap dates too: required is always >= 2, so a negative
-      // or zero available lead time is never feasible.
-      feasible: required <= available,
+      // Advisory only -- a start before today is a warning, never a block.
+      startsInPast: startDate.getTime() < today.getTime(),
     };
   }, [fermentationDays, coldCrashDays, conditioningDays, tapDate]);
 
-  const calculateDisabled = feasibility.evaluated && !feasibility.feasible;
-
-  // Jump the tap-date field to the earliest date these exact durations can hit.
-  // Recomputing feasibility then reports the schedule as available.
+  // Jump the tap-date field to the earliest date these exact durations can
+  // start today. The user can always ignore this and keep their own tap date.
   function handleUseEarliest(earliest: Date) {
     setTapDate(toDateInputValue(earliest));
     setErrors((prev) => ({ ...prev, tapDate: undefined }));
@@ -352,20 +345,11 @@ function CustomPlanner() {
       coldCrashDays: crash,
       conditioningDays: conditioning,
     };
-    const today = getToday();
 
-    // Guardrails independent of the button's disabled state: never build or
-    // export a schedule whose brew would have to start before today. The live
-    // feasibility banner already explains why to the user.
-    if (
-      getAvailableLeadDays(selectedTapDate, today) < 0 ||
-      !isScheduleFeasible(selectedTapDate, durations, today)
-    ) {
-      setResult(null);
-      setDownloadMessage("");
-      return;
-    }
-
+    // A custom start date before today is advisory, not invalid: the schedule
+    // is still calculated and can still be exported. Genuinely invalid input
+    // (blank / negative / nonnumeric / out-of-range / missing date) has already
+    // been blocked by `validate()` above.
     const {
       fermentationDate,
       coldCrashDate,
@@ -397,6 +381,11 @@ function CustomPlanner() {
 
   const showBrewPackNotice =
     startMode === "brewpack" && selectedBrewPackId !== "";
+
+  // A calculated schedule whose fermentation start is before today. Used to
+  // retain an advisory before calendar export -- export stays available.
+  const resultStartsInPast =
+    result !== null && result.fermentationDate.getTime() < getToday().getTime();
 
   return (
     <main className="min-h-screen bg-transparent px-4 py-10 text-foreground sm:py-14">
@@ -538,7 +527,7 @@ function CustomPlanner() {
                   aria-describedby={
                     [
                       errors.tapDate ? "custom-tap-date-error" : null,
-                      feasibility.evaluated ? "custom-feasibility" : null,
+                      startPreview.evaluated ? "custom-start-advisory" : null,
                     ]
                       .filter(Boolean)
                       .join(" ") || undefined
@@ -781,42 +770,47 @@ function CustomPlanner() {
               it to 0 to skip it.
             </p>
 
-            {/* Live feasibility of the values as typed. Kept in a stable
-                aria-live region so the state change is announced. Availability
-                is never conveyed by color alone -- a bold status label leads
-                each message and the sentence states the outcome in words. */}
+            {/* Live start-date preview. Advisory only: a start before today is
+                a warning, never a block. Kept in a stable aria-live region so
+                the change is announced, and the outcome is stated in words -- a
+                bold lead label plus a full sentence -- never by color alone. */}
             <div aria-live="polite">
-              {feasibility.evaluated &&
-                (feasibility.feasible ? (
+              {startPreview.evaluated &&
+                (startPreview.startsInPast ? (
                   <div
-                    id="custom-feasibility"
-                    className="rounded-xl border border-stage-brew/40 bg-stage-brew-soft px-4 py-3 text-sm leading-6 text-foreground"
+                    id="custom-start-advisory"
+                    role="status"
+                    className="rounded-xl border border-stage-condition/40 bg-stage-condition-soft px-4 py-3 text-sm leading-6 text-foreground"
                   >
-                    <span className="font-bold">Available.</span> This schedule
-                    can be ready by {formatShortDate(feasibility.parsedTapDate)}.
-                  </div>
-                ) : (
-                  <div
-                    id="custom-feasibility"
-                    className="rounded-xl border border-error-border bg-error-bg px-4 py-3 text-sm leading-6 text-error"
-                  >
-                    <span className="font-bold">Not enough time.</span>{" "}
-                    {feasibility.available < 0
-                      ? `That tap date has already passed. The earliest possible tap date is ${formatShortDate(
-                          feasibility.earliest,
-                        )}.`
-                      : `This schedule needs ${feasibility.required} days, but only ${feasibility.available} days are available. The earliest possible tap date is ${formatShortDate(
-                          feasibility.earliest,
-                        )}.`}
+                    <span className="font-bold">Check your start date.</span>{" "}
+                    Based on your current settings, this schedule would have
+                    started on {formatShortDate(startPreview.startDate)}.
+                    <br />
+                    If you have already started this brew, you can continue with
+                    this schedule. Otherwise, move the tap date later or shorten
+                    one or more stages.
+                    <br />
+                    Suggested earliest tap date using these durations:{" "}
+                    {formatShortDate(startPreview.earliest)}.
                     <div>
                       <button
                         type="button"
-                        onClick={() => handleUseEarliest(feasibility.earliest)}
+                        onClick={() => handleUseEarliest(startPreview.earliest)}
                         className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border-strong bg-field px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
                       >
-                        Use {formatShortDate(feasibility.earliest)}
+                        Use {formatShortDate(startPreview.earliest)}
                       </button>
                     </div>
+                  </div>
+                ) : (
+                  <div
+                    id="custom-start-advisory"
+                    role="status"
+                    className="rounded-xl border border-stage-brew/40 bg-stage-brew-soft px-4 py-3 text-sm leading-6 text-foreground"
+                  >
+                    <span className="font-bold">On schedule.</span> This
+                    schedule begins {formatShortDate(startPreview.startDate)} and
+                    can be ready by {formatShortDate(startPreview.parsedTapDate)}.
                   </div>
                 ))}
             </div>
@@ -828,11 +822,7 @@ function CustomPlanner() {
 
             <button
               type="submit"
-              disabled={calculateDisabled}
-              aria-describedby={
-                calculateDisabled ? "custom-feasibility" : undefined
-              }
-              className="w-full rounded-xl bg-accent px-4 py-3.5 text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-accent"
+              className="w-full rounded-xl bg-accent px-4 py-3.5 text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
             >
               Build custom schedule
             </button>
@@ -949,6 +939,17 @@ function CustomPlanner() {
             </div>
 
             <div className="border-t border-border p-5 sm:p-6">
+              {resultStartsInPast && (
+                <div
+                  role="status"
+                  className="mb-4 rounded-xl border border-stage-condition/40 bg-stage-condition-soft px-4 py-3 text-xs leading-5 text-foreground"
+                >
+                  <span className="font-bold">Heads up.</span> This calendar
+                  includes stages that began before today. Continue only if this
+                  brew is already underway.
+                </div>
+              )}
+
               <button
                 type="button"
                 onClick={handleExportCalendar}

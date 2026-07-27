@@ -208,7 +208,12 @@ The cold-crash stage is omitted from the result whenever cold-crash days are `0`
 
 > 🧪 **In preview / testing.** This feature currently lives on the `feature/brew-feasibility-checks` branch and its Vercel preview deployment — it is **not** yet shipped to production.
 
-Feasibility checks stop a user from ever creating or exporting a schedule that would require brewing *before today*. Both planners evaluate availability live, before calculation, and guard again at submit time.
+The two planners treat a brew that would have to start *before today* very differently, and deliberately so:
+
+- **Official BrewPacks enforce published timing.** A pack has authoritative recommended and minimum durations, so if neither fits before the chosen tap date the official planner hard-stops — it disables the timing modes and **Calculate** and produces no result.
+- **Custom schedules are advisory.** A custom recipe's durations are user-defined; Tap Planner is a planning tool, not the authority on how long a recipe must ferment or condition. It calculates the dates, warns when the start lands before today, and **still lets the user calculate and export** — it never calls a custom schedule impossible or forces a change.
+
+Tap Planner does not judge whether custom recipe durations are appropriate.
 
 All the date math is shared in `lib/schedule.ts` (local-date based, no UTC/timezone shifting) so the two pages never disagree:
 
@@ -232,7 +237,12 @@ The form is reordered into a step-by-step flow — **tap date → BrewPack → t
 
 ### Custom planner
 
-The tap date is moved above the recipe timing fields. A custom recipe has no recommended/minimum concept, so the **exact entered durations** are validated: once the three timing fields are valid and a tap date is present, the banner shows either a teal *"This schedule can be ready by {date}."* or a red *"This schedule needs N days, but only M days are available. The earliest possible tap date is {date}."* with a **Use {date}** action. When infeasible, **Calculate** is disabled, any stale result is cleared, and calendar export is unavailable. Prefilled BrewPack timing (from the official planner's **Customize timing** link) is validated as a plain custom schedule — and re-validated the instant any duration is edited — with no special-casing.
+The tap date is moved above the recipe timing fields. Once the three duration fields are valid and a tap date is present, a live `aria-live` advisory reports the calculated start date:
+
+- **Starts today or later** — a confirmation: *"This schedule begins {start} and can be ready by {tap}."*
+- **Starts before today** — an advisory warning (amber, deliberately not styled as a fatal error): *"Based on your current settings, this schedule would have started on {date}."* followed by guidance to continue if the brew is already underway, or otherwise move the tap date later or shorten a stage, plus *"Suggested earliest tap date using these durations: {date}."* and a **Use {date}** action that only updates the tap-date field.
+
+A past start **never** disables **Calculate**, never clears the result on its own, and never hides calendar export. Before exporting a past-dated schedule the result card retains a short advisory (*"This calendar includes stages that began before today…"*); the ICS stage structure is unchanged and past events are exported as-is. Only genuinely invalid input — missing or invalid tap date, or blank / negative / nonnumeric / out-of-range durations — blocks calculation and export. Prefilled BrewPack timing (from the official planner's **Customize timing** link) is treated as a plain custom schedule and re-evaluated the instant any duration is edited.
 
 ### Earliest possible tap date
 
@@ -240,7 +250,12 @@ The "earliest" shown in every message is `getEarliestTapDate(durations)` = `toda
 
 ### Guardrails
 
-Feasibility is never trusted to UI state alone. Each planner's **Calculate** handler independently re-checks, in order: tap date present → tap date is today or later → required fields valid → (official) the selected timing mode currently fits → the calculated brew start is today or later. If any check fails the handler does not calculate, does not export, clears stale results, and shows a message. Because the **Add schedule to calendar** action lives inside the result card, and any change that invalidates a schedule clears that result, **an invalid or stale schedule can never expose calendar export**.
+Neither planner trusts UI state alone, but the rules stay clearly separated:
+
+- **Official** — the Calculate handler re-checks tap date present → today or later → fields valid → the selected timing mode currently fits → brew start today or later, and refuses (clearing stale results, no export) if any check fails.
+- **Custom** — the handler blocks only genuinely invalid input via `validate()`; a start before today is advisory and still calculates and exports. Custom never reuses the official hard-stop.
+
+On both pages the **Add schedule to calendar** action lives inside the result card, so a schedule that was never calculated can never be exported.
 
 ---
 
