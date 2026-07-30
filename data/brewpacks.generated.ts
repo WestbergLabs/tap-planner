@@ -307,6 +307,18 @@ export const brewPacks: BrewPack[] = [
     hopperIncluded: false,
   },
   {
+    id: "proper-english",
+    name: "Proper English",
+    style: "Apple Cider",
+    recommendedBrewDays: 12,
+    recommendedConditioningDays: 7,
+    minimumBrewDays: 10,
+    minimumConditioningDays: 4,
+    abv: 6.5,
+    yeast: "Vigour",
+    hopperIncluded: false,
+  },
+  {
     id: "prostmeister",
     name: "Prostmeister",
     style: "Oktoberfest Lager",
