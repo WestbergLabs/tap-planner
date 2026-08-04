@@ -1,0 +1,268 @@
+{
+  "products": [
+    {
+      "id": 8802186002713,
+      "handle": "dark-matter-stout",
+      "title": "Dark Matter",
+      "publishedAt": "2023-09-18T06:42:27-04:00",
+      "available": true,
+      "fingerprint": "7a2ab59baaf2ae6c"
+    },
+    {
+      "id": 8802186199321,
+      "handle": "whole-nine-yards-hard-cider",
+      "title": "Whole Nine Yards",
+      "publishedAt": "2023-09-18T06:42:30-04:00",
+      "available": true,
+      "fingerprint": "729f05365f550a55"
+    },
+    {
+      "id": 8802186297625,
+      "handle": "space-hopper-wce-ipa",
+      "title": "Space Hopper West Coast Edition",
+      "publishedAt": "2023-09-18T06:42:33-04:00",
+      "available": true,
+      "fingerprint": "4309b1c015e788b3"
+    },
+    {
+      "id": 8802186461465,
+      "handle": "space-hopper-ipa",
+      "title": "Space Hopper",
+      "publishedAt": "2023-10-27T10:48:47-04:00",
+      "available": true,
+      "fingerprint": "93253f15a4328657"
+    },
+    {
+      "id": 8802186756377,
+      "handle": "sun-lit-lager",
+      "title": "Sunlit",
+      "publishedAt": "2024-08-16T05:20:08-04:00",
+      "available": true,
+      "fingerprint": "8d81a76b4b612bc8"
+    },
+    {
+      "id": 8802186920217,
+      "handle": "bigmouth-remixed-ipa",
+      "title": "Yeastie Boys Bigmouth Remixed",
+      "publishedAt": "2023-09-18T06:42:47-04:00",
+      "available": true,
+      "fingerprint": "d69a85c98f14db37"
+    },
+    {
+      "id": 8866010988825,
+      "handle": "ancestors",
+      "title": "Ancestor's",
+      "publishedAt": "2024-01-25T08:42:51-05:00",
+      "available": true,
+      "fingerprint": "1fc4501563329381"
+    },
+    {
+      "id": 8961621000473,
+      "handle": "brewgooder-hazy-ipa-remixed",
+      "title": "Brewgooder Hazy IPA Remixed",
+      "publishedAt": "2024-01-18T12:57:37-05:00",
+      "available": false,
+      "fingerprint": "53887dc310036154"
+    },
+    {
+      "id": 9055751799065,
+      "handle": "stars-stripes",
+      "title": "Stars & Stripes",
+      "publishedAt": "2024-08-16T05:30:24-04:00",
+      "available": true,
+      "fingerprint": "be5d7d192451eaec"
+    },
+    {
+      "id": 9425777492249,
+      "handle": "waltham-forest",
+      "title": "Waltham Forest",
+      "publishedAt": "2026-07-16T14:29:46-04:00",
+      "available": true,
+      "fingerprint": "7b980cae555b2a53"
+    },
+    {
+      "id": 9518057980185,
+      "handle": "en-casa",
+      "title": "En Casa",
+      "publishedAt": "2024-07-25T09:51:28-04:00",
+      "available": true,
+      "fingerprint": "7e4e47808b8b54d6"
+    },
+    {
+      "id": 9635982737689,
+      "handle": "lemon-lime-hard-seltzer",
+      "title": "Lemon & Lime Hard Seltzer",
+      "publishedAt": "2024-08-06T11:46:49-04:00",
+      "available": true,
+      "fingerprint": "36c27956c962805b"
+    },
+    {
+      "id": 9668339564825,
+      "handle": "sour-beer",
+      "title": "Razz Session",
+      "publishedAt": "2024-09-12T12:01:55-04:00",
+      "available": true,
+      "fingerprint": "9c2e80e9fb04131d"
+    },
+    {
+      "id": 9668339958041,
+      "handle": "appalachian-mountain-brewery",
+      "title": "Appalachian Mountain Brewery",
+      "publishedAt": "2024-09-26T11:03:00-04:00",
+      "available": true,
+      "fingerprint": "f4272ab7b4e3ddb7"
+    },
+    {
+      "id": 9770541252889,
+      "handle": "brewdog-punk-ipa-remixed",
+      "title": "BrewDog Punk IPA Remixed",
+      "publishedAt": "2024-11-21T10:37:35-05:00",
+      "available": true,
+      "fingerprint": "e52352edd9c60e60"
+    },
+    {
+      "id": 9770541547801,
+      "handle": "brewdog-hazy-jane-remixed",
+      "title": "BrewDog Hazy Jane Remixed",
+      "publishedAt": "2024-11-21T10:37:17-05:00",
+      "available": true,
+      "fingerprint": "8a211ee7d5440c18"
+    },
+    {
+      "id": 9809484742937,
+      "handle": "fourpure-citrus-ipa-remixed",
+      "title": "Fourpure Citrus IPA Remixed",
+      "publishedAt": "2025-01-09T11:36:45-05:00",
+      "available": true,
+      "fingerprint": "a574e41d80c64d03"
+    },
+    {
+      "id": 9869955924249,
+      "handle": "shadow-cream",
+      "title": "Shadow & Cream",
+      "publishedAt": "2026-02-19T12:09:51-05:00",
+      "available": true,
+      "fingerprint": "1661c349933f6e1f"
+    },
+    {
+      "id": 9873439621401,
+      "handle": "brewdog-elvis-juice-remixed",
+      "title": "BrewDog Elvis Juice Remixed",
+      "publishedAt": "2025-03-06T12:28:56-05:00",
+      "available": true,
+      "fingerprint": "12bd5e24d2971169"
+    },
+    {
+      "id": 9878937960729,
+      "handle": "golden-grove",
+      "title": "Golden Grove",
+      "publishedAt": "2025-03-20T12:21:33-04:00",
+      "available": true,
+      "fingerprint": "c189e4beb86fe863"
+    },
+    {
+      "id": 9913436832025,
+      "handle": "trooper-remixed",
+      "title": "Iron Maiden’s Trooper Remixed",
+      "publishedAt": "2025-05-22T08:13:30-04:00",
+      "available": true,
+      "fingerprint": "1b84fcaef304dc49"
+    },
+    {
+      "id": 9944057839897,
+      "handle": "adnams-ghost-ship-remixed",
+      "title": "Adnams Ghost Ship Remixed",
+      "publishedAt": "2025-07-10T10:32:09-04:00",
+      "available": true,
+      "fingerprint": "87f2dbaeaa694bea"
+    },
+    {
+      "id": 9997222773017,
+      "handle": "all-american-haze-1",
+      "title": "All American Haze",
+      "publishedAt": "2026-02-19T12:09:47-05:00",
+      "available": true,
+      "fingerprint": "13cfb650235bd63d"
+    },
+    {
+      "id": 10001566466329,
+      "handle": "pear-with-me",
+      "title": "Pear With Me",
+      "publishedAt": "2025-08-11T11:57:33-04:00",
+      "available": true,
+      "fingerprint": "b069fb9ab311f036"
+    },
+    {
+      "id": 10001576788249,
+      "handle": "en-casa-lime",
+      "title": "En Casa Lime",
+      "publishedAt": "2025-08-11T11:57:30-04:00",
+      "available": true,
+      "fingerprint": "6cf793f4974fd39c"
+    },
+    {
+      "id": 10013814325529,
+      "handle": "after-midnight",
+      "title": "After Midnight",
+      "publishedAt": "2025-08-26T11:03:11-04:00",
+      "available": true,
+      "fingerprint": "96bfec56c29d8d25"
+    },
+    {
+      "id": 10195577241881,
+      "handle": "deep-shade",
+      "title": "Deep Shade Coffee",
+      "publishedAt": "2025-11-18T14:38:09-05:00",
+      "available": true,
+      "fingerprint": "5210b6e0f2dd0a87"
+    },
+    {
+      "id": 10239632834841,
+      "handle": "snap-pilsner",
+      "title": "Snap",
+      "publishedAt": "2026-01-15T12:35:24-05:00",
+      "available": true,
+      "fingerprint": "99a218c1b0855135"
+    },
+    {
+      "id": 10301797826841,
+      "handle": "hopewell-west-coast-lager",
+      "title": "Hopewell West Coast Lager",
+      "publishedAt": "2026-03-19T12:23:09-04:00",
+      "available": true,
+      "fingerprint": "edec5a527ebd2a40"
+    },
+    {
+      "id": 10318035419417,
+      "handle": "sumpin-easy-remixed",
+      "title": "Lagunitas Sumpin' Easy Remixed",
+      "publishedAt": "2026-05-05T05:50:46-04:00",
+      "available": true,
+      "fingerprint": "c334e93511ae528e"
+    },
+    {
+      "id": 10620030189849,
+      "handle": "great-lakes-burning-river-remixed",
+      "title": "Great Lakes Burning River Remixed",
+      "publishedAt": "2026-05-26T12:05:18-04:00",
+      "available": true,
+      "fingerprint": "3843418ddac87a9b"
+    },
+    {
+      "id": 10732933808409,
+      "handle": "lagunitas-super-cluster-remixed",
+      "title": "Lagunitas Super Cluster Remixed",
+      "publishedAt": "2026-07-23T07:21:31-04:00",
+      "available": true,
+      "fingerprint": "610c8f01bc60b84c"
+    },
+    {
+      "id": 10739806142745,
+      "handle": "proper-english",
+      "title": "Proper English",
+      "publishedAt": "2026-07-30T11:13:36-04:00",
+      "available": true,
+      "fingerprint": "05311d5a93dd22bb"
+    }
+  ]
+}

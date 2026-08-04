@@ -30,8 +30,9 @@ Work backward from tap day. Tap Planner turns a target date into a brew schedule
 - [Calendar export](#calendar-export)
 - [BrewPack data pipeline](#brewpack-data-pipeline)
   - [Data model](#data-model)
+  - [Sources](#sources)
   - [Importer](#importer)
-  - [Automatic catalog monitoring](#automatic-catalog-monitoring)
+  - [Shopify-based discovery (preview)](#shopify-based-discovery-preview)
 - [Deployment](#deployment)
 - [Data and image policy](#data-and-image-policy)
 - [Current scope](#current-scope)
@@ -84,7 +85,10 @@ Then open [http://localhost:3000](http://localhost:3000).
 | `pnpm dev` | Start the local development server |
 | `pnpm lint` | Run lint checks |
 | `pnpm build` | Create a production build |
-| `pnpm import:brewpacks` | Fetch and regenerate BrewPack data |
+| `pnpm test` | Run the discovery unit tests |
+| `pnpm import:brewpacks` | Fetch and regenerate the full BrewPack catalog |
+| `pnpm scan:quick` | Quick discovery scan (regenerates only on a relevant change) |
+| `pnpm scan:full` | Full verification scan (rebuild catalog + discovery state) |
 
 Before pushing a change, always run both:
 
@@ -100,8 +104,9 @@ pnpm build
 ```text
 .github/
   workflows/
-    ci.yml                    # Lint + build on PRs and pushes to main
-    monitor-brewpacks.yml     # Scheduled BrewPack monitoring
+    ci.yml                          # Lint + build on PRs and pushes to main
+    brewpack-quick-scan.yml         # ~6-hourly Shopify discovery scan
+    brewpack-full-verification.yml  # Weekly full re-verification
 
 app/
   custom/
@@ -115,6 +120,7 @@ components/
 
 data/
   brewpacks.generated.ts       # Generated BrewPack catalog used by the app
+  pinter-product-state.json    # Discovery state (Shopify id/handle/fingerprint per product)
 
 lib/
   calendar.ts                  # Browser-only .ics calendar generation, shared by both planners
@@ -124,7 +130,12 @@ public/
   tap-handles.jpg              # Local hero image
 
 scripts/
-  import-brewpacks.ts          # Scrapes, validates, and writes BrewPack data
+  import-brewpacks.ts          # Full catalog build: resolve + validate + write
+  brewpack-scan.ts             # Two-level discovery scanner (quick / full)
+  lib/
+    discovery.ts               # Pure discovery logic (fingerprint, classify, state)
+    discovery.test.ts          # Discovery unit tests (pnpm test)
+    http.ts                    # Fetch with user agent, timeout, retry, 429/5xx
 ```
 
 `lib/schedule.ts` and `lib/calendar.ts` are the two files worth knowing well — nearly everything else in the app is UI built on top of them.
@@ -327,54 +338,63 @@ Generated catalog: `data/brewpacks.generated.ts`
 
 Discontinued BrewPacks stay in the generated data but are hidden from normal search results.
 
+### Sources
+
+BrewPack data comes from Pinter's public storefront, preferring structured Shopify data over scraping visible page text:
+
+| Source | Used for |
+|---|---|
+| **Fresh Beer collection JSON** — `https://pinter.com/collections/fresh-beer/products.json?limit=250` | Discovery + identity: product `id`, `handle`, `title`, `created_at`, `published_at`, availability, tags, description |
+| **Product pages** — `https://pinter.com/products/{handle}` | Timing specs (recommended/minimum brew & conditioning days), ABV, style, yeast |
+| **Support "Pinter Packs" article** *(backup)* | Retaining discontinued/seasonal packs no longer on sale, and filling any spec a product page omits |
+
+The collection JSON is the primary source and exposes both `created_at` and `published_at`. Only published products are ever added to the catalog.
+
 ### Importer
 
-`scripts/import-brewpacks.ts` — run manually with `pnpm import:brewpacks`.
+`scripts/import-brewpacks.ts` — the full catalog build, run manually with `pnpm import:brewpacks` and reused by the full verification scan. It resolves every current product against the support backup, validates each with Zod, and writes deterministic output (no timestamps, so Git only diffs real catalog changes). Safety guards: it refuses a suspiciously small result or duplicate ids, writes the generated file atomically (temp file + rename), and — crucially — a single product that cannot be fully resolved is set aside as **pending** rather than aborting the whole run or dropping the rest of the catalog.
+
+### Shopify-based discovery (preview)
+
+> 🧪 **In preview / testing** on `feature/smarter-brewpack-scanning` — not yet on production.
+
+Discovery runs at two levels so new releases are found quickly without re-scraping every product page on every run. Discovery state lives in `data/pinter-product-state.json` — one entry per collection product (`id`, `handle`, `title`, `publishedAt`, `available`, a relevant-field `fingerprint`, and an optional `pending` flag). It stores only what change detection needs — never the full Shopify response, and no `lastSeenAt`-style timestamp that would cause a commit on every scan. (A separate state file is used because the generated catalog keys packs on a name-slug and stores neither the Shopify id nor the handle, so known identity can't be derived from it.)
+
+Identity is the **Shopify product id** (stable across renames); the **handle** is retained because it determines the product URL. Titles are never used as identity.
+
+#### Quick discovery scan — approximately every 6 hours
+
+`pnpm scan:quick` · `.github/workflows/brewpack-quick-scan.yml`
 
 ```mermaid
 flowchart LR
-    A[Fetch source page] --> B[Parse BrewPack fields]
-    B --> C[Validate with Zod]
-    C --> D[Check record safety]
-    D --> E[Write generated catalog]
+    A[Fetch collection JSON<br/>one request] --> B[Classify vs known state]
+    B --> C{New or relevant<br/>change?}
+    C -->|No| D[Exit — no files changed]
+    C -->|Yes| E[Scrape only the<br/>changed products]
+    E --> F[Merge into catalog<br/>+ update state]
+    F --> G[Tests, lint, build → PR]
 ```
 
-It also:
+The steady state is a single collection request and **no file writes**. Detailed scraping is invoked only for products that are actually new or relevantly changed. This is a discovery check, not a guarantee of immediate availability — it runs roughly every six hours.
 
-- rejects suspiciously small result sets
-- checks for duplicate IDs
-- identifies discontinued packs
-- applies stable slug overrides where needed
-- writes fully deterministic output (no changing timestamp, so Git only ever diffs real catalog changes)
+**Relevant-change detection** compares a deterministic fingerprint of the fields Tap Planner cares about — id, handle, title, `published_at`, availability, description content, and classification tags. Irrelevant storefront data (cart quantity, subscription plan ids, inventory counts, prices, marketing markup) is excluded so it never triggers reprocessing. A product is detected when: its id is new; its handle or title changed; it became newly published; it became available or unavailable; or its description/tags changed.
 
-The importer requires a valid `Hopper Included` value and fails loudly if Pinter removes or changes that field.
+**Pending products.** A product that is published but whose required timing specs can't be extracted yet (a page not fully populated, or temporarily unreachable) is recorded with `pending: true` and **not** added to the planner — the missing fields are logged, and it is re-checked on every later scan until complete, so it is never marked permanently processed. Unpublished (draft) products are ignored entirely until they publish.
 
-### Automatic catalog monitoring
+#### Weekly full verification
 
-Workflow: `.github/workflows/monitor-brewpacks.yml` — runs every Monday, or on demand from the **Actions** tab.
+`pnpm scan:full` · `.github/workflows/brewpack-full-verification.yml` — Monday 07:30 UTC
 
-```mermaid
-flowchart LR
-    A[Checkout repo] --> B[Install with pnpm]
-    B --> C[Regenerate catalog]
-    C --> D{Meaningful\nchanges?}
-    D -->|Yes| E[Lint + build]
-    E --> F[Open / update PR]
-    D -->|No| G[No action — run confirms\nsource page still parses]
-```
+The authority pass re-resolves **every** current product, rebuilds the catalog and state from scratch, and reconciles what the incremental quick scan intentionally defers — retention of packs that dropped off the shop, renames, and removals. A no-change run confirms the sources still parse.
 
-A failed scheduled run is itself a signal — it usually means Pinter changed the source page's structure and the importer needs maintenance. The monitor detects:
+Both workflows keep manual dispatch, share a `brewpacks-scan` concurrency group (so a quick and full scan never overlap or race on the automation branch), and open/update the same catalog pull request. Changes are **never merged automatically** — a maintainer always reviews the diff, which the workflow first validates with `pnpm test`, `pnpm lint`, and `pnpm build`.
 
-| Change | Covered |
-|---|:---:|
-| New or removed BrewPacks | ✅ |
-| Brew or conditioning time changes | ✅ |
-| ABV or style changes | ✅ |
-| Yeast or Hopper changes | ✅ |
-| Discontinued-status changes | ✅ |
-| Source-page parsing failures | ✅ |
+#### Failure safety
 
-> Catalog updates are never merged automatically — a maintainer always reviews and merges the pull request.
+Every request carries a Tap Planner user agent and has a timeout with limited retries for transient failures (network errors, HTTP 429 honoring `Retry-After`, and 5xx). A persistent failure fails the run loudly rather than corrupting data: the generated file is written atomically, the small-result and duplicate-id guards refuse to overwrite a healthy catalog with a broken one, and if the expected Shopify structure disappears the scan stops and preserves the existing generated data.
+
+> Tap Planner does not verify that Pinter's published timings are correct — it mirrors them. A maintainer reviews every automated catalog PR.
 
 ---
 
@@ -428,6 +448,7 @@ The official Pinter app remains the source of truth for active brewing instructi
 |---|---|
 | Calendar export | ✅ Shipped (all-day `.ics`, browser-only) |
 | Feasibility checks | ✅ Shipped (official recommended/minimum + custom advisory, with date recovery) |
+| Smarter BrewPack scanning | 🧪 In preview (`feature/smarter-brewpack-scanning`) — quick ~6h discovery + weekly full verification |
 | Saved schedules | Planned candidate |
 | Shareable schedule links | Planned candidate |
 | Accessibility refinements | Ongoing |

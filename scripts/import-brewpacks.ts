@@ -1,7 +1,14 @@
 import * as cheerio from "cheerio";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { z } from "zod";
+
+import { fetchJsonWithRetry, fetchTextWithRetry } from "./lib/http";
+import {
+  selectBrewPackProducts,
+  type ShopifyProduct,
+} from "./lib/discovery";
 
 // Primary source: the Pinter shop. This is what is actually on sale right now,
 // so new packs appear here within a day of launch (long before the support
@@ -21,14 +28,11 @@ const productUrl = (handle: string): string =>
 const SUPPORT_URL =
   "https://support.pinter.com/en-US/our-pinter-packs-2525825";
 
-const OUTPUT_FILE = path.join(
+export const OUTPUT_FILE = path.join(
   process.cwd(),
   "data",
   "brewpacks.generated.ts",
 );
-
-const USER_AGENT =
-  "TapPlanner/1.0 BrewPack monitor (community planning tool)";
 
 const MIN_EXPECTED_PACKS = 25;
 
@@ -70,7 +74,7 @@ const BrewPackSchema = z.object({
   discontinued: z.boolean().optional(),
 });
 
-type BrewPack = z.infer<typeof BrewPackSchema>;
+export type BrewPack = z.infer<typeof BrewPackSchema>;
 
 function slugify(value: string): string {
   return value
@@ -114,91 +118,33 @@ function parseAbv(value: string): number {
   return Number(match[1]);
 }
 
-function required<T>(
-  value: T | null | undefined,
-  packName: string,
-  field: string,
-): T {
-  if (value === null || value === undefined) {
-    throw new Error(
-      `Missing "${field}" for "${packName}" — not found on the product page or the support backup.`,
-    );
-  }
-
-  return value;
-}
-
-async function fetchText(url: string): Promise<string> {
-  const response = await fetch(url, {
-    headers: { "User-Agent": USER_AGENT },
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `${url} returned ${response.status} ${response.statusText}`,
-    );
-  }
-
-  return response.text();
-}
+// The importer reuses the shared retrying fetch for product and support pages.
+const fetchText = fetchTextWithRetry;
 
 // ---------------------------------------------------------------------------
 // Primary source: the shop collection + product pages
 // ---------------------------------------------------------------------------
 
-type ShopBeer = {
-  title: string;
-  handle: string;
-  tags: string[];
-};
-
 type ShopProductsResponse = {
-  products?: Array<{
-    title?: string;
-    handle?: string;
-    tags?: string[];
-  }>;
+  products?: ShopifyProduct[];
 };
 
-function isBeerProduct(title: string): boolean {
-  const normalized = title.trim().toLowerCase();
+/**
+ * Fetch the Fresh Beer collection as Shopify product JSON. Returns the raw
+ * BrewPack products (bundles/glasses removed) so both the catalog build and the
+ * discovery scan work from a single collection request.
+ */
+export async function fetchShopProducts(): Promise<ShopifyProduct[]> {
+  const data = await fetchJsonWithRetry<ShopProductsResponse>(SHOP_COLLECTION_URL);
+  const products = data.products ?? [];
 
-  if (normalized === "pinter pack") {
-    return false;
-  }
-
-  return !normalized.includes("bundle") && !normalized.includes("glass");
-}
-
-async function fetchShopBeers(): Promise<ShopBeer[]> {
-  const response = await fetch(SHOP_COLLECTION_URL, {
-    headers: { "User-Agent": USER_AGENT },
-  });
-
-  if (!response.ok) {
+  if (!Array.isArray(data.products)) {
     throw new Error(
-      `Pinter shop returned ${response.status} ${response.statusText}`,
+      "Pinter collection JSON did not contain a products array — source layout may have changed.",
     );
   }
 
-  const data = (await response.json()) as ShopProductsResponse;
-  const products = data.products ?? [];
-  const seen = new Set<string>();
-  const beers: ShopBeer[] = [];
-
-  for (const product of products) {
-    const title = (product.title ?? "").trim();
-    const handle = product.handle ?? "";
-
-    if (!title || !handle || !isBeerProduct(title) || seen.has(handle)) {
-      continue;
-    }
-
-    seen.add(handle);
-    beers.push({ title, handle, tags: product.tags ?? [] });
-  }
-
-  return beers;
+  return selectBrewPackProducts(products);
 }
 
 function styleFromTags(tags: string[]): string | null {
@@ -391,93 +337,173 @@ function parseSupportPacks(html: string): BrewPack[] {
 // Merge: shop primary, support backup
 // ---------------------------------------------------------------------------
 
-async function buildCatalog(): Promise<{
+/**
+ * A shop product that is published but whose required timing/spec fields could
+ * not be resolved yet (new page not fully populated, product page unreachable).
+ * These are never added to the planner catalog; they are reported so a scan can
+ * keep them pending and retry on the next run.
+ */
+export type PendingProduct = {
+  id: number;
+  handle: string;
+  title: string;
+  missing: string[];
+};
+
+export type CatalogResult = {
   packs: BrewPack[];
+  pending: PendingProduct[];
   fromShop: number;
   retainedFromSupport: string[];
-}> {
-  const [shopBeers, supportHtml] = await Promise.all([
-    fetchShopBeers(),
-    fetchText(SUPPORT_URL),
-  ]);
+};
 
-  const supportPacks = parseSupportPacks(supportHtml);
+// Resolve one shop product into a complete BrewPack, or into a pending record
+// listing the fields that could not be filled. Any per-product failure (missing
+// spec or an unreachable product page) is contained here so it never aborts the
+// whole run -- a single incomplete product must not drop the rest of the catalog.
+async function resolveShopPack(
+  product: ShopifyProduct,
+  supportByName: Map<string, BrewPack>,
+  supportByNorm: Map<string, BrewPack>,
+): Promise<{ pack: BrewPack } | { pending: PendingProduct }> {
+  const tags = product.tags ?? [];
+  const canonicalName =
+    SHOP_NAME_ALIASES[product.title] ??
+    supportByNorm.get(normalizeName(product.title))?.name ??
+    product.title;
+
+  const support = supportByName.get(canonicalName);
+  const id = SLUG_OVERRIDES[canonicalName] ?? slugify(canonicalName);
+
+  const missing: string[] = [];
+  const pendingRecord = (): { pending: PendingProduct } => ({
+    pending: { id: product.id, handle: product.handle, title: product.title, missing },
+  });
+
+  let specs: ProductSpecs;
+  try {
+    specs = parseProductSpecs(await fetchText(productUrl(product.handle)));
+  } catch {
+    // Product page unreachable/unparseable right now: treat as fully pending so
+    // it is retried next scan rather than crashing this run or dropping data.
+    missing.push("product page");
+    return pendingRecord();
+  }
+
+  // Prefer the support page's curated style / hopper / yeast for packs it knows
+  // (no churn); fall back to the product page and shop tags for brand-new packs.
+  const pick = <T>(value: T | null | undefined, field: string): T | null => {
+    if (value === null || value === undefined) {
+      missing.push(field);
+      return null;
+    }
+    return value;
+  };
+
+  const style = pick(support?.style ?? specs.style ?? styleFromTags(tags), "style");
+  const recommendedBrewDays = pick(
+    specs.recommendedBrewDays ?? support?.recommendedBrewDays,
+    "recommended brewing time",
+  );
+  const recommendedConditioningDays = pick(
+    specs.recommendedConditioningDays ?? support?.recommendedConditioningDays,
+    "recommended conditioning time",
+  );
+  const minimumBrewDays = pick(
+    specs.minimumBrewDays ?? support?.minimumBrewDays,
+    "minimum brewing time",
+  );
+  const minimumConditioningDays = pick(
+    specs.minimumConditioningDays ?? support?.minimumConditioningDays,
+    "minimum conditioning time",
+  );
+  const abv = pick(specs.abv ?? support?.abv, "abv");
+  const yeast = pick(support?.yeast ?? specs.yeast, "yeast");
+
+  if (missing.length > 0) {
+    return pendingRecord();
+  }
+
+  const candidate: BrewPack = {
+    id,
+    name: canonicalName,
+    style: style as string,
+    recommendedBrewDays: recommendedBrewDays as number,
+    recommendedConditioningDays: recommendedConditioningDays as number,
+    minimumBrewDays: minimumBrewDays as number,
+    minimumConditioningDays: minimumConditioningDays as number,
+    abv: abv as number,
+    yeast: yeast as string,
+    hopperIncluded: support ? support.hopperIncluded : hopperFromTags(tags),
+  };
+
+  return { pack: BrewPackSchema.parse(candidate) };
+}
+
+/** Fetch and parse the support "Pinter Packs" article into curated packs. */
+export async function fetchSupportPacks(): Promise<BrewPack[]> {
+  return parseSupportPacks(await fetchText(SUPPORT_URL));
+}
+
+/**
+ * Resolve a set of shop products against the support backup into complete
+ * BrewPacks plus a pending list. Used both for the full build (all products)
+ * and the quick scan's incremental path (only the changed products), so the two
+ * paths extract specs identically. Does not apply support retention.
+ */
+export async function resolveShopPacks(
+  products: ShopifyProduct[],
+  supportPacks: BrewPack[],
+): Promise<{ packs: BrewPack[]; pending: PendingProduct[] }> {
   const supportByName = new Map(supportPacks.map((p) => [p.name, p]));
   const supportByNorm = new Map(
     supportPacks.map((p) => [normalizeName(p.name), p]),
   );
 
-  const catalog = new Map<string, BrewPack>();
+  const bySlug = new Map<string, BrewPack>();
+  const pending: PendingProduct[] = [];
 
-  // 1) Shop is primary: every pack currently on sale, specs from its product
-  //    page, falling back to the support entry only for anything missing.
-  for (const beer of shopBeers) {
-    const canonicalName =
-      SHOP_NAME_ALIASES[beer.title] ??
-      supportByNorm.get(normalizeName(beer.title))?.name ??
-      beer.title;
+  for (const product of products) {
+    const resolved = await resolveShopPack(product, supportByName, supportByNorm);
 
-    const support = supportByName.get(canonicalName);
-    const id = SLUG_OVERRIDES[canonicalName] ?? slugify(canonicalName);
+    if ("pending" in resolved) {
+      pending.push(resolved.pending);
+      continue;
+    }
 
-    const specs = parseProductSpecs(await fetchText(productUrl(beer.handle)));
+    const { pack } = resolved;
 
-    // Prefer the support page's explicit style / hopper flag for packs it
-    // knows (clean, curated); fall back to the shop tags for brand-new packs.
-    // Known packs keep their curated support style (no churn); new packs take
-    // the product page's precise style (e.g. "Double IPA"), tag as fallback.
-    const style =
-      support?.style ??
-      required(
-        specs.style ?? styleFromTags(beer.tags),
-        canonicalName,
-        "style",
-      );
-    const hopperIncluded = support
-      ? support.hopperIncluded
-      : hopperFromTags(beer.tags);
-
-    const candidate: BrewPack = {
-      id,
-      name: canonicalName,
-      style,
-      recommendedBrewDays: required(
-        specs.recommendedBrewDays ?? support?.recommendedBrewDays,
-        canonicalName,
-        "recommended brewing time",
-      ),
-      recommendedConditioningDays: required(
-        specs.recommendedConditioningDays ??
-          support?.recommendedConditioningDays,
-        canonicalName,
-        "recommended conditioning time",
-      ),
-      minimumBrewDays: required(
-        specs.minimumBrewDays ?? support?.minimumBrewDays,
-        canonicalName,
-        "minimum brewing time",
-      ),
-      minimumConditioningDays: required(
-        specs.minimumConditioningDays ?? support?.minimumConditioningDays,
-        canonicalName,
-        "minimum conditioning time",
-      ),
-      abv: required(specs.abv ?? support?.abv, canonicalName, "abv"),
-      // Yeast (like style/hopper) stays with the curated support value for
-      // packs it knows — the support page keeps the sachet count (e.g.
-      // "Spark x2") that the product page drops. Product page fills new packs.
-      yeast: support?.yeast ?? required(specs.yeast, canonicalName, "yeast"),
-      hopperIncluded,
-    };
-
-    if (catalog.has(id)) {
+    if (bySlug.has(pack.id)) {
       throw new Error(
-        `Two shop products resolved to the same id "${id}" ("${canonicalName}").`,
+        `Two shop products resolved to the same id "${pack.id}" ("${pack.name}").`,
       );
     }
 
-    catalog.set(id, BrewPackSchema.parse(candidate));
+    bySlug.set(pack.id, pack);
   }
+
+  return { packs: [...bySlug.values()], pending };
+}
+
+export async function buildCatalog(
+  options: { shopProducts?: ShopifyProduct[] } = {},
+): Promise<CatalogResult> {
+  const [shopProducts, supportPacks] = await Promise.all([
+    options.shopProducts
+      ? Promise.resolve(options.shopProducts)
+      : fetchShopProducts(),
+    fetchSupportPacks(),
+  ]);
+
+  const { packs: shopPacks, pending } = await resolveShopPacks(
+    shopProducts,
+    supportPacks,
+  );
+
+  // 1) Shop is primary: every pack currently on sale (already deduped by slug).
+  const catalog = new Map<string, BrewPack>(
+    shopPacks.map((pack) => [pack.id, pack]),
+  );
 
   const fromShop = catalog.size;
 
@@ -504,7 +530,7 @@ async function buildCatalog(): Promise<{
     return 0;
   });
 
-  return { packs, fromShop, retainedFromSupport };
+  return { packs, pending, fromShop, retainedFromSupport };
 }
 
 // ---------------------------------------------------------------------------
@@ -565,21 +591,25 @@ ${packs.map(formatBrewPack).join(",\n")}
 `;
 }
 
-async function writeGeneratedFile(packs: BrewPack[]): Promise<void> {
+// The generated file is written atomically (temp file + rename) so a crash
+// mid-write can never leave a truncated or empty catalog on disk.
+export async function writeGeneratedFile(packs: BrewPack[]): Promise<void> {
   await mkdir(path.dirname(OUTPUT_FILE), { recursive: true });
-  await writeFile(OUTPUT_FILE, buildGeneratedFile(packs), "utf8");
+
+  const tempFile = `${OUTPUT_FILE}.tmp`;
+  await writeFile(tempFile, buildGeneratedFile(packs), "utf8");
+  await rename(tempFile, OUTPUT_FILE);
 }
 
-async function main(): Promise<void> {
-  console.log("Building BrewPack catalog.");
-  console.log(`  Primary (shop): ${SHOP_COLLECTION_URL}`);
-  console.log(`  Backup (support): ${SUPPORT_URL}\n`);
-
-  const { packs, fromShop, retainedFromSupport } = await buildCatalog();
-
+/**
+ * Guard against a source-layout change silently wiping the catalog: refuse a
+ * suspiciously small result or duplicate ids. Throwing here leaves the existing
+ * generated file untouched (nothing has been written yet).
+ */
+export function assertCatalogSafe(packs: BrewPack[]): void {
   if (packs.length < MIN_EXPECTED_PACKS) {
     throw new Error(
-      `Importer produced only ${packs.length} BrewPacks. Expected at least ${MIN_EXPECTED_PACKS}. A source layout may have changed.`,
+      `Importer produced only ${packs.length} BrewPacks. Expected at least ${MIN_EXPECTED_PACKS}. A source layout may have changed; existing data left untouched.`,
     );
   }
 
@@ -589,6 +619,24 @@ async function main(): Promise<void> {
 
   if (duplicateIds.length > 0) {
     throw new Error(`Duplicate BrewPack IDs found: ${duplicateIds.join(", ")}`);
+  }
+}
+
+async function main(): Promise<void> {
+  console.log("Building BrewPack catalog.");
+  console.log(`  Primary (shop): ${SHOP_COLLECTION_URL}`);
+  console.log(`  Backup (support): ${SUPPORT_URL}\n`);
+
+  const { packs, pending, fromShop, retainedFromSupport } = await buildCatalog();
+
+  assertCatalogSafe(packs);
+
+  if (pending.length > 0) {
+    console.log(
+      `Pending (published but incomplete, not added): ${pending
+        .map((p) => `${p.title} [missing: ${p.missing.join(", ")}]`)
+        .join("; ")}\n`,
+    );
   }
 
   await writeGeneratedFile(packs);
@@ -617,14 +665,22 @@ async function main(): Promise<void> {
   );
 }
 
-main().catch((error: unknown) => {
-  console.error("\nBrewPack import failed.");
+// Only run the importer when this file is executed directly (pnpm
+// import:brewpacks), not when the scanner or tests import its helpers.
+const isDirectRun =
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(process.argv[1]).href;
 
-  if (error instanceof Error) {
-    console.error(error.message);
-  } else {
-    console.error(error);
-  }
+if (isDirectRun) {
+  main().catch((error: unknown) => {
+    console.error("\nBrewPack import failed.");
 
-  process.exitCode = 1;
-});
+    if (error instanceof Error) {
+      console.error(error.message);
+    } else {
+      console.error(error);
+    }
+
+    process.exitCode = 1;
+  });
+}
