@@ -8,7 +8,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "import:brewpacks": "tsx scripts/import-brewpacks.ts"
+    "test": "node --import tsx --test scripts/lib/discovery.test.ts",
+    "import:brewpacks": "tsx scripts/import-brewpacks.ts",
+    "scan:quick": "tsx scripts/brewpack-scan.ts",
+    "scan:full": "tsx scripts/brewpack-scan.ts --full"
   },
   "dependencies": {
     "cheerio": "^1.2.0",

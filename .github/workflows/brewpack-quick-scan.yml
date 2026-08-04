@@ -1,0 +1,105 @@
+name: BrewPack Quick Scan
+
+# Lightweight discovery: roughly every six hours, fetch the Fresh Beer
+# collection once and compare it against known discovery state. Only when a new
+# or relevantly changed product is found does it scrape those products and open
+# a catalog pull request. A no-change run touches no files and opens nothing.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Every 6 hours, on the hour (UTC).
+    - cron: "0 */6 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# Shared with the full verification so the two scans never run concurrently and
+# never race on the same automation branch.
+concurrency:
+  group: brewpacks-scan
+  cancel-in-progress: false
+
+jobs:
+  quick-scan:
+    name: Quick discovery scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run quick discovery scan
+        run: pnpm scan:quick
+
+      - name: Check for catalog or state changes
+        id: changes
+        shell: bash
+        run: |
+          if git diff --quiet -- data/; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No new or changed BrewPacks detected. Nothing to do."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "BrewPack changes detected:"
+            git diff --stat -- data/
+          fi
+
+      - name: Validate changed catalog
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          pnpm test
+          pnpm lint
+          pnpm build
+
+      - name: Commit and open or update pull request
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          branch="automation/brewpack-catalog-update"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git switch -C "$branch"
+          git add data/
+          git commit -m "chore: update BrewPack catalog (quick scan)"
+          git push --force-with-lease origin "$branch"
+
+          existing_pr="$(
+            gh pr list --head "$branch" --base main --state open \
+              --json number --jq '.[0].number // empty'
+          )"
+
+          if [ -n "$existing_pr" ]; then
+            echo "Updated existing pull request #$existing_pr."
+          else
+            cat > pr-body.md <<'EOF'
+          The BrewPack quick scan detected a new or relevantly changed product in Pinter's Fresh Beer collection and regenerated the catalog.
+
+          This pull request was generated automatically. Please review the catalog diff before merging — the workflow validated it with the discovery tests, lint, and a production build.
+          EOF
+
+            gh pr create \
+              --base main \
+              --head "$branch" \
+              --title "chore: update BrewPack catalog" \
+              --body-file pr-body.md
+          fi

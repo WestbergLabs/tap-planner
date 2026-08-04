@@ -1,0 +1,104 @@
+name: BrewPack Full Verification
+
+# Weekly authority pass: re-resolve every current product, rebuild the catalog
+# and discovery state from scratch, and reconcile retention, renames, and
+# removals that the incremental quick scan intentionally defers. Opens a catalog
+# pull request only when a supported field actually changed.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Once per week, Monday 07:30 UTC.
+    - cron: "30 7 * * 1"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# Shared with the quick scan so the two never run concurrently.
+concurrency:
+  group: brewpacks-scan
+  cancel-in-progress: false
+
+jobs:
+  full-verification:
+    name: Full verification scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run full verification scan
+        run: pnpm scan:full
+
+      - name: Check for catalog or state changes
+        id: changes
+        shell: bash
+        run: |
+          if git diff --quiet -- data/; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Full verification found no changes. Sources still parse correctly."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "BrewPack changes detected:"
+            git diff --stat -- data/
+          fi
+
+      - name: Validate changed catalog
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          pnpm test
+          pnpm lint
+          pnpm build
+
+      - name: Commit and open or update pull request
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          branch="automation/brewpack-catalog-update"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git switch -C "$branch"
+          git add data/
+          git commit -m "chore: update BrewPack catalog (full verification)"
+          git push --force-with-lease origin "$branch"
+
+          existing_pr="$(
+            gh pr list --head "$branch" --base main --state open \
+              --json number --jq '.[0].number // empty'
+          )"
+
+          if [ -n "$existing_pr" ]; then
+            echo "Updated existing pull request #$existing_pr."
+          else
+            cat > pr-body.md <<'EOF'
+          The weekly BrewPack full verification detected a change to a supported field and regenerated the catalog.
+
+          This pull request was generated automatically. Please review the catalog diff before merging — the workflow validated it with the discovery tests, lint, and a production build.
+          EOF
+
+            gh pr create \
+              --base main \
+              --head "$branch" \
+              --title "chore: update BrewPack catalog" \
+              --body-file pr-body.md
+          fi
