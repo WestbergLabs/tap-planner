@@ -32,7 +32,7 @@ Work backward from tap day. Tap Planner turns a target date into a brew schedule
   - [Data model](#data-model)
   - [Sources](#sources)
   - [Importer](#importer)
-  - [Shopify-based discovery (preview)](#shopify-based-discovery-preview)
+  - [Shopify-based discovery](#shopify-based-discovery)
 - [Deployment](#deployment)
 - [Data and image policy](#data-and-image-policy)
 - [Current scope](#current-scope)
@@ -354,9 +354,7 @@ The collection JSON is the primary source and exposes both `created_at` and `pub
 
 `scripts/import-brewpacks.ts` — the full catalog build, run manually with `pnpm import:brewpacks` and reused by the full verification scan. It resolves every current product against the support backup, validates each with Zod, and writes deterministic output (no timestamps, so Git only diffs real catalog changes). Safety guards: it refuses a suspiciously small result or duplicate ids, writes the generated file atomically (temp file + rename), and — crucially — a single product that cannot be fully resolved is set aside as **pending** rather than aborting the whole run or dropping the rest of the catalog.
 
-### Shopify-based discovery (preview)
-
-> 🧪 **In preview / testing** on `feature/smarter-brewpack-scanning` — not yet on production.
+### Shopify-based discovery
 
 Discovery runs at two levels so new releases are found quickly without re-scraping every product page on every run. Discovery state lives in `data/pinter-product-state.json` — one entry per collection product (`id`, `handle`, `title`, `publishedAt`, `available`, a relevant-field `fingerprint`, and an optional `pending` flag). It stores only what change detection needs — never the full Shopify response, and no `lastSeenAt`-style timestamp that would cause a commit on every scan. (A separate state file is used because the generated catalog keys packs on a name-slug and stores neither the Shopify id nor the handle, so known identity can't be derived from it.)
 
@@ -448,7 +446,7 @@ The official Pinter app remains the source of truth for active brewing instructi
 |---|---|
 | Calendar export | ✅ Shipped (all-day `.ics`, browser-only) |
 | Feasibility checks | ✅ Shipped (official recommended/minimum + custom advisory, with date recovery) |
-| Smarter BrewPack scanning | 🧪 In preview (`feature/smarter-brewpack-scanning`) — quick ~6h discovery + weekly full verification |
+| Smarter BrewPack scanning | ✅ Shipped (quick ~6h discovery + weekly full verification) |
 | Saved schedules | Planned candidate |
 | Shareable schedule links | Planned candidate |
 | Accessibility refinements | Ongoing |
