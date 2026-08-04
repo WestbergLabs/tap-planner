@@ -14,6 +14,7 @@ import Link from "next/link";
 import BrewPackPicker from "@/components/BrewPackPicker";
 import { brewPacks } from "@/data/brewpacks.generated";
 import {
+  addDays,
   calculateSchedule,
   formatDate,
   formatShortDate,
@@ -23,6 +24,7 @@ import {
   getTodayString,
   isScheduleFeasible,
   parseLocalDate,
+  subtractDays,
   toDateInputValue,
 } from "@/lib/schedule";
 import {
@@ -33,6 +35,12 @@ import {
 
 type ScheduleType = "recommended" | "minimum";
 type ColdCrashDays = 0 | 1 | 2 | 3;
+
+// The date the user enters can mean either the day they want to tap, or the day
+// the Pinter currently on tap runs out. In "finish" mode the tap date is simply
+// the day before the finish date, so the whole planner runs on the tap date and
+// only the date field's labelling and one result line differ.
+type DateMode = "tap" | "finish";
 
 type CalculationResult = {
   packName: string;
@@ -47,6 +55,9 @@ type CalculationResult = {
   conditioningDays: number;
   totalLeadTime: number;
   schedule: ScheduleType;
+  // The current Pinter's finish date when calculated in finish mode; null when
+  // the user planned by a target tap date.
+  finishDate: Date | null;
 };
 
 export default function Home() {
@@ -61,7 +72,10 @@ export default function Home() {
   );
 
   const [brewPackId, setBrewPackId] = useState("");
+  // `tapDate` always holds the tap date (YYYY-MM-DD). In finish mode the date
+  // field shows the finish date (tap + 1) but stores the tap date here.
   const [tapDate, setTapDate] = useState("");
+  const [dateMode, setDateMode] = useState<DateMode>("tap");
 
   const [schedule, setSchedule] =
     useState<ScheduleType>("recommended");
@@ -122,6 +136,32 @@ export default function Home() {
   // The selection state is only ever changed by an explicit user click.
   const effectiveSchedule: ScheduleType =
     recommendedDisabled && schedule === "recommended" ? "minimum" : schedule;
+
+  const finishMode = dateMode === "finish";
+
+  // A tap date, shown the way the current mode expects: itself in tap mode, or
+  // the finish date (one day later) in finish mode. Used for the date field's
+  // value, feasibility-message dates, and recovery-button labels.
+  const cycleDate = (tap: Date): Date => (finishMode ? addDays(tap, 1) : tap);
+  const cycleDateString = (tap: Date): string => toDateInputValue(cycleDate(tap));
+  const cycleNoun = finishMode ? "finish date" : "tap date";
+
+  // The value shown in the date field for the stored tap date.
+  const dateFieldValue = tapDate ? cycleDateString(parseLocalDate(tapDate)) : "";
+
+  // Store the field's date back as a tap date (subtracting a day in finish mode).
+  function handleDateFieldChange(value: string) {
+    if (!value) {
+      setTapDate("");
+    } else {
+      setTapDate(
+        finishMode
+          ? toDateInputValue(subtractDays(parseLocalDate(value), 1))
+          : value,
+      );
+    }
+    clearResult();
+  }
 
   useEffect(() => {
     if (!result) {
@@ -219,7 +259,11 @@ export default function Home() {
     // brewing before today.
     if (!tapDate) {
       setResult(null);
-      setError("Select a desired tap date.");
+      setError(
+        finishMode
+          ? "Enter when the current Pinter is expected to finish."
+          : "Select a desired tap date.",
+      );
       return;
     }
 
@@ -233,10 +277,14 @@ export default function Home() {
     const today = getToday();
 
     // Reject a tap date before today even if the browser's min attribute was
-    // bypassed.
+    // bypassed. In finish mode the tap date is the day before the finish date.
     if (getAvailableLeadDays(selectedTapDate, today) < 0) {
       setResult(null);
-      setError("The tap date must be today or later.");
+      setError(
+        finishMode
+          ? "That finish date is too soon — the next brew can't be ready in time."
+          : "The tap date must be today or later.",
+      );
       return;
     }
 
@@ -265,7 +313,7 @@ export default function Home() {
 
       if (!currentAvailability.minimumFits) {
         setError(
-          `${selectedPack.name} cannot be ready by ${formatShortDate(selectedTapDate)}. The earliest available tap date using minimum timing is ${formatShortDate(currentAvailability.earliestTapDateWithMinimum)}.`,
+          `${selectedPack.name} cannot be ready by ${formatShortDate(selectedTapDate)}. The earliest possible ${cycleNoun} using minimum timing is ${formatShortDate(cycleDate(currentAvailability.earliestTapDateWithMinimum))}.`,
         );
       } else {
         setError(
@@ -321,6 +369,7 @@ export default function Home() {
       conditioningDays,
       totalLeadTime,
       schedule: effectiveSchedule,
+      finishDate: finishMode ? addDays(selectedTapDate, 1) : null,
     });
   }
 
@@ -365,12 +414,58 @@ export default function Home() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6 p-5 sm:p-6">
+            <fieldset>
+              <legend className="mb-3 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground">
+                Plan by
+              </legend>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                {(
+                  [
+                    ["tap", "Desired tap date"],
+                    ["finish", "Current Pinter finish date"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <label
+                    key={value}
+                    className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition ${
+                      dateMode === value
+                        ? "border-accent bg-accent-soft"
+                        : "border-border-strong bg-field hover:border-accent"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="date-mode"
+                      value={value}
+                      checked={dateMode === value}
+                      onChange={() => {
+                        setDateMode(value);
+                        clearResult();
+                      }}
+                      className="h-4 w-4 accent-accent"
+                    />
+                    <span className="text-sm font-medium">{label}</span>
+                  </label>
+                ))}
+              </div>
+
+              {finishMode && (
+                <p className="mt-2 text-xs leading-5 text-muted">
+                  We&rsquo;ll time the next brew to be ready the day before this
+                  Pinter runs out.
+                </p>
+              )}
+            </fieldset>
+
             <div className="min-w-0 max-w-full">
               <label
                 htmlFor="tap-date"
                 className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground"
               >
-                Desired tap date
+                {finishMode
+                  ? "Current Pinter expected to finish"
+                  : "Desired tap date"}
               </label>
 
               <div className="tap-date-wrapper">
@@ -378,11 +473,8 @@ export default function Home() {
                   id="tap-date"
                   type="date"
                   min={getTodayString()}
-                  value={tapDate}
-                  onChange={(event) => {
-                    setTapDate(event.target.value);
-                    clearResult();
-                  }}
+                  value={dateFieldValue}
+                  onChange={(event) => handleDateFieldChange(event.target.value)}
                   aria-describedby={
                     availability ? "timing-availability" : undefined
                   }
@@ -490,9 +582,11 @@ export default function Home() {
                           }
                           className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border-strong bg-field px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
                         >
-                          Use recommended date:{" "}
+                          {finishMode
+                            ? "Use recommended finish date: "
+                            : "Use recommended date: "}
                           {formatShortDate(
-                            availability.earliestTapDateWithRecommended,
+                            cycleDate(availability.earliestTapDateWithRecommended),
                           )}
                         </button>
                       </div>
@@ -504,8 +598,11 @@ export default function Home() {
                       <span className="font-bold">Not enough time.</span>{" "}
                       {selectedPack.name} cannot be ready by{" "}
                       {formatShortDate(parseLocalDate(tapDate))}. The earliest
-                      available tap date using minimum timing is{" "}
-                      {formatShortDate(availability.earliestTapDateWithMinimum)}.
+                      possible {cycleNoun} using minimum timing is{" "}
+                      {formatShortDate(
+                        cycleDate(availability.earliestTapDateWithMinimum),
+                      )}
+                      .
                       <div>
                         <button
                           type="button"
@@ -517,9 +614,11 @@ export default function Home() {
                           }
                           className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border-strong bg-field px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
                         >
-                          Use earliest minimum date:{" "}
+                          {finishMode
+                            ? "Use earliest minimum finish date: "
+                            : "Use earliest minimum date: "}
                           {formatShortDate(
-                            availability.earliestTapDateWithMinimum,
+                            cycleDate(availability.earliestTapDateWithMinimum),
                           )}
                         </button>
                       </div>
@@ -673,10 +772,31 @@ export default function Home() {
                   {result.totalLeadTime}
                 </p>
                 <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-                  DAYS BEFORE TAP 
+                  DAYS BEFORE TAP
                 </p>
               </div>
             </div>
+
+            {result.finishDate && (
+              <dl className="grid grid-cols-2 divide-x divide-border border-b border-border text-sm">
+                <div className="px-5 py-3 sm:px-6">
+                  <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                    Current Pinter finishes
+                  </dt>
+                  <dd className="mt-1 font-medium">
+                    {formatShortDate(result.finishDate)}
+                  </dd>
+                </div>
+                <div className="px-5 py-3 sm:px-6">
+                  <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                    Next one ready
+                  </dt>
+                  <dd className="mt-1 font-medium">
+                    {formatShortDate(result.tapDate)}
+                  </dd>
+                </div>
+              </dl>
+            )}
 
             <div className="divide-y divide-border">
               <div className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 border-l-4 border-stage-brew px-5 py-4 sm:px-6">
