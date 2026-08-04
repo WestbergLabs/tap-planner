@@ -157,7 +157,14 @@ All date math — `parseLocalDate`, `addDays`, `subtractDays`, `formatDate`, `ge
 
 `app/page.tsx` is the default, compact planner at `/`. It uses the shared `BrewPackPicker` to search the generated catalog, then calculates forward from the pack's recommended or minimum brew and conditioning days.
 
-A **Customize timing** action on this page links to `/custom`, carrying the selected BrewPack's current values along as URL query parameters — see [Custom recipe planner](#custom-recipe-planner) below.
+### Plan by tap date or Pinter finish date
+
+Both planners have a **Plan by** toggle that changes what the date field means:
+
+- **Desired tap date** *(default)* — the date you enter is the tap date, as usual.
+- **Current Pinter finish date** — for running several Pinters back-to-back. You enter when the Pinter currently on tap will run out, and the next brew is timed to be ready the day before (tap date = finish date − 1). The result shows the finish date, the next-ready date, and the recommended start date.
+
+This is display-only sugar over the existing math: internally the planner always works with the tap date, so in finish mode the date field simply shows `tap + 1` and stores back `entered − 1`. All feasibility, calculation, and calendar export are unchanged — a past start date is reported the same way it would be for any tap date.
 
 ---
 

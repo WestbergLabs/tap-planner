@@ -16,6 +16,7 @@ import { useSearchParams } from "next/navigation";
 import BrewPackPicker from "@/components/BrewPackPicker";
 import { brewPacks, type BrewPack } from "@/data/brewpacks.generated";
 import {
+  addDays,
   calculateSchedule,
   formatDate,
   formatShortDate,
@@ -23,6 +24,7 @@ import {
   getToday,
   getTodayString,
   parseLocalDate,
+  subtractDays,
   toDateInputValue,
   type StageDurations,
 } from "@/lib/schedule";
@@ -46,7 +48,12 @@ type CustomResult = {
   coldCrashDays: number;
   conditioningDays: number;
   totalLeadTime: number;
+  // Set when planned by a current-Pinter finish date; null when planned by a
+  // target tap date.
+  finishDate: Date | null;
 };
+
+type DateMode = "tap" | "finish";
 
 type FieldErrors = {
   scheduleName?: string;
@@ -95,7 +102,10 @@ function CustomPlanner() {
   const [conditioningDays, setConditioningDays] = useState(
     () => searchParams.get("conditioning") ?? "",
   );
+  // `tapDate` always holds the tap date. In finish mode the date field shows
+  // the current Pinter's finish date (tap + 1) but stores the tap date here.
   const [tapDate, setTapDate] = useState(() => searchParams.get("tap") ?? "");
+  const [dateMode, setDateMode] = useState<DateMode>("tap");
 
   const [errors, setErrors] = useState<FieldErrors>({});
   const [result, setResult] = useState<CustomResult | null>(null);
@@ -119,6 +129,31 @@ function CustomPlanner() {
   function clearResult() {
     setResult(null);
     setDownloadMessage("");
+  }
+
+  const finishMode = dateMode === "finish";
+
+  // A tap date shown the current mode's way: itself in tap mode, or the finish
+  // date (a day later) in finish mode.
+  const cycleDate = (tap: Date): Date => (finishMode ? addDays(tap, 1) : tap);
+
+  // The value shown in the date field for the stored tap date.
+  const dateFieldValue = tapDate
+    ? toDateInputValue(cycleDate(parseLocalDate(tapDate)))
+    : "";
+
+  // Store the field's date back as a tap date (a day earlier in finish mode).
+  function handleDateFieldChange(value: string) {
+    if (!value) {
+      setTapDate("");
+    } else {
+      setTapDate(
+        finishMode
+          ? toDateInputValue(subtractDays(parseLocalDate(value), 1))
+          : value,
+      );
+    }
+    clearResult();
   }
 
   // Live start-date preview for the exact values entered. A custom recipe has
@@ -369,6 +404,7 @@ function CustomPlanner() {
       coldCrashDays: crash,
       conditioningDays: conditioning,
       totalLeadTime,
+      finishDate: finishMode ? addDays(selectedTapDate, 1) : null,
     });
   }
 
@@ -508,12 +544,58 @@ function CustomPlanner() {
               </div>
             )}
 
+            <fieldset>
+              <legend className="mb-3 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground">
+                Plan by
+              </legend>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                {(
+                  [
+                    ["tap", "Desired tap date"],
+                    ["finish", "Current Pinter finish date"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <label
+                    key={value}
+                    className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition ${
+                      dateMode === value
+                        ? "border-accent bg-accent-soft"
+                        : "border-border-strong bg-field hover:border-accent"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="custom-date-mode"
+                      value={value}
+                      checked={dateMode === value}
+                      onChange={() => {
+                        setDateMode(value);
+                        clearResult();
+                      }}
+                      className="h-4 w-4 accent-accent"
+                    />
+                    <span className="text-sm font-medium">{label}</span>
+                  </label>
+                ))}
+              </div>
+
+              {finishMode && (
+                <p className="mt-2 text-xs leading-5 text-muted">
+                  We&rsquo;ll time the next brew to be ready the day before this
+                  Pinter runs out.
+                </p>
+              )}
+            </fieldset>
+
             <div className="min-w-0 max-w-full">
               <label
                 htmlFor="custom-tap-date"
                 className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground"
               >
-                Desired tap date
+                {finishMode
+                  ? "Current Pinter expected to finish"
+                  : "Desired tap date"}
               </label>
 
               <div className="tap-date-wrapper">
@@ -521,7 +603,7 @@ function CustomPlanner() {
                   id="custom-tap-date"
                   type="date"
                   min={getTodayString()}
-                  value={tapDate}
+                  value={dateFieldValue}
                   aria-required="true"
                   aria-invalid={errors.tapDate ? true : undefined}
                   aria-describedby={
@@ -532,10 +614,7 @@ function CustomPlanner() {
                       .filter(Boolean)
                       .join(" ") || undefined
                   }
-                  onChange={(event) => {
-                    setTapDate(event.target.value);
-                    clearResult();
-                  }}
+                  onChange={(event) => handleDateFieldChange(event.target.value)}
                   className="tap-date-input cursor-pointer rounded-xl border border-border-strong bg-field px-3 py-3 text-base text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
                 />
               </div>
@@ -787,18 +866,20 @@ function CustomPlanner() {
                     started on {formatShortDate(startPreview.startDate)}.
                     <br />
                     If you have already started this brew, you can continue with
-                    this schedule. Otherwise, move the tap date later or shorten
-                    one or more stages.
+                    this schedule. Otherwise, move the{" "}
+                    {finishMode ? "finish date" : "tap date"} later or shorten one
+                    or more stages.
                     <br />
-                    Suggested earliest tap date using these durations:{" "}
-                    {formatShortDate(startPreview.earliest)}.
+                    Suggested earliest {finishMode ? "finish date" : "tap date"}{" "}
+                    using these durations:{" "}
+                    {formatShortDate(cycleDate(startPreview.earliest))}.
                     <div>
                       <button
                         type="button"
                         onClick={() => handleUseEarliest(startPreview.earliest)}
                         className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border-strong bg-field px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
                       >
-                        Use {formatShortDate(startPreview.earliest)}
+                        Use {formatShortDate(cycleDate(startPreview.earliest))}
                       </button>
                     </div>
                   </div>
@@ -864,6 +945,27 @@ function CustomPlanner() {
                 </p>
               </div>
             </div>
+
+            {result.finishDate && (
+              <dl className="grid grid-cols-2 divide-x divide-border border-b border-border text-sm">
+                <div className="px-5 py-3 sm:px-6">
+                  <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                    Current Pinter finishes
+                  </dt>
+                  <dd className="mt-1 font-medium">
+                    {formatShortDate(result.finishDate)}
+                  </dd>
+                </div>
+                <div className="px-5 py-3 sm:px-6">
+                  <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                    Next one ready
+                  </dt>
+                  <dd className="mt-1 font-medium">
+                    {formatShortDate(result.tapDate)}
+                  </dd>
+                </div>
+              </dl>
+            )}
 
             <div className="divide-y divide-border">
               <div className="grid grid-cols-[2.5rem_1fr_auto] items-center gap-4 border-l-4 border-stage-brew px-5 py-4 sm:px-6">
