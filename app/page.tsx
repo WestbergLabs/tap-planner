@@ -123,42 +123,6 @@ export default function Home() {
   const effectiveSchedule: ScheduleType =
     recommendedDisabled && schedule === "recommended" ? "minimum" : schedule;
 
-  // Build a /custom link that prefills the custom planner with the selected
-  // BrewPack's currently chosen timing. The BrewPack's brew duration is passed
-  // as fermentation days. Prefill travels via URL query params only.
-  const customizeHref = useMemo(() => {
-    if (!selectedPack) {
-      return null;
-    }
-
-    const brewDays =
-      effectiveSchedule === "recommended"
-        ? selectedPack.recommendedBrewDays
-        : selectedPack.minimumBrewDays;
-
-    const conditioningDays =
-      effectiveSchedule === "recommended"
-        ? selectedPack.recommendedConditioningDays
-        : selectedPack.minimumConditioningDays;
-
-    const params = new URLSearchParams({
-      prefill: "brewpack",
-      id: selectedPack.id,
-      name: selectedPack.name,
-      style: selectedPack.style,
-      abv: String(selectedPack.abv),
-      fermentation: String(brewDays),
-      coldCrash: String(coldCrashDays),
-      conditioning: String(conditioningDays),
-    });
-
-    if (tapDate) {
-      params.set("tap", tapDate);
-    }
-
-    return `/custom?${params.toString()}`;
-  }, [selectedPack, effectiveSchedule, coldCrashDays, tapDate]);
-
   useEffect(() => {
     if (!result) {
       return;
@@ -493,19 +457,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {customizeHref && (
-                  <div className="mt-4 border-t border-border pt-4">
-                    <Link
-                      href={customizeHref}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent transition hover:text-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
-                    >
-                      Customize timing &rarr;
-                    </Link>
-                    <p className="mt-2 text-xs leading-5 text-muted">
-                      Adjust this BrewPack&rsquo;s schedule on the custom planner.
-                    </p>
-                  </div>
-                )}
               </div>
             )}
 
