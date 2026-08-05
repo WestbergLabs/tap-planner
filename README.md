@@ -131,7 +131,8 @@ brew day through tap day — then export it straight to your calendar.
       <h3>🔄 Never run dry</h3>
       <p>
       Running several Pinters? The rotation planner at <code>/rotation</code>
-      staggers all of them so a fresh one is always ready as the last runs dry.
+      lines up a different beer in each and tells you when to start every brew,
+      so a fresh one is always ready as the last runs dry.
       </p>
     </td>
   </tr>

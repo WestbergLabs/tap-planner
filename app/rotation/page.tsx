@@ -11,8 +11,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 
-import BrewPackPicker from "@/components/BrewPackPicker";
-import { brewPacks, type BrewPack } from "@/data/brewpacks.generated";
+import { brewPacks } from "@/data/brewpacks.generated";
 import {
   addDays,
   calculateSchedule,
@@ -28,20 +27,52 @@ import {
   type CalendarStage,
 } from "@/lib/calendar";
 
-type TimingMode = "brewpack" | "custom";
-type ScheduleType = "recommended" | "minimum";
-type ColdCrashDays = 0 | 1 | 2 | 3;
 type TapDurationMode = "days" | "rate";
 type AnchorMode = "today" | "date";
 
 // A Pinter holds a fixed fill each brew, so the pints/day helper divides this by
-// the drinking rate to estimate how long each one lasts on tap.
+// the drinking rate to estimate how long that beer lasts on tap.
 const PINTS_PER_PINTER = 12;
 const MIN_PINTERS = 2;
 const MAX_PINTERS = 12;
 
+// One Pinter's slot in the lineup: its beer and how long it lasts on tap.
+type Slot = {
+  kind: "brewpack" | "custom";
+  brewPackId: string;
+  useMinimum: boolean;
+  coldCrashDays: string;
+  customName: string;
+  fermentationDays: string;
+  customColdCrashDays: string;
+  conditioningDays: string;
+  onTap: string;
+};
+
+const DEFAULT_SLOT: Slot = {
+  kind: "brewpack",
+  brewPackId: "",
+  useMinimum: false,
+  coldCrashDays: "0",
+  customName: "",
+  fermentationDays: "",
+  customColdCrashDays: "0",
+  conditioningDays: "",
+  onTap: "",
+};
+
 type Batch = {
   index: number;
+  name: string;
+  style: string;
+  abv: string;
+  timingMode?: "Recommended" | "Minimum";
+  firstStageLabel: "Start brewing" | "Start fermentation";
+  brewDays: number;
+  coldCrashDays: number;
+  conditioningDays: number;
+  totalLeadTime: number;
+  daysOnTap: number;
   startDate: Date;
   readyDate: Date;
   emptiesDate: Date;
@@ -50,32 +81,43 @@ type Batch = {
 };
 
 type RotationPlan = {
+  count: number;
+  firstPour: Date;
+  lastEmpties: Date;
+  startsInPast: boolean;
+  batches: Batch[];
+};
+
+// Days a beer lasts on tap for the current input mode, or null when unusable.
+function deriveDaysOnTap(value: string, mode: TapDurationMode): number | null {
+  if (value.trim() === "") {
+    return null;
+  }
+
+  if (mode === "days") {
+    const days = Number(value);
+    return Number.isInteger(days) && days >= 2 ? days : null;
+  }
+
+  const rate = Number(value);
+  if (!(rate > 0)) {
+    return null;
+  }
+  const days = Math.round(PINTS_PER_PINTER / rate);
+  return days >= 2 ? days : null;
+}
+
+type ResolvedSlot = {
   name: string;
   style: string;
   abv: string;
   timingMode?: "Recommended" | "Minimum";
   firstStageLabel: "Start brewing" | "Start fermentation";
-  firstStageWord: "brewing" | "fermentation";
   brewDays: number;
   coldCrashDays: number;
   conditioningDays: number;
-  totalLeadTime: number;
+  leadTime: number;
   daysOnTap: number;
-  spacing: number;
-  pinterCount: number;
-  neededPinters: number;
-  startsInPast: boolean;
-  batches: Batch[];
-};
-
-type FieldErrors = {
-  pinterCount?: string;
-  brewPack?: string;
-  fermentationDays?: string;
-  coldCrashDays?: string;
-  conditioningDays?: string;
-  tapDuration?: string;
-  firstReadyDate?: string;
 };
 
 export default function RotationPage() {
@@ -90,43 +132,32 @@ export default function RotationPage() {
   );
 
   const [pinterCount, setPinterCount] = useState("4");
-
-  const [timingMode, setTimingMode] = useState<TimingMode>("brewpack");
-
-  // BrewPack timing.
-  const [brewPackId, setBrewPackId] = useState("");
-  const [schedule, setSchedule] = useState<ScheduleType>("recommended");
-  const [coldCrashDays, setColdCrashDays] = useState<ColdCrashDays>(0);
-
-  // Custom timing.
-  const [batchName, setBatchName] = useState("");
-  const [fermentationDays, setFermentationDays] = useState("");
-  const [customColdCrashDays, setCustomColdCrashDays] = useState("0");
-  const [conditioningDays, setConditioningDays] = useState("");
-
-  // How long each Pinter lasts on tap: entered directly, or via a drinking rate.
   const [tapDurationMode, setTapDurationMode] = useState<TapDurationMode>("days");
-  const [daysOnTapInput, setDaysOnTapInput] = useState("");
-  const [pintsPerDayInput, setPintsPerDayInput] = useState("");
-
-  // When the rotation is anchored.
   const [anchorMode, setAnchorMode] = useState<AnchorMode>("today");
   const [firstReadyDate, setFirstReadyDate] = useState("");
 
-  const [errors, setErrors] = useState<FieldErrors>({});
+  // Slots are stored sparsely by index; unedited rows read DEFAULT_SLOT, so
+  // changing the Pinter count never needs a state-syncing effect.
+  const [slots, setSlots] = useState<Slot[]>([]);
+
+  const [countError, setCountError] = useState("");
+  const [slotErrors, setSlotErrors] = useState<Record<number, string>>({});
+  const [firstReadyError, setFirstReadyError] = useState("");
   const [plan, setPlan] = useState<RotationPlan | null>(null);
   const [downloadMessage, setDownloadMessage] = useState("");
 
-  const selectedPack = useMemo(
-    () => activeBrewPacks.find((pack) => pack.id === brewPackId) ?? null,
-    [activeBrewPacks, brewPackId],
-  );
+  const count = Number(pinterCount);
+  const validCount =
+    pinterCount.trim() !== "" &&
+    Number.isInteger(count) &&
+    count >= MIN_PINTERS &&
+    count <= MAX_PINTERS;
+  const rowCount = validCount ? count : 0;
 
   useEffect(() => {
     if (!plan) {
       return;
     }
-
     requestAnimationFrame(() => {
       resultRef.current?.focus();
     });
@@ -137,204 +168,174 @@ export default function RotationPage() {
     setDownloadMessage("");
   }
 
-  function handleTimingModeChange(next: TimingMode) {
-    setTimingMode(next);
-    setErrors({});
-    clearPlan();
+  function slotAt(index: number): Slot {
+    return slots[index] ?? DEFAULT_SLOT;
   }
 
-  function handleSelectBrewPack(pack: BrewPack) {
-    setBrewPackId(pack.id);
-    setErrors({});
-    clearPlan();
-  }
-
-  function handleClearBrewPack() {
-    setBrewPackId("");
-    clearPlan();
-  }
-
-  // The derived days-on-tap for the current input mode, or null when the input
-  // isn't a usable value yet.
-  const derivedDaysOnTap = useMemo(() => {
-    if (tapDurationMode === "days") {
-      const days = Number(daysOnTapInput);
-      return daysOnTapInput.trim() !== "" && Number.isInteger(days) && days >= 2
-        ? days
-        : null;
-    }
-
-    const rate = Number(pintsPerDayInput);
-    if (pintsPerDayInput.trim() === "" || !(rate > 0)) {
-      return null;
-    }
-    // Round to whole days; a Pinter that would last under 2 days is out of range.
-    const days = Math.round(PINTS_PER_PINTER / rate);
-    return days >= 2 ? days : null;
-  }, [tapDurationMode, daysOnTapInput, pintsPerDayInput]);
-
-  // Resolve the selected brew's stage durations, or the missing/invalid fields.
-  function resolveTiming():
-    | {
-        brewDays: number;
-        coldCrashDays: number;
-        conditioningDays: number;
-        name: string;
-        style: string;
-        abv: string;
-        firstStageLabel: RotationPlan["firstStageLabel"];
-        firstStageWord: RotationPlan["firstStageWord"];
-        timingMode?: "Recommended" | "Minimum";
+  function updateSlot(index: number, patch: Partial<Slot>) {
+    setSlots((current) => {
+      const next = current.slice();
+      while (next.length <= index) {
+        next.push(DEFAULT_SLOT);
       }
-    | { errors: FieldErrors } {
-    if (timingMode === "brewpack") {
-      if (!selectedPack) {
-        return { errors: { brewPack: "Select a BrewPack from the search results." } };
-      }
+      next[index] = { ...(next[index] ?? DEFAULT_SLOT), ...patch };
+      return next;
+    });
+    clearPlan();
+  }
 
-      const brewDays =
-        schedule === "recommended"
-          ? selectedPack.recommendedBrewDays
-          : selectedPack.minimumBrewDays;
-      const conditioning =
-        schedule === "recommended"
-          ? selectedPack.recommendedConditioningDays
-          : selectedPack.minimumConditioningDays;
-
+  // Resolve one slot's beer into stage durations + on-tap days, or an error.
+  function resolveSlot(slot: Slot): ResolvedSlot | { error: string } {
+    const daysOnTap = deriveDaysOnTap(slot.onTap, tapDurationMode);
+    if (daysOnTap === null) {
       return {
-        brewDays,
-        coldCrashDays,
-        conditioningDays: conditioning,
-        name: selectedPack.name,
-        style: selectedPack.style,
-        abv: String(selectedPack.abv),
-        firstStageLabel: "Start brewing",
-        firstStageWord: "brewing",
-        timingMode: schedule === "recommended" ? "Recommended" : "Minimum",
+        error:
+          tapDurationMode === "days"
+            ? "Enter how many days it lasts on tap (2 or more)."
+            : "Enter pints per day (it must last at least 2 days).",
       };
     }
 
-    const nextErrors: FieldErrors = {};
-    const ferment = Number(fermentationDays);
-    const crash = Number(customColdCrashDays);
-    const condition = Number(conditioningDays);
+    if (slot.kind === "brewpack") {
+      const pack = activeBrewPacks.find((candidate) => candidate.id === slot.brewPackId);
+      if (!pack) {
+        return { error: "Choose a beer for this Pinter." };
+      }
 
-    if (fermentationDays.trim() === "" || !Number.isInteger(ferment) || ferment < 1) {
-      nextErrors.fermentationDays = "Use a whole number of 1 or more.";
-    }
-    if (customColdCrashDays.trim() === "" || !Number.isInteger(crash) || crash < 0) {
-      nextErrors.coldCrashDays = "Use a whole number of 0 or more.";
-    }
-    if (conditioningDays.trim() === "" || !Number.isInteger(condition) || condition < 1) {
-      nextErrors.conditioningDays = "Use a whole number of 1 or more.";
+      const brewDays = slot.useMinimum ? pack.minimumBrewDays : pack.recommendedBrewDays;
+      const conditioningDays = slot.useMinimum
+        ? pack.minimumConditioningDays
+        : pack.recommendedConditioningDays;
+      const coldCrashDays = Number(slot.coldCrashDays) || 0;
+
+      return {
+        name: pack.name,
+        style: pack.style,
+        abv: String(pack.abv),
+        timingMode: slot.useMinimum ? "Minimum" : "Recommended",
+        firstStageLabel: "Start brewing",
+        brewDays,
+        coldCrashDays,
+        conditioningDays,
+        leadTime: brewDays + coldCrashDays + conditioningDays,
+        daysOnTap,
+      };
     }
 
-    if (Object.keys(nextErrors).length > 0) {
-      return { errors: nextErrors };
+    const ferment = Number(slot.fermentationDays);
+    const crash = Number(slot.customColdCrashDays);
+    const condition = Number(slot.conditioningDays);
+    if (
+      slot.fermentationDays.trim() === "" || !Number.isInteger(ferment) || ferment < 1 ||
+      slot.customColdCrashDays.trim() === "" || !Number.isInteger(crash) || crash < 0 ||
+      slot.conditioningDays.trim() === "" || !Number.isInteger(condition) || condition < 1
+    ) {
+      return { error: "Enter valid fermentation / cold-crash / conditioning days." };
     }
 
     return {
-      brewDays: ferment,
-      coldCrashDays: crash,
-      conditioningDays: condition,
-      name: batchName.trim() || "Custom brew",
+      name: slot.customName.trim() || "Custom brew",
       style: "",
       abv: "",
       firstStageLabel: "Start fermentation",
-      firstStageWord: "fermentation",
+      brewDays: ferment,
+      coldCrashDays: crash,
+      conditioningDays: condition,
+      leadTime: ferment + crash + condition,
+      daysOnTap,
     };
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const nextErrors: FieldErrors = {};
+    setCountError("");
+    setSlotErrors({});
+    setFirstReadyError("");
 
-    const count = Number(pinterCount);
-    if (
-      pinterCount.trim() === "" ||
-      !Number.isInteger(count) ||
-      count < MIN_PINTERS ||
-      count > MAX_PINTERS
-    ) {
-      nextErrors.pinterCount = `Enter a whole number from ${MIN_PINTERS} to ${MAX_PINTERS}.`;
-    }
-
-    const timing = resolveTiming();
-    if ("errors" in timing) {
-      Object.assign(nextErrors, timing.errors);
-    }
-
-    if (derivedDaysOnTap === null) {
-      nextErrors.tapDuration =
-        tapDurationMode === "days"
-          ? "Enter how many days a Pinter lasts (2 or more)."
-          : "Enter your pints per day (a Pinter must last at least 2 days).";
-    }
-
-    if (anchorMode === "date" && !firstReadyDate) {
-      nextErrors.firstReadyDate = "Choose when the first Pinter should be ready.";
-    }
-
-    setErrors(nextErrors);
-
-    if (Object.keys(nextErrors).length > 0 || "errors" in timing || derivedDaysOnTap === null) {
+    if (!validCount) {
+      setCountError(`Enter a whole number from ${MIN_PINTERS} to ${MAX_PINTERS}.`);
       setPlan(null);
       return;
     }
 
-    const daysOnTap = derivedDaysOnTap;
-    // A fresh Pinter is timed to be ready the day before the previous empties,
-    // so taps are spaced one day less than a Pinter lasts (a 1-day overlap).
-    const spacing = daysOnTap - 1;
-    const leadTime = timing.brewDays + timing.coldCrashDays + timing.conditioningDays;
-    const today = getToday();
+    const resolved: ResolvedSlot[] = [];
+    const nextSlotErrors: Record<number, string> = {};
 
-    const firstReady =
-      anchorMode === "today"
-        ? addDays(today, leadTime)
-        : parseLocalDate(firstReadyDate);
-
-    const batches: Batch[] = [];
     for (let index = 0; index < count; index += 1) {
-      const readyDate = addDays(firstReady, index * spacing);
+      const result = resolveSlot(slotAt(index));
+      if ("error" in result) {
+        nextSlotErrors[index] = result.error;
+      } else {
+        resolved[index] = result;
+      }
+    }
+
+    let hasError = Object.keys(nextSlotErrors).length > 0;
+
+    if (anchorMode === "date" && !firstReadyDate) {
+      setFirstReadyError("Choose when the first Pinter should be ready.");
+      hasError = true;
+    }
+
+    if (hasError) {
+      setSlotErrors(nextSlotErrors);
+      setPlan(null);
+      return;
+    }
+
+    const today = getToday();
+    const batches: Batch[] = [];
+    let previousReady: Date | null = null;
+    let previousDaysOnTap = 0;
+
+    for (let index = 0; index < count; index += 1) {
+      const item = resolved[index];
+
+      let readyDate: Date;
+      if (index === 0) {
+        readyDate =
+          anchorMode === "today"
+            ? addDays(today, item.leadTime)
+            : parseLocalDate(firstReadyDate);
+      } else {
+        readyDate = addDays(previousReady as Date, previousDaysOnTap - 1);
+      }
+
       const stages = calculateSchedule(readyDate, {
-        fermentationDays: timing.brewDays,
-        coldCrashDays: timing.coldCrashDays,
-        conditioningDays: timing.conditioningDays,
+        fermentationDays: item.brewDays,
+        coldCrashDays: item.coldCrashDays,
+        conditioningDays: item.conditioningDays,
       });
 
       batches.push({
         index: index + 1,
+        name: item.name,
+        style: item.style,
+        abv: item.abv,
+        timingMode: item.timingMode,
+        firstStageLabel: item.firstStageLabel,
+        brewDays: item.brewDays,
+        coldCrashDays: item.coldCrashDays,
+        conditioningDays: item.conditioningDays,
+        totalLeadTime: item.leadTime,
+        daysOnTap: item.daysOnTap,
         startDate: stages.fermentationDate,
         readyDate,
-        emptiesDate: addDays(readyDate, daysOnTap),
+        emptiesDate: addDays(readyDate, item.daysOnTap),
         coldCrashDate: stages.coldCrashDate,
         conditioningDate: stages.conditioningDate,
       });
+
+      previousReady = readyDate;
+      previousDaysOnTap = item.daysOnTap;
     }
 
-    // Pinters needed to sustain the cadence: each is occupied from its start
-    // through the day it empties (leadTime + daysOnTap), and a new brew begins
-    // every `spacing` days.
-    const neededPinters = Math.ceil((leadTime + daysOnTap) / spacing);
-
     setPlan({
-      name: timing.name,
-      style: timing.style,
-      abv: timing.abv,
-      timingMode: timing.timingMode,
-      firstStageLabel: timing.firstStageLabel,
-      firstStageWord: timing.firstStageWord,
-      brewDays: timing.brewDays,
-      coldCrashDays: timing.coldCrashDays,
-      conditioningDays: timing.conditioningDays,
-      totalLeadTime: leadTime,
-      daysOnTap,
-      spacing,
-      pinterCount: count,
-      neededPinters,
-      startsInPast: batches[0].startDate.getTime() < today.getTime(),
+      count,
+      firstPour: batches[0].readyDate,
+      lastEmpties: batches[batches.length - 1].emptiesDate,
+      startsInPast: batches.some((batch) => batch.startDate.getTime() < today.getTime()),
       batches,
     });
   }
@@ -347,7 +348,7 @@ export default function RotationPage() {
     const schedules: CalendarSchedule[] = plan.batches.map((batch) => {
       const stages: CalendarStage[] = [
         {
-          name: plan.firstStageLabel,
+          name: batch.firstStageLabel,
           start: batch.startDate,
           end: batch.coldCrashDate ?? batch.conditioningDate,
         },
@@ -374,16 +375,16 @@ export default function RotationPage() {
       });
 
       return {
-        name: `${plan.name} — Pinter ${batch.index}`,
-        style: plan.style || undefined,
-        abv: plan.abv || undefined,
-        timingMode: plan.timingMode,
-        totalLeadTime: plan.totalLeadTime,
+        name: `${batch.name} (Pinter ${batch.index})`,
+        style: batch.style || undefined,
+        abv: batch.abv || undefined,
+        timingMode: batch.timingMode,
+        totalLeadTime: batch.totalLeadTime,
         stages,
       };
     });
 
-    downloadSchedules(schedules, `${plan.name}-rotation`);
+    downloadSchedules(schedules, "pinter-rotation");
     setDownloadMessage(
       `Calendar file with all ${plan.batches.length} Pinters downloaded. Open it to add the rotation to your calendar.`,
     );
@@ -393,6 +394,7 @@ export default function RotationPage() {
     "w-full rounded-xl border border-border-strong bg-field px-3 py-3 text-foreground outline-none placeholder:text-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/30";
   const labelClass =
     "mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground";
+  const onTapLabel = tapDurationMode === "days" ? "Days on tap" : "Pints / day";
 
   return (
     <main className="min-h-screen bg-transparent px-4 py-10 text-foreground sm:py-14">
@@ -407,7 +409,6 @@ export default function RotationPage() {
               sizes="(max-width: 768px) 100vw, 672px"
               className="object-cover object-[center_42%]"
             />
-
             <div className="absolute inset-x-0 top-0 p-5 sm:p-6">
               <Link
                 href="/"
@@ -421,251 +422,51 @@ export default function RotationPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">
             Never run dry
           </p>
-
           <h1 className="mt-2 font-display text-5xl font-semibold uppercase leading-none tracking-tight sm:text-6xl">
             Rotation Planner
           </h1>
-
           <p className="mt-4 max-w-xl text-base leading-7 text-muted">
-            Running several Pinters? Plan the whole rotation at once. Tell us how
-            many you have, your brew timing, and how long each lasts on tap, and
-            we&rsquo;ll stagger the start dates so a fresh one is always ready as
-            the last runs dry.
+            Line up a different beer in each of your Pinters. Tell us what&rsquo;s
+            in each and how long it lasts on tap, and we&rsquo;ll tell you what
+            day to start every brew so a fresh one is always ready as the last
+            runs dry.
           </p>
         </header>
 
         <section className="overflow-hidden rounded-[28px] border border-border bg-surface shadow-card">
           <div className="rounded-t-[28px] border-b border-border px-5 py-4 sm:px-6">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
-              Plan your rotation
+              Build your lineup
             </p>
           </div>
 
           <form onSubmit={handleSubmit} noValidate className="space-y-6 p-5 sm:p-6">
-            {/* Number of Pinters */}
-            <div>
-              <label htmlFor="pinter-count" className={labelClass}>
-                How many Pinters
-              </label>
-              <input
-                id="pinter-count"
-                type="number"
-                inputMode="numeric"
-                min={MIN_PINTERS}
-                max={MAX_PINTERS}
-                step={1}
-                value={pinterCount}
-                aria-invalid={errors.pinterCount ? true : undefined}
-                onChange={(event) => {
-                  setPinterCount(event.target.value);
-                  clearPlan();
-                }}
-                className={`${fieldClass} sm:max-w-[10rem]`}
-              />
-              {errors.pinterCount && (
-                <p className="mt-2 text-sm text-error">{errors.pinterCount}</p>
-              )}
-            </div>
-
-            {/* Timing source toggle */}
-            <fieldset>
-              <legend className={labelClass}>Brew timing</legend>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {(
-                  [
-                    ["brewpack", "Use a BrewPack"],
-                    ["custom", "Custom durations"],
-                  ] as const
-                ).map(([value, label]) => (
-                  <label
-                    key={value}
-                    className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition ${
-                      timingMode === value
-                        ? "border-accent bg-accent-soft"
-                        : "border-border-strong bg-field hover:border-accent"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="timing-mode"
-                      value={value}
-                      checked={timingMode === value}
-                      onChange={() => handleTimingModeChange(value)}
-                      className="h-4 w-4 accent-accent"
-                    />
-                    <span className="text-sm font-medium">{label}</span>
-                  </label>
-                ))}
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label htmlFor="pinter-count" className={labelClass}>
+                  How many Pinters
+                </label>
+                <input
+                  id="pinter-count"
+                  type="number"
+                  inputMode="numeric"
+                  min={MIN_PINTERS}
+                  max={MAX_PINTERS}
+                  step={1}
+                  value={pinterCount}
+                  aria-invalid={countError ? true : undefined}
+                  onChange={(event) => {
+                    setPinterCount(event.target.value);
+                    clearPlan();
+                  }}
+                  className={fieldClass}
+                />
+                {countError && <p className="mt-2 text-sm text-error">{countError}</p>}
               </div>
-            </fieldset>
 
-            {timingMode === "brewpack" ? (
-              <>
-                <div>
-                  <BrewPackPicker
-                    brewPacks={activeBrewPacks}
-                    selectedId={brewPackId}
-                    onSelect={handleSelectBrewPack}
-                    onClear={handleClearBrewPack}
-                    onEdit={clearPlan}
-                    hint="Search for the BrewPack you'll rotate through."
-                  />
-                  {errors.brewPack && (
-                    <p className="mt-2 text-sm text-error">{errors.brewPack}</p>
-                  )}
-                </div>
-
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <fieldset>
-                    <legend className={labelClass}>Schedule</legend>
-                    <div className="space-y-3">
-                      {(
-                        [
-                          ["recommended", "Recommended"],
-                          ["minimum", "Minimum"],
-                        ] as const
-                      ).map(([value, label]) => (
-                        <label key={value} className="flex cursor-pointer items-center gap-3">
-                          <input
-                            type="radio"
-                            name="schedule"
-                            value={value}
-                            checked={schedule === value}
-                            onChange={() => {
-                              setSchedule(value);
-                              clearPlan();
-                            }}
-                            className="h-4 w-4 accent-accent"
-                          />
-                          <span className="text-sm font-medium">{label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
-
-                  <div>
-                    <label htmlFor="rotation-cold-crash" className={labelClass}>
-                      Cold crash
-                    </label>
-                    <select
-                      id="rotation-cold-crash"
-                      value={coldCrashDays}
-                      onChange={(event) => {
-                        setColdCrashDays(Number(event.target.value) as ColdCrashDays);
-                        clearPlan();
-                      }}
-                      className={fieldClass}
-                    >
-                      <option value={0}>None</option>
-                      <option value={1}>1 day</option>
-                      <option value={2}>2 days</option>
-                      <option value={3}>3 days</option>
-                    </select>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div>
-                  <label htmlFor="rotation-batch-name" className={labelClass}>
-                    Batch name{" "}
-                    <span className="font-normal text-muted">(optional)</span>
-                  </label>
-                  <input
-                    id="rotation-batch-name"
-                    type="text"
-                    value={batchName}
-                    autoComplete="off"
-                    placeholder="My house pale ale"
-                    onChange={(event) => {
-                      setBatchName(event.target.value);
-                      clearPlan();
-                    }}
-                    className={fieldClass}
-                  />
-                </div>
-
-                <div className="grid gap-5 sm:grid-cols-3">
-                  <div>
-                    <label htmlFor="rotation-fermentation" className={labelClass}>
-                      Fermentation days
-                    </label>
-                    <input
-                      id="rotation-fermentation"
-                      type="number"
-                      inputMode="numeric"
-                      min={1}
-                      step={1}
-                      value={fermentationDays}
-                      placeholder="8"
-                      aria-invalid={errors.fermentationDays ? true : undefined}
-                      onChange={(event) => {
-                        setFermentationDays(event.target.value);
-                        clearPlan();
-                      }}
-                      className={fieldClass}
-                    />
-                    {errors.fermentationDays && (
-                      <p className="mt-2 text-sm text-error">{errors.fermentationDays}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label htmlFor="rotation-custom-crash" className={labelClass}>
-                      Cold-crash days
-                    </label>
-                    <input
-                      id="rotation-custom-crash"
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
-                      step={1}
-                      value={customColdCrashDays}
-                      placeholder="0"
-                      aria-invalid={errors.coldCrashDays ? true : undefined}
-                      onChange={(event) => {
-                        setCustomColdCrashDays(event.target.value);
-                        clearPlan();
-                      }}
-                      className={fieldClass}
-                    />
-                    {errors.coldCrashDays && (
-                      <p className="mt-2 text-sm text-error">{errors.coldCrashDays}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label htmlFor="rotation-conditioning" className={labelClass}>
-                      Conditioning days
-                    </label>
-                    <input
-                      id="rotation-conditioning"
-                      type="number"
-                      inputMode="numeric"
-                      min={1}
-                      step={1}
-                      value={conditioningDays}
-                      placeholder="5"
-                      aria-invalid={errors.conditioningDays ? true : undefined}
-                      onChange={(event) => {
-                        setConditioningDays(event.target.value);
-                        clearPlan();
-                      }}
-                      className={fieldClass}
-                    />
-                    {errors.conditioningDays && (
-                      <p className="mt-2 text-sm text-error">{errors.conditioningDays}</p>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* How long each Pinter lasts on tap */}
-            <div>
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <span className={`${labelClass} mb-0`}>How long each lasts on tap</span>
-                <div className="inline-flex rounded-lg border border-border-strong bg-field p-0.5 text-xs font-semibold uppercase tracking-[0.12em]">
+              <div>
+                <span className={labelClass}>Measure &ldquo;on tap&rdquo; by</span>
+                <div className="inline-flex w-full rounded-xl border border-border-strong bg-field p-0.5 text-xs font-semibold uppercase tracking-[0.12em]">
                   {(
                     [
                       ["days", "Days on tap"],
@@ -679,7 +480,7 @@ export default function RotationPage() {
                         setTapDurationMode(value);
                         clearPlan();
                       }}
-                      className={`rounded-md px-3 py-1.5 transition focus:outline-none focus:ring-2 focus:ring-accent ${
+                      className={`flex-1 rounded-lg px-3 py-2.5 transition focus:outline-none focus:ring-2 focus:ring-accent ${
                         tapDurationMode === value
                           ? "bg-accent text-white"
                           : "text-muted hover:text-accent"
@@ -689,52 +490,167 @@ export default function RotationPage() {
                     </button>
                   ))}
                 </div>
+                {tapDurationMode === "rate" && (
+                  <p className="mt-2 text-xs leading-5 text-muted">
+                    A Pinter holds about {PINTS_PER_PINTER} pints.
+                  </p>
+                )}
               </div>
+            </div>
 
-              {tapDurationMode === "days" ? (
-                <input
-                  id="days-on-tap"
-                  type="number"
-                  inputMode="numeric"
-                  min={2}
-                  step={1}
-                  value={daysOnTapInput}
-                  placeholder="6"
-                  aria-invalid={errors.tapDuration ? true : undefined}
-                  onChange={(event) => {
-                    setDaysOnTapInput(event.target.value);
-                    clearPlan();
-                  }}
-                  className={`${fieldClass} sm:max-w-[10rem]`}
-                />
-              ) : (
-                <input
-                  id="pints-per-day"
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.5"
-                  value={pintsPerDayInput}
-                  placeholder="2"
-                  aria-invalid={errors.tapDuration ? true : undefined}
-                  onChange={(event) => {
-                    setPintsPerDayInput(event.target.value);
-                    clearPlan();
-                  }}
-                  className={`${fieldClass} sm:max-w-[10rem]`}
-                />
-              )}
+            {/* One card per Pinter */}
+            <div className="space-y-4">
+              {Array.from({ length: rowCount }, (_, index) => {
+                const slot = slotAt(index);
+                const error = slotErrors[index];
+                return (
+                  <fieldset
+                    key={index}
+                    className="rounded-2xl border border-border-strong bg-field/40 p-4"
+                  >
+                    <legend className="px-1 font-display text-lg uppercase tracking-tight text-accent">
+                      Pinter {index + 1}
+                    </legend>
 
-              <p className="mt-2 text-xs leading-5 text-muted">
-                {tapDurationMode === "rate"
-                  ? `A Pinter holds about ${PINTS_PER_PINTER} pints${
-                      derivedDaysOnTap ? ` — roughly ${derivedDaysOnTap} days on tap` : ""
-                    }.`
-                  : "How many days a full Pinter lasts you before it runs out."}
-              </p>
-              {errors.tapDuration && (
-                <p className="mt-2 text-sm text-error">{errors.tapDuration}</p>
-              )}
+                    <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
+                      <div>
+                        <label htmlFor={`beer-${index}`} className={labelClass}>
+                          Beer
+                        </label>
+                        <select
+                          id={`beer-${index}`}
+                          value={slot.kind === "custom" ? "custom" : slot.brewPackId}
+                          onChange={(event) => {
+                            const value = event.target.value;
+                            if (value === "custom") {
+                              updateSlot(index, { kind: "custom" });
+                            } else {
+                              updateSlot(index, { kind: "brewpack", brewPackId: value });
+                            }
+                          }}
+                          className={fieldClass}
+                        >
+                          <option value="">Choose a beer…</option>
+                          {activeBrewPacks.map((pack) => (
+                            <option key={pack.id} value={pack.id}>
+                              {pack.name} · {pack.style}
+                            </option>
+                          ))}
+                          <option value="custom">Custom recipe…</option>
+                        </select>
+                      </div>
+
+                      <div className="sm:w-32">
+                        <label htmlFor={`ontap-${index}`} className={labelClass}>
+                          {onTapLabel}
+                        </label>
+                        <input
+                          id={`ontap-${index}`}
+                          type="number"
+                          inputMode={tapDurationMode === "days" ? "numeric" : "decimal"}
+                          min={tapDurationMode === "days" ? 2 : 0}
+                          step={tapDurationMode === "days" ? 1 : "0.5"}
+                          value={slot.onTap}
+                          placeholder={tapDurationMode === "days" ? "6" : "2"}
+                          onChange={(event) => updateSlot(index, { onTap: event.target.value })}
+                          className={fieldClass}
+                        />
+                      </div>
+                    </div>
+
+                    {slot.kind === "brewpack" ? (
+                      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                        <label className="flex cursor-pointer items-center gap-3">
+                          <input
+                            type="checkbox"
+                            checked={slot.useMinimum}
+                            onChange={(event) =>
+                              updateSlot(index, { useMinimum: event.target.checked })
+                            }
+                            className="h-4 w-4 accent-accent"
+                          />
+                          <span className="text-sm font-medium">Use minimum timing</span>
+                        </label>
+                        <div>
+                          <label htmlFor={`crash-${index}`} className="sr-only">
+                            Cold crash for Pinter {index + 1}
+                          </label>
+                          <select
+                            id={`crash-${index}`}
+                            value={slot.coldCrashDays}
+                            onChange={(event) =>
+                              updateSlot(index, { coldCrashDays: event.target.value })
+                            }
+                            className={fieldClass}
+                          >
+                            <option value="0">No cold crash</option>
+                            <option value="1">1 day cold crash</option>
+                            <option value="2">2 days cold crash</option>
+                            <option value="3">3 days cold crash</option>
+                          </select>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-4 space-y-4">
+                        <input
+                          type="text"
+                          value={slot.customName}
+                          autoComplete="off"
+                          placeholder="Recipe name (optional)"
+                          onChange={(event) =>
+                            updateSlot(index, { customName: event.target.value })
+                          }
+                          className={fieldClass}
+                          aria-label={`Recipe name for Pinter ${index + 1}`}
+                        />
+                        <div className="grid grid-cols-3 gap-3">
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min={1}
+                            step={1}
+                            value={slot.fermentationDays}
+                            placeholder="Ferment"
+                            aria-label={`Fermentation days for Pinter ${index + 1}`}
+                            onChange={(event) =>
+                              updateSlot(index, { fermentationDays: event.target.value })
+                            }
+                            className={fieldClass}
+                          />
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            step={1}
+                            value={slot.customColdCrashDays}
+                            placeholder="Crash"
+                            aria-label={`Cold-crash days for Pinter ${index + 1}`}
+                            onChange={(event) =>
+                              updateSlot(index, { customColdCrashDays: event.target.value })
+                            }
+                            className={fieldClass}
+                          />
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min={1}
+                            step={1}
+                            value={slot.conditioningDays}
+                            placeholder="Condition"
+                            aria-label={`Conditioning days for Pinter ${index + 1}`}
+                            onChange={(event) =>
+                              updateSlot(index, { conditioningDays: event.target.value })
+                            }
+                            className={fieldClass}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {error && <p className="mt-3 text-sm text-error">{error}</p>}
+                  </fieldset>
+                );
+              })}
             </div>
 
             {/* Start anchor */}
@@ -755,7 +671,6 @@ export default function RotationPage() {
                   />
                   <span className="text-sm font-medium">Start the first brew today</span>
                 </label>
-
                 <label className="flex cursor-pointer items-center gap-3">
                   <input
                     type="radio"
@@ -783,7 +698,7 @@ export default function RotationPage() {
                       min={getTodayString()}
                       value={firstReadyDate}
                       aria-label="First Pinter ready date"
-                      aria-invalid={errors.firstReadyDate ? true : undefined}
+                      aria-invalid={firstReadyError ? true : undefined}
                       onChange={(event) => {
                         setFirstReadyDate(event.target.value);
                         clearPlan();
@@ -791,8 +706,8 @@ export default function RotationPage() {
                       className="tap-date-input cursor-pointer rounded-xl border border-border-strong bg-field px-3 py-3 text-base text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
                     />
                   </div>
-                  {errors.firstReadyDate && (
-                    <p className="mt-2 text-sm text-error">{errors.firstReadyDate}</p>
+                  {firstReadyError && (
+                    <p className="mt-2 text-sm text-error">{firstReadyError}</p>
                   )}
                 </div>
               )}
@@ -817,44 +732,19 @@ export default function RotationPage() {
           >
             <div className="border-b border-border p-5 sm:p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-                {plan.pinterCount}-Pinter rotation
+                {plan.count}-beer rotation
               </p>
               <h2
                 id="rotation-result-heading"
                 className="mt-2 font-display text-3xl uppercase leading-tight sm:text-4xl"
               >
-                A fresh pour every {plan.spacing}{" "}
-                {plan.spacing === 1 ? "day" : "days"}
+                Pouring {formatShortDate(plan.firstPour)} through{" "}
+                {formatShortDate(plan.lastEmpties)}
               </h2>
               <p className="mt-2 text-sm text-muted">
-                {plan.name}
-                {plan.style ? ` · ${plan.style}` : ""}
-                {plan.abv ? ` · ${plan.abv}% ABV` : ""}
-                {plan.timingMode ? ` · ${plan.timingMode}` : ""} ·{" "}
-                {plan.totalLeadTime}-day brew · {plan.daysOnTap} days on tap
+                Start each brew on its date below and a fresh beer is always ready
+                as the last runs dry.
               </p>
-            </div>
-
-            {/* Pinter-count guidance */}
-            <div className="border-b border-border px-5 py-4 sm:px-6">
-              {plan.pinterCount >= plan.neededPinters ? (
-                <p className="rounded-xl border border-stage-brew/40 bg-stage-brew-soft px-4 py-3 text-sm leading-6 text-foreground">
-                  <span className="font-bold">You&rsquo;re covered.</span> This
-                  cadence needs about {plan.neededPinters} Pinters to stay
-                  continuous, and you have {plan.pinterCount}
-                  {plan.pinterCount > plan.neededPinters
-                    ? ` — ${plan.pinterCount - plan.neededPinters} to spare.`
-                    : " — just right."}
-                </p>
-              ) : (
-                <p className="rounded-xl border border-stage-condition/40 bg-stage-condition-soft px-4 py-3 text-sm leading-6 text-foreground">
-                  <span className="font-bold">Heads up.</span> Keeping a fresh
-                  pour every {plan.spacing} {plan.spacing === 1 ? "day" : "days"}{" "}
-                  really needs about {plan.neededPinters} Pinters; with{" "}
-                  {plan.pinterCount} you&rsquo;ll run dry between cycles. Brew the
-                  minimum schedule, drink a little slower, or add a Pinter.
-                </p>
-              )}
             </div>
 
             {plan.startsInPast && (
@@ -863,23 +753,23 @@ export default function RotationPage() {
                   role="status"
                   className="rounded-xl border border-stage-condition/40 bg-stage-condition-soft px-4 py-3 text-sm leading-6 text-foreground"
                 >
-                  <span className="font-bold">Check your first date.</span> The
-                  first brew would need to have started on{" "}
-                  {formatShortDate(plan.batches[0].startDate)}. If it&rsquo;s
+                  <span className="font-bold">Check your dates.</span> At least one
+                  brew would need to have started before today. If those are
                   already underway you can keep this plan; otherwise move the
-                  first-ready date later.
+                  first-ready date later or shorten a stage.
                 </p>
               </div>
             )}
 
-            {/* Rotation table */}
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[34rem] text-sm">
+              <table className="w-full min-w-[40rem] text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
                     <th className="px-5 py-3 sm:px-6">Pinter</th>
-                    <th className="px-3 py-3 text-stage-brew">Start brewing</th>
-                    <th className="px-3 py-3 text-stage-tap">Ready to pour</th>
+                    <th className="px-3 py-3">Beer</th>
+                    <th className="px-3 py-3 text-stage-brew">Start</th>
+                    <th className="px-3 py-3 text-stage-tap">Ready</th>
+                    <th className="px-3 py-3">On tap</th>
                     <th className="px-5 py-3 sm:px-6">Empties</th>
                   </tr>
                 </thead>
@@ -889,12 +779,19 @@ export default function RotationPage() {
                       <td className="px-5 py-3 font-display text-lg sm:px-6">
                         {batch.index}
                       </td>
-                      <td className="px-3 py-3 font-medium">
+                      <td className="px-3 py-3">
+                        <span className="font-medium">{batch.name}</span>
+                        {batch.timingMode === "Minimum" && (
+                          <span className="ml-1 text-xs text-muted">(min)</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 font-semibold text-stage-brew">
                         {formatShortDate(batch.startDate)}
                       </td>
                       <td className="px-3 py-3 font-semibold text-stage-tap">
                         {formatShortDate(batch.readyDate)}
                       </td>
+                      <td className="px-3 py-3 text-muted">{batch.daysOnTap}d</td>
                       <td className="px-5 py-3 text-muted sm:px-6">
                         {formatShortDate(batch.emptiesDate)}
                       </td>
@@ -913,9 +810,8 @@ export default function RotationPage() {
                 Add whole rotation to calendar
               </button>
               <p className="mt-3 text-xs leading-5 text-muted">
-                Downloads one calendar file with every Pinter&rsquo;s stages —
-                opens in Apple Calendar, Google Calendar, Outlook, and most
-                calendar apps.
+                Downloads one calendar file with every beer&rsquo;s stages — opens
+                in Apple Calendar, Google Calendar, Outlook, and most calendar apps.
               </p>
               <p aria-live="polite" className="mt-3 text-xs leading-5 text-stage-brew">
                 {downloadMessage}
@@ -926,9 +822,9 @@ export default function RotationPage() {
 
         <footer className="mt-6 space-y-2 text-center text-xs leading-5 text-muted">
           <p>
-            Planning only. Days on tap is your own estimate — the rotation is
-            only as accurate as it. Everything is calculated in your browser and
-            nothing is stored.
+            Planning only. How long each lasts on tap is your own estimate — the
+            rotation is only as accurate as it. Everything is calculated in your
+            browser and nothing is stored.
           </p>
         </footer>
       </div>

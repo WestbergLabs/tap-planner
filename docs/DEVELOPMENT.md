@@ -219,31 +219,31 @@ The cold-crash stage is omitted from the result whenever cold-crash days are `0`
 
 ## Rotation planner
 
-`app/rotation/page.tsx` (`/rotation`) plans a **whole rotation of several Pinters at once** so a fresh one is always ready as the last runs dry. It reuses the same `BrewPackPicker`, timing controls, and `lib/schedule` math as the other planners — it only adds the staggering and a multi-batch calendar export.
+`app/rotation/page.tsx` (`/rotation`) plans a **lineup of different beers across several Pinters** so a fresh one is always ready as the last runs dry. Several Pinters usually means several *different* beers — and different beers take different times to brew — so this is not just the same schedule repeated: each beer has its own timing and its own on-tap length, and the planner works out when to start each. It reuses `lib/schedule` for all the date math and adds the staggering plus a multi-batch calendar export.
 
 ### Inputs
 
-- **How many Pinters** — 2–12 (default 4).
-- **Brew timing** — a BrewPack (recommended/minimum) *or* custom durations, giving the lead time `L = brew + cold crash + conditioning`.
-- **How long each lasts on tap** — entered directly as **days on tap**, or via a **pints/day** rate that divides a fixed ~12-pint fill (`days = round(12 / rate)`). This is the user's own estimate; Tap Planner has no way to know a drinking pace, so it never guesses it.
+- **How many Pinters** — 2–12 (default 4); each gets its own row.
+- **Per Pinter** — a beer (any BrewPack, with optional minimum timing and cold crash, *or* a custom recipe) and **how long that beer lasts on tap**.
+- **Measure "on tap" by** — a global toggle: enter each beer's on-tap length directly in **days**, or as a **pints/day** rate that divides a fixed ~12-pint fill (`days = round(12 / rate)`). This is the user's own estimate — everyone drinks differently and Tap Planner never guesses it.
 - **Start anchor** — start the first brew *today*, or have the first Pinter *ready on a chosen date*.
 
 ### How the stagger works
 
-Each Pinter is timed to be ready the day before the previous empties (a one-day overlap), so taps are spaced `spacing = daysOnTap − 1` apart:
+Each beer is timed to be ready the day before the one currently pouring empties (a one-day overlap), so the gap before each new pour is governed by the **outgoing** beer's on-tap length, and each beer's start uses its **own** lead time `Lₖ = brewₖ + cold crashₖ + conditioningₖ`:
 
 ```text
-ready₁   = anchor (today + L, or the chosen first-ready date)
-readyₖ   = ready₁ + (k − 1) × spacing
-startₖ   = readyₖ − L            (via calculateSchedule)
-emptiesₖ = readyₖ + daysOnTap
+ready₁   = anchor (today + L₁, or the chosen first-ready date)
+readyₖ   = readyₖ₋₁ + (daysOnTapₖ₋₁ − 1)
+startₖ   = readyₖ − Lₖ            (via calculateSchedule)
+emptiesₖ = readyₖ + daysOnTapₖ
 ```
 
-The result is a table of every Pinter's **start → ready → empties** dates. A guidance line compares the Pinters you have against the number the cadence really needs — `ceil((L + daysOnTap) / spacing)` — and warns (without blocking) when it's short. If the first start lands before today it's flagged as advisory, never blocked.
+Because a slow, long-conditioning beer needs to start earlier than a quick session ale to hit the same slot, the **start** column is not in date order — that's the point. The result is a table of every Pinter's beer and its **start → ready → empties** dates. Each Pinter brews one beer for the round, so there is no Pinter-reuse constraint to check; if any start lands before today it's flagged as advisory, never blocked.
 
 ### Calendar export
 
-**Add whole rotation to calendar** exports every batch's stages in a single `.ics` via `downloadSchedules` / `buildMultiCalendar` in `lib/calendar.ts` — one `VCALENDAR` with each Pinter's events titled `{name} — Pinter N: {stage}`. The per-event ICS structure (all-day, exclusive `DTEND`) is unchanged from the single-schedule export.
+**Add whole rotation to calendar** exports every beer's stages in a single `.ics` via `downloadSchedules` / `buildMultiCalendar` in `lib/calendar.ts` — one `VCALENDAR` with each beer's events titled `{name} (Pinter N): {stage}`. The per-event ICS structure (all-day, exclusive `DTEND`) is unchanged from the single-schedule export.
 
 ---
 
@@ -479,7 +479,7 @@ The official Pinter app remains the source of truth for active brewing instructi
 | Calendar export | ✅ Shipped (all-day `.ics`, browser-only) |
 | Feasibility checks | ✅ Shipped (official recommended/minimum + custom advisory, with date recovery) |
 | Smarter BrewPack scanning | ✅ Shipped (quick ~6h discovery + weekly full verification) |
-| Rotation planner | 🧪 In preview (`feature/rotation-schedule`) — stagger several Pinters so you never run dry |
+| Rotation planner | 🧪 In preview (`feature/rotation-schedule`) — line up a different beer per Pinter so you never run dry |
 | Saved schedules | Planned candidate |
 | Shareable schedule links | Planned candidate |
 | Accessibility refinements | Ongoing |
