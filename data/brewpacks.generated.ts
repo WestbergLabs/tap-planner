@@ -391,6 +391,18 @@ export const brewPacks: BrewPack[] = [
     hopperIncluded: true,
   },
   {
+    id: "sport-beer",
+    name: "Sport Beer",
+    style: "Dunkel",
+    recommendedBrewDays: 8,
+    recommendedConditioningDays: 8,
+    minimumBrewDays: 7,
+    minimumConditioningDays: 4,
+    abv: 5.6,
+    yeast: "Spark",
+    hopperIncluded: false,
+  },
+  {
     id: "stars-and-stripes",
     name: "Stars & Stripes",
     style: "American Pale Ale",

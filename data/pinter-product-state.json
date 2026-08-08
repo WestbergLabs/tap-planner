@@ -21,8 +21,8 @@
       "handle": "space-hopper-wce-ipa",
       "title": "Space Hopper West Coast Edition",
       "publishedAt": "2023-09-18T06:42:33-04:00",
-      "available": true,
-      "fingerprint": "4309b1c015e788b3"
+      "available": false,
+      "fingerprint": "dec6a3be6bac2d9d"
     },
     {
       "id": 8802186461465,
@@ -86,7 +86,7 @@
       "title": "En Casa",
       "publishedAt": "2024-07-25T09:51:28-04:00",
       "available": true,
-      "fingerprint": "7e4e47808b8b54d6"
+      "fingerprint": "0cbf6eda4172af78"
     },
     {
       "id": 9635982737689,
@@ -230,7 +230,7 @@
       "title": "Hopewell West Coast Lager",
       "publishedAt": "2026-03-19T12:23:09-04:00",
       "available": true,
-      "fingerprint": "edec5a527ebd2a40"
+      "fingerprint": "daa7def8ccc58445"
     },
     {
       "id": 10318035419417,
@@ -262,7 +262,15 @@
       "title": "Proper English",
       "publishedAt": "2026-07-30T11:13:36-04:00",
       "available": true,
-      "fingerprint": "05311d5a93dd22bb"
+      "fingerprint": "7a41e7c84d1665ec"
+    },
+    {
+      "id": 10748272607513,
+      "handle": "sport-beer",
+      "title": "Sport Beer",
+      "publishedAt": "2026-08-06T13:14:11-04:00",
+      "available": true,
+      "fingerprint": "a5e7a8d6debe21d4"
     }
   ]
 }
