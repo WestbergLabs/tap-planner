@@ -26,6 +26,7 @@ Work backward from tap day. Tap Planner turns a target date into a brew schedule
 - [How scheduling works](#how-scheduling-works)
 - [Official planner](#official-planner)
 - [Custom recipe planner](#custom-recipe-planner)
+- [Rotation planner](#rotation-planner)
 - [Feasibility checks](#feasibility-checks)
 - [Calendar export](#calendar-export)
 - [BrewPack data pipeline](#brewpack-data-pipeline)
@@ -44,12 +45,13 @@ Work backward from tap day. Tap Planner turns a target date into a brew schedule
 
 Tap Planner is a small Next.js app for people using Pinter's home brewing system. Pick a BrewPack (or your own recipe) and a date you want to tap it, and Tap Planner works backward through fermentation, an optional cold crash, and conditioning to tell you exactly when to start brewing — then lets you drop the whole schedule into your calendar.
 
-There are two planners sharing one calculation engine:
+There are three planners sharing one calculation engine:
 
 | Planner | Route | Use it when... |
 |---|---|---|
 | **Official** | `/` | You're brewing a real Pinter BrewPack and want its recommended or minimum timing |
 | **Custom** | `/custom` | You're brewing your own recipe, or want to override a BrewPack's default timing |
+| **Rotation** | `/rotation` | You run several Pinters and want them staggered so you never run dry |
 
 No accounts, no database, nothing stored server-side. Everything lives in the URL and the browser for the length of one calculation.
 
@@ -111,12 +113,15 @@ pnpm build
 app/
   custom/
     page.tsx                  # Custom recipe planner  →  /custom
+  rotation/
+    page.tsx                  # Multi-Pinter rotation planner  →  /rotation
   globals.css                 # Global design, responsive layout, mobile fixes
   layout.tsx                  # App metadata and root layout
   page.tsx                    # Official BrewPack planner  →  /
 
 components/
-  BrewPackPicker.tsx           # Accessible BrewPack search combobox, shared by both planners
+  BrewPackPicker.tsx           # Accessible BrewPack search combobox (official + custom planners)
+  BeerPicker.tsx               # Compact searchable beer combobox for the rotation lineup
 
 data/
   brewpacks.generated.ts       # Generated BrewPack catalog used by the app
@@ -166,16 +171,7 @@ All date math — `parseLocalDate`, `addDays`, `subtractDays`, `formatDate`, `ge
 
 ## Official planner
 
-`app/page.tsx` is the default, compact planner at `/`. It uses the shared `BrewPackPicker` to search the generated catalog, then calculates forward from the pack's recommended or minimum brew and conditioning days.
-
-### Plan by tap date or Pinter finish date
-
-Both planners have a **Plan by** toggle that changes what the date field means:
-
-- **Desired tap date** *(default)* — the date you enter is the tap date, as usual.
-- **Current Pinter finish date** — for running several Pinters back-to-back. You enter when the Pinter currently on tap will run out, and the next brew is timed to be ready the day before (tap date = finish date − 1). The result shows the finish date, the next-ready date, and the recommended start date.
-
-This is display-only sugar over the existing math: internally the planner always works with the tap date, so in finish mode the date field simply shows `tap + 1` and stores back `entered − 1`. All feasibility, calculation, and calendar export are unchanged — a past start date is reported the same way it would be for any tap date.
+`app/page.tsx` is the default, compact planner at `/`. It uses the shared `BrewPackPicker` to search the generated catalog, then calculates forward from the pack's recommended or minimum brew and conditioning days. To plan several Pinters back-to-back, see the [Rotation planner](#rotation-planner).
 
 ---
 
@@ -219,6 +215,36 @@ fermentation days + cold-crash days + conditioning days = total lead time
 The cold-crash stage is omitted from the result whenever cold-crash days are `0`.
 
 > **Nothing is stored.** Custom recipe details exist only in the browser for the current calculation and are discarded when the page is left.
+
+---
+
+## Rotation planner
+
+`app/rotation/page.tsx` (`/rotation`) plans a **lineup of different beers across several Pinters** so a fresh one is always ready as the last runs dry. Several Pinters usually means several *different* beers — and different beers take different times to brew — so this is not just the same schedule repeated: each beer has its own timing and its own on-tap length, and the planner works out when to start each. It reuses `lib/schedule` for all the date math and adds the staggering plus a multi-batch calendar export.
+
+### Inputs
+
+- **How many Pinters** — 2–12 (default 4); each gets its own row.
+- **Per Pinter** — a beer (any BrewPack, with optional minimum timing and cold crash, *or* a custom recipe) via the searchable `BeerPicker`, and **how long that beer lasts on tap**.
+- **Measure "on tap" by** — a global toggle: enter each beer's on-tap length directly in **days**, or as a **pints/day** rate that divides a fixed ~12-pint fill (`days = round(12 / rate)`). This is the user's own estimate — everyone drinks differently and Tap Planner never guesses it.
+- **Right now it's** *(backfill)* — each Pinter's current state: **not started yet**, **already brewing** (you give the date brewing started), or **already on tap** (you give the date it empties).
+- **Start anchor** — shown only when the first beer hasn't been started: begin the first brew *today*, or have the first one *ready on a chosen date*.
+
+### How the stagger works
+
+Rows are processed in tap order and chained so each beer is ready the day before the one currently pouring empties (a one-day overlap). What sets each beer's dates depends on its status, so a lineup can be **backfilled** around beers that are already going:
+
+| Status | Anchored by | Dates |
+|---|---|---|
+| **Already on tap** | the empties date you enter | `empties` given; `ready = empties − daysOnTap`; no start (brew is done) |
+| **Already brewing** | the start date you enter | `ready = start + L`; `empties = ready + daysOnTap` |
+| **Not started yet** | the previous beer's empties (or the anchor, for the first) | `ready = prevEmpties − 1`; **`start = ready − L`** ← the date to act on; `empties = ready + daysOnTap` |
+
+Each beer's start uses its **own** lead time `L = brew + cold crash + conditioning`, so a slow, long-conditioning beer is scheduled to start earlier than a quick session ale to hit the same slot — the **start** column is intentionally not in date order. In-progress statuses (brewing / on tap) keep their real dates and just pass the baton; only *not-started* beers get a computed start date. If a not-started beer's start lands before today, that Pinter is flagged as **behind** (the previous beer empties too soon to brew it in time) — advisory, never blocked. Beers already on tap are excluded from the calendar export, since their brew is already done.
+
+### Calendar export
+
+**Add whole rotation to calendar** exports every beer's stages in a single `.ics` via `downloadSchedules` / `buildMultiCalendar` in `lib/calendar.ts` — one `VCALENDAR` with each beer's events titled `{name} (Pinter N): {stage}`. The per-event ICS structure (all-day, exclusive `DTEND`) is unchanged from the single-schedule export.
 
 ---
 
@@ -454,6 +480,7 @@ The official Pinter app remains the source of truth for active brewing instructi
 | Calendar export | ✅ Shipped (all-day `.ics`, browser-only) |
 | Feasibility checks | ✅ Shipped (official recommended/minimum + custom advisory, with date recovery) |
 | Smarter BrewPack scanning | ✅ Shipped (quick ~6h discovery + weekly full verification) |
+| Rotation planner | 🧪 In preview (`feature/rotation-schedule`) — line up a different beer per Pinter, backfill around beers already going, never run dry |
 | Saved schedules | Planned candidate |
 | Shareable schedule links | Planned candidate |
 | Accessibility refinements | Ongoing |

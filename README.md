@@ -108,7 +108,7 @@ brew day through tap day — then export it straight to your calendar.
 
 <hr>
 
-<h2>Two ways to plan</h2>
+<h2>Three ways to plan</h2>
 
 <table>
   <tr>
@@ -128,11 +128,11 @@ brew day through tap day — then export it straight to your calendar.
       </p>
     </td>
     <td width="33%" valign="top">
-      <h3>🎛️ Adjusted timing</h3>
+      <h3>🔄 Never run dry</h3>
       <p>
-      Start from an official BrewPack and tweak it. <strong>Customize timing</strong>
-      opens the custom planner prefilled with that BrewPack's schedule, ready
-      to adjust.
+      Running several Pinters? The rotation planner at <code>/rotation</code>
+      lines up a different beer in each and tells you when to start every brew,
+      so a fresh one is always ready as the last runs dry.
       </p>
     </td>
   </tr>

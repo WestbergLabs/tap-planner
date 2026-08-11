@@ -205,21 +205,9 @@ function buildDescription(
   return lines.map(escapeICSText).join("\\n");
 }
 
-/**
- * Build a complete VCALENDAR document for the schedule as a single string with
- * CRLF line endings. `now` is the DTSTAMP time and defaults to the current UTC
- * time; it is a parameter mainly so behaviour is deterministic in tests.
- */
-export function buildCalendar(schedule: CalendarSchedule, now: Date = new Date()): string {
-  const dtStamp = formatICSTimestamp(now);
-
-  const lines: string[] = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    `PRODID:${PRODID}`,
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
-  ];
+// The VEVENT lines for a single schedule's stages, sharing one DTSTAMP.
+function scheduleEventLines(schedule: CalendarSchedule, dtStamp: string): string[] {
+  const lines: string[] = [];
 
   for (const stage of schedule.stages) {
     const duration = daysBetween(stage.start, stage.end);
@@ -236,9 +224,47 @@ export function buildCalendar(schedule: CalendarSchedule, now: Date = new Date()
     );
   }
 
-  lines.push("END:VCALENDAR");
+  return lines;
+}
+
+// Wrap already-built VEVENT lines in a VCALENDAR envelope, folded, CRLF-joined.
+function wrapCalendar(eventLines: string[]): string {
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    `PRODID:${PRODID}`,
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    ...eventLines,
+    "END:VCALENDAR",
+  ];
 
   return lines.map(foldLine).join("\r\n") + "\r\n";
+}
+
+/**
+ * Build a complete VCALENDAR document for the schedule as a single string with
+ * CRLF line endings. `now` is the DTSTAMP time and defaults to the current UTC
+ * time; it is a parameter mainly so behaviour is deterministic in tests.
+ */
+export function buildCalendar(schedule: CalendarSchedule, now: Date = new Date()): string {
+  return wrapCalendar(scheduleEventLines(schedule, formatICSTimestamp(now)));
+}
+
+/**
+ * Build one VCALENDAR containing every schedule's events — used to export a
+ * whole Pinter rotation (several batches) as a single .ics file.
+ */
+export function buildMultiCalendar(
+  schedules: CalendarSchedule[],
+  now: Date = new Date(),
+): string {
+  const dtStamp = formatICSTimestamp(now);
+  const events = schedules.flatMap((schedule) =>
+    scheduleEventLines(schedule, dtStamp),
+  );
+
+  return wrapCalendar(events);
 }
 
 /**
@@ -246,10 +272,9 @@ export function buildCalendar(schedule: CalendarSchedule, now: Date = new Date()
  * download. Uses a Blob and an object URL, revoking the URL afterward. Returns
  * the filename used so callers can surface it in a confirmation message.
  */
-export function downloadSchedule(schedule: CalendarSchedule, now: Date = new Date()): string {
-  const content = buildCalendar(schedule, now);
-  const fileName = `${safeFileName(schedule.name)}-schedule.ics`;
-
+// Trigger a browser download of already-built .ics content, revoking the URL
+// afterward. Returns the filename used.
+function triggerDownload(content: string, fileName: string): string {
   const blob = new Blob([content], { type: "text/calendar;charset=utf-8" });
   const url = URL.createObjectURL(blob);
 
@@ -263,4 +288,26 @@ export function downloadSchedule(schedule: CalendarSchedule, now: Date = new Dat
   URL.revokeObjectURL(url);
 
   return fileName;
+}
+
+export function downloadSchedule(schedule: CalendarSchedule, now: Date = new Date()): string {
+  return triggerDownload(
+    buildCalendar(schedule, now),
+    `${safeFileName(schedule.name)}-schedule.ics`,
+  );
+}
+
+/**
+ * Download several schedules (a whole rotation) as one .ics file. `fileNameBase`
+ * names the file, e.g. "dark-matter-rotation".
+ */
+export function downloadSchedules(
+  schedules: CalendarSchedule[],
+  fileNameBase: string,
+  now: Date = new Date(),
+): string {
+  return triggerDownload(
+    buildMultiCalendar(schedules, now),
+    `${safeFileName(fileNameBase)}-rotation.ics`,
+  );
 }
