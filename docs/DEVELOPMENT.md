@@ -110,7 +110,7 @@ pnpm build
   workflows/
     ci.yml                          # Lint + build on PRs and pushes to main
     brewpack-quick-scan.yml         # ~6-hourly Shopify discovery scan
-    brewpack-full-verification.yml  # Weekly full re-verification
+    brewpack-full-verification.yml  # Weekly full re-verification + release timeline
 
 app/
   custom/
@@ -147,6 +147,8 @@ scripts/
   lib/
     discovery.ts               # Pure discovery logic (fingerprint, classify, state)
     discovery.test.ts          # Discovery unit tests (pnpm test)
+    release-history.ts         # Pure release-date estimation rules
+    release-history.test.ts    # Release-timeline unit tests (pnpm test)
     http.ts                    # Fetch with user agent, timeout, retry, 429/5xx
 ```
 
@@ -281,11 +283,21 @@ The rules, in order:
 
 The 120-day threshold is tuned, not arbitrary: the longest observed normal draft-to-launch gap is Ancestor's at 92 days, while genuine re-releases in the data span 198 days or more. Nothing falls in between.
 
+All of these rules live in `scripts/lib/release-history.ts` as pure functions, covered by `release-history.test.ts`. That split is deliberate: a wrong threshold does not throw, it just publishes a confidently wrong date, so the thresholds are pinned by tests against real packs (Adnams, All American Haze, Ancestor's, Dark Matter).
+
 ### Rendering the uncertainty
 
 `lib/releases.ts` exists so a `month`-precision date can never be rendered as a specific day. `formatReleaseDate` returns `"around October 2024"` rather than inventing the 1st, and the date chip shows `approx` instead of `released`. If you add a new surface for this data, format through those helpers rather than reaching into `releaseDate` directly.
 
-Beyond dates, the scan also pulls the marketing blurb, flavor icons (Pinter's own `Icons|…` tags), dietary badges, price and pack artwork, which is what makes the page worth reading rather than just a list of dates.
+Beyond dates, the scan also pulls the marketing blurb, flavor icons (Pinter's own `Icons|…` tags), dietary badges and pack artwork, which is what makes the page worth reading rather than just a list of dates.
+
+Two fields are deliberately **not** stored, because the timeline is regenerated weekly by automation and both would produce pull requests carrying no actual news: variant **price** (changes on every promotion) and the `?v=` **cache-buster** on image URLs (changes on any asset re-upload, so `toStableImageUrl` strips it).
+
+### Staying current
+
+`pnpm scan:releases` runs as part of the weekly **BrewPack Full Verification** workflow, after the catalog rebuild, since the timeline is keyed off the freshly generated pack list. It is marked `continue-on-error` so a store-feed hiccup reports a warning instead of discarding the catalog work in the same run. Timeline changes ride along in the same automated catalog pull request.
+
+Reviewing those PRs: a pack moving from a day-precision date to a month-precision one means it was re-released. That is the rules working, not a regression.
 
 ---
 

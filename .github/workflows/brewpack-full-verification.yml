@@ -2,8 +2,9 @@ name: BrewPack Full Verification
 
 # Weekly authority pass: re-resolve every current product, rebuild the catalog
 # and discovery state from scratch, and reconcile retention, renames, and
-# removals that the incremental quick scan intentionally defers. Opens a catalog
-# pull request only when a supported field actually changed.
+# removals that the incremental quick scan intentionally defers. Then rebuild
+# the release timeline, which reads the whole store rather than one collection.
+# Opens a pull request only when a supported field actually changed.
 
 on:
   workflow_dispatch:
@@ -46,16 +47,28 @@ jobs:
       - name: Run full verification scan
         run: pnpm scan:full
 
+      # Runs after the catalog rebuild because the timeline is keyed off the
+      # freshly generated pack list. A failure here must not discard the catalog
+      # work above, so it is reported and the run continues.
+      - name: Rebuild release timeline
+        id: releases
+        continue-on-error: true
+        run: pnpm scan:releases
+
+      - name: Warn if the release timeline could not be rebuilt
+        if: steps.releases.outcome == 'failure'
+        run: echo "::warning::Release timeline scan failed; the catalog changes below are still valid."
+
       - name: Check for catalog or state changes
         id: changes
         shell: bash
         run: |
           if git diff --quiet -- data/; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "Full verification found no changes. Sources still parse correctly."
+            echo "Full verification found no catalog or timeline changes. Sources still parse correctly."
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "BrewPack changes detected:"
+            echo "BrewPack catalog or release timeline changes detected:"
             git diff --stat -- data/
           fi
 
@@ -79,7 +92,7 @@ jobs:
 
           git switch -C "$branch"
           git add data/
-          git commit -m "chore: update BrewPack catalog (full verification)"
+          git commit -m "chore: update BrewPack catalog and release timeline (full verification)"
           git push --force-with-lease origin "$branch"
 
           existing_pr="$(
@@ -91,7 +104,9 @@ jobs:
             echo "Updated existing pull request #$existing_pr."
           else
             cat > pr-body.md <<'EOF'
-          The weekly BrewPack full verification detected a change to a supported field and regenerated the catalog.
+          The weekly BrewPack full verification detected a change to a supported field and regenerated the catalog and the release timeline.
+
+          Release-timeline dates are estimates derived from Shopify timestamps. A pack moving from a day-precision date to a month-precision one means it was re-released, which is expected rather than a bug.
 
           This pull request was generated automatically. Please review the catalog diff before merging — the workflow validated it with the discovery tests, lint, and a production build.
           EOF
