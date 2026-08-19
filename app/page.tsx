@@ -420,6 +420,16 @@ export default function Home() {
               </Link>
             </p>
 
+            <p className="-mt-3 text-sm leading-6 text-muted">
+              Curious when each pack landed?{" "}
+              <Link
+                href="/releases"
+                className="font-semibold text-accent underline decoration-accent/40 underline-offset-2 transition hover:text-accent-hover hover:decoration-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
+              >
+                See the release timeline &rarr;
+              </Link>
+            </p>
+
             {selectedPack && (
               <div className="border-y border-border py-4">
                 <div className="flex items-start justify-between gap-4">

@@ -11,7 +11,8 @@
     "test": "node --import tsx --test scripts/lib/discovery.test.ts",
     "import:brewpacks": "tsx scripts/import-brewpacks.ts",
     "scan:quick": "tsx scripts/brewpack-scan.ts",
-    "scan:full": "tsx scripts/brewpack-scan.ts --full"
+    "scan:full": "tsx scripts/brewpack-scan.ts --full",
+    "scan:releases": "tsx scripts/release-scan.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",
