@@ -22,7 +22,6 @@ export type StoreProduct = ShopifyProduct & {
   // The store feed returns tags as an array; single-product endpoints return
   // the same data as one comma-separated string.
   tags?: string[] | string;
-  images?: Array<{ src?: string | null }>;
 };
 
 /** The pack facts the timeline needs from the curated catalog. */
@@ -48,8 +47,6 @@ export type BrewPackRelease = {
   /** A later re-release date, when the store shows the pack came back. */
   reissuedOn: string | null;
   status: "available" | "unavailable" | "discontinued";
-  imageUrl: string | null;
-  blurb: string | null;
   /** Flavor descriptors from Pinter's own "Icons|" tags. */
   flavors: string[];
   /** Dietary notes such as Vegan or Contains Gluten. */
@@ -110,29 +107,6 @@ export function toTagList(tags: string[] | string | undefined): string[] {
   return tags.split(",").map((tag) => tag.trim()).filter(Boolean);
 }
 
-/** Strip HTML and collapse whitespace into a short plain-text blurb. */
-export function toBlurb(html: string | null | undefined): string | null {
-  if (!html) return null;
-
-  const text = html
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&rsquo;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  if (!text) return null;
-
-  // Keep it to roughly a sentence or two so cards stay scannable.
-  if (text.length <= 220) return text;
-
-  const cut = text.slice(0, 220);
-  const lastStop = cut.lastIndexOf(". ");
-  return lastStop > 120 ? cut.slice(0, lastStop + 1) : `${cut.trimEnd()}...`;
-}
-
 /**
  * Pull Pinter's own flavor icons out of the tag list. Tags look like
  * "Icons|full bodied" and "Icons|malt 1", where the trailing digit is an
@@ -152,19 +126,6 @@ export function toBadges(tags: string[] | string | undefined): string[] {
   const list = toTagList(tags);
   const known = ["Vegan", "Contains Gluten", "Gluten Free"];
   return known.filter((badge) => list.includes(badge));
-}
-
-/**
- * Drop Shopify's `?v=` cache-buster from an image URL. It changes whenever an
- * asset is re-uploaded, which would otherwise produce a data diff (and an
- * automated pull request) that carries no actual news.
- */
-export function toStableImageUrl(
-  src: string | null | undefined,
-): string | null {
-  if (!src) return null;
-  const [base] = src.split("?");
-  return base || null;
 }
 
 /**
@@ -192,8 +153,13 @@ export function findBulkCreationDays(
 
 /**
  * Combine catalog facts (curated style and ABV) with store facts (dates,
- * imagery, copy). The catalog is the list of packs that exist; the store is
- * where the timeline comes from.
+ * availability, flavor tags). The catalog is the list of packs that exist; the
+ * store is where the timeline comes from.
+ *
+ * Note what is deliberately absent: product artwork and marketing copy. Both
+ * are Pinter's, no redistribution license has been confirmed, and the project's
+ * data and image policy says not to reproduce them. Only factual attributes are
+ * kept. See docs/DEVELOPMENT.md.
  */
 export function buildRelease(
   pack: CatalogPack,
@@ -215,8 +181,6 @@ export function buildRelease(
       precision: "unknown",
       reissuedOn: null,
       status: pack.discontinued ? "discontinued" : "unavailable",
-      imageUrl: null,
-      blurb: null,
       flavors: [],
       badges: [],
     };
@@ -259,8 +223,6 @@ export function buildRelease(
       : available
         ? "available"
         : "unavailable",
-    imageUrl: toStableImageUrl(product.images?.[0]?.src),
-    blurb: toBlurb(product.body_html),
     flavors: toFlavors(product.tags),
     badges: toBadges(product.tags),
   };

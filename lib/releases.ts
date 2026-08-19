@@ -1,9 +1,9 @@
 // Presentation helpers for the release timeline at /releases.
 //
 // The data itself comes from data/releases.generated.ts (see
-// scripts/release-scan.ts for how the dates are estimated). Everything here is
-// about showing those estimates honestly: a month-precision date must never be
-// rendered as though we know the exact day.
+// scripts/lib/release-history.ts for how the dates are estimated). Everything
+// here is about showing those estimates honestly: a month-precision date must
+// never be rendered as though we know the exact day.
 
 import type { BrewPackRelease } from "@/data/releases.generated";
 
@@ -38,31 +38,21 @@ export function releaseYear(release: BrewPackRelease): number | null {
 }
 
 /**
- * Format a release date at the precision we actually have. Day precision gets
- * a full date; month precision deliberately omits the day rather than inventing
- * one, and is prefixed so it reads as an estimate at a glance.
+ * The date as it appears on a card: a single self-describing phrase. Written
+ * out in full rather than abbreviated into a fixed-width chip, so nothing has
+ * to be truncated on a narrow screen and "approx" never needs explaining.
  */
-export function formatReleaseDate(release: BrewPackRelease): string {
+export function formatReleaseLabel(release: BrewPackRelease): string {
   if (!release.releaseDate) return "Date unknown";
 
   const { year, month, date } = parseDay(release.releaseDate);
   const monthName = MONTHS[month - 1];
 
   if (release.precision === "month") {
-    return `around ${monthName} ${year}`;
+    return `Approx. ${monthName} ${year}`;
   }
 
-  return `${monthName} ${date}, ${year}`;
-}
-
-/** Short form for the date chip on each card. */
-export function formatReleaseChip(release: BrewPackRelease): string {
-  if (!release.releaseDate) return "?";
-
-  const { month, date } = parseDay(release.releaseDate);
-  const monthName = MONTHS[month - 1].slice(0, 3);
-
-  return release.precision === "month" ? monthName : `${monthName} ${date}`;
+  return `Released ${monthName} ${date}, ${year}`;
 }
 
 /** Format a re-release date for the "came back" note. */
@@ -101,6 +91,17 @@ export function groupByYear(
   return [...groups.entries()]
     .sort(([a], [b]) => b - a)
     .map(([year, yearReleases]) => ({ year, releases: yearReleases }));
+}
+
+/**
+ * Packs you can actually buy right now, newest first. This is the default view:
+ * most people arrive wanting to know what is on the shelf, not to browse a
+ * particular year.
+ */
+export function availableReleases(
+  releases: readonly BrewPackRelease[],
+): BrewPackRelease[] {
+  return releases.filter((release) => release.status === "available");
 }
 
 /** Packs with no recoverable date at all. */

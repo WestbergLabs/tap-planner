@@ -16,9 +16,7 @@ import {
   selectPackProducts,
   sortReleases,
   toBadges,
-  toBlurb,
   toFlavors,
-  toStableImageUrl,
   type BrewPackRelease,
   type CatalogPack,
   type StoreProduct,
@@ -192,25 +190,7 @@ test("normalizeName matches across curly quotes and suffix punctuation", () => {
   assert.equal(normalizeName("Pear With Me"), normalizeName("Pear with me"));
 });
 
-// --- copy and tag extraction -----------------------------------------------
-
-test("toBlurb strips markup and entities", () => {
-  assert.equal(
-    toBlurb("<p>Crisp &amp; clean.</p><p>Very good.</p>"),
-    "Crisp & clean. Very good.",
-  );
-  assert.equal(toBlurb(""), null);
-  assert.equal(toBlurb(undefined), null);
-});
-
-test("toBlurb truncates long copy at a sentence boundary", () => {
-  const long = `${"A".repeat(130)}. ${"B".repeat(200)}`;
-  const blurb = toBlurb(long);
-
-  assert.ok(blurb);
-  assert.ok(blurb.length <= 221);
-  assert.ok(blurb.endsWith("."), "should cut on a sentence, not mid-word");
-});
+// --- tag extraction -----------------------------------------------
 
 test("toFlavors reads Icons tags, drops intensity digits, and dedupes", () => {
   assert.deepEqual(
@@ -235,14 +215,6 @@ test("toFlavors and toBadges accept the comma-string tag form", () => {
     "Vegan",
     "Contains Gluten",
   ]);
-});
-
-test("toStableImageUrl drops the cache-busting version query", () => {
-  assert.equal(
-    toStableImageUrl("https://cdn.shopify.com/s/files/a/Sport.jpg?v=1786003031"),
-    "https://cdn.shopify.com/s/files/a/Sport.jpg",
-  );
-  assert.equal(toStableImageUrl(null), null);
 });
 
 // --- ordering and safety ---------------------------------------------------

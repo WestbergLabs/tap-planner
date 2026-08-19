@@ -10,10 +10,10 @@ import {
 } from "react";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 import BrewPackPicker from "@/components/BrewPackPicker";
+import SiteNav from "@/components/SiteNav";
 import { brewPacks, type BrewPack } from "@/data/brewpacks.generated";
 import {
   calculateSchedule,
@@ -405,13 +405,8 @@ function CustomPlanner() {
               className="object-cover object-[center_42%]"
             />
 
-            <div className="absolute inset-x-0 top-0 p-5 sm:p-6">
-              <Link
-                href="/"
-                className="inline-flex items-center gap-1.5 rounded-full bg-black/35 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-white backdrop-blur transition hover:bg-black/55 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black/40"
-              >
-                &larr; Back to BrewPack planner
-              </Link>
+            <div className="absolute inset-x-0 top-0 flex justify-end p-5 sm:p-6">
+              <SiteNav current="/custom" />
             </div>
           </div>
 

@@ -12,6 +12,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import BrewPackPicker from "@/components/BrewPackPicker";
+import SiteNav from "@/components/SiteNav";
 import { brewPacks } from "@/data/brewpacks.generated";
 import {
   calculateSchedule,
@@ -339,6 +340,10 @@ export default function Home() {
             />
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-black/5" />
+
+            <div className="absolute inset-x-0 top-0 flex justify-end p-5 sm:p-6">
+              <SiteNav current="/" />
+            </div>
 
             <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-orange-200">

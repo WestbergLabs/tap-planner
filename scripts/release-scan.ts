@@ -111,8 +111,6 @@ function formatRelease(release: BrewPackRelease): string {
     precision: ${JSON.stringify(release.precision)},
     reissuedOn: ${JSON.stringify(release.reissuedOn)},
     status: ${JSON.stringify(release.status)},
-    imageUrl: ${JSON.stringify(release.imageUrl)},
-    blurb: ${JSON.stringify(release.blurb)},
     flavors: ${list(release.flavors)},
     badges: ${list(release.badges)},
   }`;
@@ -125,6 +123,10 @@ export function buildGeneratedFile(releases: BrewPackRelease[]): string {
 // Dates are ESTIMATES derived from Shopify product timestamps, not official
 // release announcements. See scripts/lib/release-history.ts for how each date
 // is chosen and why some are month-only.
+//
+// Only factual attributes are stored. Product artwork and marketing copy are
+// Pinter's and are deliberately not reproduced; see the data and image policy
+// in docs/DEVELOPMENT.md.
 
 export type ReleasePrecision = "day" | "month" | "unknown";
 
@@ -137,8 +139,6 @@ export type BrewPackRelease = {
   precision: ReleasePrecision;
   reissuedOn: string | null;
   status: "available" | "unavailable" | "discontinued";
-  imageUrl: string | null;
-  blurb: string | null;
   flavors: string[];
   badges: string[];
 };

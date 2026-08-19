@@ -118,6 +118,7 @@ app/
   rotation/
     page.tsx                  # Multi-Pinter rotation planner  →  /rotation
   releases/
+    layout.tsx                # Metadata for /releases (the page is a client component)
     page.tsx                  # Estimated BrewPack release timeline  →  /releases
   globals.css                 # Global design, responsive layout, mobile fixes
   layout.tsx                  # App metadata and root layout
@@ -126,6 +127,7 @@ app/
 components/
   BrewPackPicker.tsx           # Accessible BrewPack search combobox (official + custom planners)
   BeerPicker.tsx               # Compact searchable beer combobox for the rotation lineup
+  SiteNav.tsx                  # Shared hamburger menu + help link, on every page hero
 
 data/
   brewpacks.generated.ts       # Generated BrewPack catalog used by the app
@@ -289,9 +291,23 @@ All of these rules live in `scripts/lib/release-history.ts` as pure functions, c
 
 `lib/releases.ts` exists so a `month`-precision date can never be rendered as a specific day. `formatReleaseDate` returns `"around October 2024"` rather than inventing the 1st, and the date chip shows `approx` instead of `released`. If you add a new surface for this data, format through those helpers rather than reaching into `releaseDate` directly.
 
-Beyond dates, the scan also pulls the marketing blurb, flavor icons (Pinter's own `Icons|…` tags), dietary badges and pack artwork, which is what makes the page worth reading rather than just a list of dates.
+Beyond dates, the scan stores flavor icons (Pinter's own `Icons|…` tags), dietary badges, style and ABV. Those are factual attributes, and they are what make the cards worth reading rather than just a list of dates.
 
-Two fields are deliberately **not** stored, because the timeline is regenerated weekly by automation and both would produce pull requests carrying no actual news: variant **price** (changes on every promotion) and the `?v=` **cache-buster** on image URLs (changes on any asset re-upload, so `toStableImageUrl` strips it).
+Three things are deliberately **not** stored:
+
+| Not stored | Why |
+|---|---|
+| Product artwork | Pinter's, no confirmed redistribution license. See [Data and image policy](#data-and-image-policy). Hotlinking their CDN would also put our traffic on their servers. |
+| Marketing copy | Same reason. The product description is creative work, not a factual attribute, so the timeline describes packs with facts only. |
+| Variant price | Changes on every promotion, so a weekly regeneration would open pull requests carrying no news. It was never rendered either. |
+
+`next.config.ts` deliberately declares no `images.remotePatterns`, so a future change cannot quietly start rendering remote artwork without that being an explicit decision.
+
+### Views
+
+The page defaults to **Available now**, a flat list of packs currently on sale, because that is what most visitors arrive wanting. **Full history** holds the year-grouped timeline plus the undated packs. The view toggle is client state, which is why `page.tsx` is a client component and its metadata lives in `layout.tsx`.
+
+Cards are mobile-first and stack rather than using fixed-width columns: a label like "Approx. September 2023" varies a lot in length, and a fixed date column clipped it on narrow screens.
 
 ### Staying current
 
