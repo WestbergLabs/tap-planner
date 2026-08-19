@@ -27,6 +27,7 @@ Work backward from tap day. Tap Planner turns a target date into a brew schedule
 - [Official planner](#official-planner)
 - [Custom recipe planner](#custom-recipe-planner)
 - [Rotation planner](#rotation-planner)
+- [Release timeline](#release-timeline)
 - [Feasibility checks](#feasibility-checks)
 - [Calendar export](#calendar-export)
 - [BrewPack data pipeline](#brewpack-data-pipeline)
@@ -91,6 +92,7 @@ Then open [http://localhost:3000](http://localhost:3000).
 | `pnpm import:brewpacks` | Fetch and regenerate the full BrewPack catalog |
 | `pnpm scan:quick` | Quick discovery scan (regenerates only on a relevant change) |
 | `pnpm scan:full` | Full verification scan (rebuild catalog + discovery state) |
+| `pnpm scan:releases` | Rebuild the estimated release timeline behind `/releases` |
 
 Before pushing a change, always run both:
 
@@ -107,14 +109,17 @@ pnpm build
 .github/
   workflows/
     ci.yml                          # Lint + build on PRs and pushes to main
-    brewpack-quick-scan.yml         # ~6-hourly Shopify discovery scan
-    brewpack-full-verification.yml  # Weekly full re-verification
+    brewpack-quick-scan.yml         # ~6-hourly Shopify discovery scan (+ timeline on a catalog change)
+    brewpack-full-verification.yml  # Weekly full re-verification + release timeline
 
 app/
   custom/
     page.tsx                  # Custom recipe planner  →  /custom
   rotation/
     page.tsx                  # Multi-Pinter rotation planner  →  /rotation
+  releases/
+    layout.tsx                # Metadata for /releases (the page is a client component)
+    page.tsx                  # Estimated BrewPack release timeline  →  /releases
   globals.css                 # Global design, responsive layout, mobile fixes
   layout.tsx                  # App metadata and root layout
   page.tsx                    # Official BrewPack planner  →  /
@@ -122,14 +127,17 @@ app/
 components/
   BrewPackPicker.tsx           # Accessible BrewPack search combobox (official + custom planners)
   BeerPicker.tsx               # Compact searchable beer combobox for the rotation lineup
+  SiteNav.tsx                  # Shared hamburger menu + help link, on every page hero
 
 data/
   brewpacks.generated.ts       # Generated BrewPack catalog used by the app
   pinter-product-state.json    # Discovery state (Shopify id/handle/fingerprint per product)
+  releases.generated.ts        # Generated release timeline (estimated dates + copy/imagery)
 
 lib/
   calendar.ts                  # Browser-only .ics calendar generation, shared by both planners
   schedule.ts                  # Date + schedule-calculation utilities, shared by both planners
+  releases.ts                  # Formatting + grouping for the release timeline
 
 public/
   tap-handles.jpg              # Local hero image
@@ -137,9 +145,12 @@ public/
 scripts/
   import-brewpacks.ts          # Full catalog build: resolve + validate + write
   brewpack-scan.ts             # Two-level discovery scanner (quick / full)
+  release-scan.ts              # Whole-store scraper for the release timeline
   lib/
     discovery.ts               # Pure discovery logic (fingerprint, classify, state)
     discovery.test.ts          # Discovery unit tests (pnpm test)
+    release-history.ts         # Pure release-date estimation rules
+    release-history.test.ts    # Release-timeline unit tests (pnpm test)
     http.ts                    # Fetch with user agent, timeout, retry, 429/5xx
 ```
 
@@ -245,6 +256,73 @@ Each beer's start uses its **own** lead time `L = brew + cold crash + conditioni
 ### Calendar export
 
 **Add whole rotation to calendar** exports every beer's stages in a single `.ics` via `downloadSchedules` / `buildMultiCalendar` in `lib/calendar.ts` — one `VCALENDAR` with each beer's events titled `{name} (Pinter N): {stage}`. The per-event ICS structure (all-day, exclusive `DTEND`) is unchanged from the single-schedule export.
+
+---
+
+## Release timeline
+
+`/releases` is a timeline of when each BrewPack first appeared. **Every date on it is an estimate.** Pinter publishes no release dates anywhere, so the page is built from Shopify timestamps and says so prominently at the top — that disclaimer is a feature of the page, not boilerplate, and should not be quietly softened.
+
+### Why this needs its own scraper
+
+`scripts/release-scan.ts` is deliberately separate from the importer and the discovery scanners. Those read the `fresh-beer` collection, which by design contains only what is on sale *right now*. A timeline needs the opposite: every pack ever listed, including seasonals currently off the shelf. So the release scan reads the whole-store product feed (`/products.json`), and for any catalog pack the feed omits it falls back to fetching that product record directly by handle. Four seasonals (Prostmeister, Black Magic Hour, Bavarian Rhapsody, Winter's Slumber) are only reachable that way.
+
+### How a date is chosen
+
+Shopify gives two timestamps and neither one means "released":
+
+| Field | What it actually is |
+|---|---|
+| `created_at` | When the product record was made. Usually days-to-weeks before going on sale, but it survives a pack going out of stock. |
+| `published_at` | When the product was last made visible. **Overwritten on every re-release**, so a returning seasonal reads as brand new. |
+
+The rules, in order:
+
+1. **Normally `published_at` is the release date** — it is the day the pack became buyable. Precision: `day`.
+2. **If `published_at` runs more than `REISSUE_GAP_DAYS` (120) later than `created_at`**, read it as a re-release. The original launch is only known to be somewhere near `created_at`, so use that instead, record the return in `reissuedOn`, and drop precision to `month`.
+3. **If a `created_at` day is shared by `BULK_CREATION_THRESHOLD` (4) or more packs**, it is a bulk store event rather than a real date — Pinter migrated stores in Oct 2023 and stamped that day onto everything carried over. Those packs are capped at `month` precision too.
+4. **If no product record exists at all**, the pack gets `precision: "unknown"` and appears in a separate "No date found" section rather than being dropped.
+
+The 120-day threshold is tuned, not arbitrary: the longest observed normal draft-to-launch gap is Ancestor's at 92 days, while genuine re-releases in the data span 198 days or more. Nothing falls in between.
+
+All of these rules live in `scripts/lib/release-history.ts` as pure functions, covered by `release-history.test.ts`. That split is deliberate: a wrong threshold does not throw, it just publishes a confidently wrong date, so the thresholds are pinned by tests against real packs (Adnams, All American Haze, Ancestor's, Dark Matter).
+
+### Rendering the uncertainty
+
+`lib/releases.ts` exists so a `month`-precision date can never be rendered as a specific day. `formatReleaseDate` returns `"around October 2024"` rather than inventing the 1st, and the date chip shows `approx` instead of `released`. If you add a new surface for this data, format through those helpers rather than reaching into `releaseDate` directly.
+
+Beyond dates, the scan stores flavor icons (Pinter's own `Icons|…` tags), dietary badges, style and ABV. Those are factual attributes, and they are what make the cards worth reading rather than just a list of dates.
+
+Three things are deliberately **not** stored:
+
+| Not stored | Why |
+|---|---|
+| Product artwork | Pinter's, no confirmed redistribution license. See [Data and image policy](#data-and-image-policy). Hotlinking their CDN would also put our traffic on their servers. |
+| Marketing copy | Same reason. The product description is creative work, not a factual attribute, so the timeline describes packs with facts only. |
+| Variant price | Changes on every promotion, so a weekly regeneration would open pull requests carrying no news. It was never rendered either. |
+
+`next.config.ts` deliberately declares no `images.remotePatterns`, so a future change cannot quietly start rendering remote artwork without that being an explicit decision.
+
+### Views
+
+The page defaults to **Available now**, a flat list of packs currently on sale, because that is what most visitors arrive wanting. **Full history** holds the year-grouped timeline plus the undated packs. The view toggle is client state, which is why `page.tsx` is a client component and its metadata lives in `layout.tsx`.
+
+Cards are mobile-first and stack rather than using fixed-width columns: a label like "Approx. September 2023" varies a lot in length, and a fixed date column clipped it on narrow screens.
+
+### Staying current
+
+`pnpm scan:releases` runs from **both** scan workflows, always after the catalog rebuild since the timeline is keyed off the freshly generated pack list:
+
+| Workflow | When the timeline rebuilds | Why |
+|---|---|---|
+| **Quick Scan** (~6-hourly) | Only when `data/brewpacks.generated.ts` changed | A newly discovered pack hits the catalog immediately. Without this the pack would be plannable but missing from `/releases` until the following Monday. |
+| **Full Verification** (weekly) | Every run | Catches timeline-only changes that leave the catalog untouched: a pack selling out, or a seasonal returning and rewriting its `published_at`. |
+
+Both are marked `continue-on-error` so a store-feed hiccup reports a warning instead of discarding the catalog work in the same run, and both let timeline changes ride along in the existing automated pull request.
+
+Between them the timeline cannot drift: new packs land within hours, and availability or re-release changes land within a week.
+
+Reviewing those PRs: a pack moving from a day-precision date to a month-precision one means it was re-released. That is the rules working, not a regression.
 
 ---
 
