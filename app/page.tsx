@@ -9,7 +9,6 @@ import {
 } from "react";
 
 import Image from "next/image";
-import Link from "next/link";
 
 import BrewPackPicker from "@/components/BrewPackPicker";
 import SiteNav from "@/components/SiteNav";
@@ -408,36 +407,6 @@ export default function Home() {
               onEdit={clearResult}
               hint="Try Dark Matter, stout, IPA, cider, or lager."
             />
-
-            <p className="-mt-2 text-sm leading-6 text-muted">
-              Using your own recipe or need different timing?{" "}
-              <Link
-                href="/custom"
-                className="font-semibold text-accent underline decoration-accent/40 underline-offset-2 transition hover:text-accent-hover hover:decoration-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
-              >
-                Build a custom schedule &rarr;
-              </Link>
-            </p>
-
-            <p className="-mt-3 text-sm leading-6 text-muted">
-              Running several Pinters back-to-back?{" "}
-              <Link
-                href="/rotation"
-                className="font-semibold text-accent underline decoration-accent/40 underline-offset-2 transition hover:text-accent-hover hover:decoration-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
-              >
-                Plan a whole rotation &rarr;
-              </Link>
-            </p>
-
-            <p className="-mt-3 text-sm leading-6 text-muted">
-              Curious when each pack landed?{" "}
-              <Link
-                href="/releases"
-                className="font-semibold text-accent underline decoration-accent/40 underline-offset-2 transition hover:text-accent-hover hover:decoration-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
-              >
-                See the release timeline &rarr;
-              </Link>
-            </p>
 
             {selectedPack && (
               <div className="border-y border-border py-4">

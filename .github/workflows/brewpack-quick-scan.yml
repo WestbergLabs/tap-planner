@@ -47,6 +47,32 @@ jobs:
       - name: Run quick discovery scan
         run: pnpm scan:quick
 
+      # A pack discovered here lands in the catalog straight away, so refresh
+      # the release timeline in the same run rather than leaving /releases
+      # missing that pack until the weekly full verification. Costs nothing on
+      # a no-change run, which is almost all of them.
+      - name: Check whether the catalog changed
+        id: catalog
+        shell: bash
+        run: |
+          if git diff --quiet -- data/brewpacks.generated.ts; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Catalog unchanged; release timeline does not need rebuilding."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Catalog changed; rebuilding the release timeline to match."
+          fi
+
+      - name: Rebuild release timeline
+        id: releases
+        if: steps.catalog.outputs.changed == 'true'
+        continue-on-error: true
+        run: pnpm scan:releases
+
+      - name: Warn if the release timeline could not be rebuilt
+        if: steps.releases.outcome == 'failure'
+        run: echo "::warning::Release timeline scan failed; the catalog changes below are still valid."
+
       - name: Check for catalog or state changes
         id: changes
         shell: bash

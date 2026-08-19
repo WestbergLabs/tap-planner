@@ -109,7 +109,7 @@ pnpm build
 .github/
   workflows/
     ci.yml                          # Lint + build on PRs and pushes to main
-    brewpack-quick-scan.yml         # ~6-hourly Shopify discovery scan
+    brewpack-quick-scan.yml         # ~6-hourly Shopify discovery scan (+ timeline on a catalog change)
     brewpack-full-verification.yml  # Weekly full re-verification + release timeline
 
 app/
@@ -311,7 +311,16 @@ Cards are mobile-first and stack rather than using fixed-width columns: a label 
 
 ### Staying current
 
-`pnpm scan:releases` runs as part of the weekly **BrewPack Full Verification** workflow, after the catalog rebuild, since the timeline is keyed off the freshly generated pack list. It is marked `continue-on-error` so a store-feed hiccup reports a warning instead of discarding the catalog work in the same run. Timeline changes ride along in the same automated catalog pull request.
+`pnpm scan:releases` runs from **both** scan workflows, always after the catalog rebuild since the timeline is keyed off the freshly generated pack list:
+
+| Workflow | When the timeline rebuilds | Why |
+|---|---|---|
+| **Quick Scan** (~6-hourly) | Only when `data/brewpacks.generated.ts` changed | A newly discovered pack hits the catalog immediately. Without this the pack would be plannable but missing from `/releases` until the following Monday. |
+| **Full Verification** (weekly) | Every run | Catches timeline-only changes that leave the catalog untouched: a pack selling out, or a seasonal returning and rewriting its `published_at`. |
+
+Both are marked `continue-on-error` so a store-feed hiccup reports a warning instead of discarding the catalog work in the same run, and both let timeline changes ride along in the existing automated pull request.
+
+Between them the timeline cannot drift: new packs land within hours, and availability or re-release changes land within a week.
 
 Reviewing those PRs: a pack moving from a day-precision date to a month-precision one means it was re-released. That is the rules working, not a regression.
 
