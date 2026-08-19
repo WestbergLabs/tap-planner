@@ -115,15 +115,20 @@ export default function ReleasesPage() {
     <main className="min-h-screen bg-transparent px-4 py-10 text-foreground sm:py-14">
       <div className="mx-auto max-w-2xl">
         <header className="mb-8 border-b border-border pb-6">
-          <div className="relative mb-6 min-h-[150px] overflow-hidden rounded-[28px] border border-border bg-foreground shadow-hero sm:min-h-[180px]">
-            <Image
-              src="/tap-handles.jpg"
-              alt="A row of beer taps behind a bar"
-              fill
-              priority
-              sizes="(max-width: 768px) 100vw, 672px"
-              className="object-cover object-[center_42%]"
-            />
+          <div className="relative z-30 mb-6">
+            <div className="relative min-h-[150px] overflow-hidden rounded-[28px] border border-border bg-foreground shadow-hero sm:min-h-[180px]">
+              <Image
+                src="/tap-handles.jpg"
+                alt="A row of beer taps behind a bar"
+                fill
+                priority
+                sizes="(max-width: 768px) 100vw, 672px"
+                className="object-cover object-[center_42%]"
+              />
+            </div>
+
+            {/* Rendered outside the hero: the hero clips its overflow for
+                the rounded corners, which would cut off the open menu. */}
             <div className="absolute inset-x-0 top-0 flex justify-end p-4 sm:p-6">
               <SiteNav current="/releases" />
             </div>

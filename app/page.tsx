@@ -329,30 +329,34 @@ export default function Home() {
     <main className="min-h-screen bg-transparent px-4 py-10 text-foreground sm:py-14">
       <div className="mx-auto max-w-2xl">
         <header className="mb-9 border-b border-border pb-7">
-          <div className="relative isolate mb-7 min-h-56 overflow-hidden rounded-[28px] border border-border bg-foreground shadow-hero">
-            <Image
-              src="/tap-handles.jpg"
-              alt="A row of beer taps behind a bar"
-              fill
-              priority
-              sizes="(max-width: 768px) 100vw, 672px"
-              className="object-cover object-[center_42%]"
-            />
+          <div className="relative z-30 mb-7">
+            <div className="relative isolate min-h-56 overflow-hidden rounded-[28px] border border-border bg-foreground shadow-hero">
+              <Image
+                src="/tap-handles.jpg"
+                alt="A row of beer taps behind a bar"
+                fill
+                priority
+                sizes="(max-width: 768px) 100vw, 672px"
+                className="object-cover object-[center_42%]"
+              />
 
-            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-black/5" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-black/5" />
 
-            <div className="absolute inset-x-0 top-0 flex justify-end p-5 sm:p-6">
-              <SiteNav current="/" />
+              <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-orange-200">
+                  Brew schedule calculator
+                </p>
+
+                <h1 className="mt-2 font-display text-5xl font-semibold uppercase leading-none tracking-tight sm:text-6xl">
+                  Tap Planner
+                </h1>
+              </div>
             </div>
 
-            <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-orange-200">
-                Brew schedule calculator
-              </p>
-
-              <h1 className="mt-2 font-display text-5xl font-semibold uppercase leading-none tracking-tight sm:text-6xl">
-                Tap Planner
-              </h1>
+            {/* Rendered outside the hero: the hero clips its overflow for
+                the rounded corners, which would cut off the open menu. */}
+            <div className="absolute inset-x-0 top-0 flex justify-end p-5 sm:p-6">
+              <SiteNav current="/" />
             </div>
           </div>
 
