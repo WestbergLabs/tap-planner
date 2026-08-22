@@ -20,9 +20,9 @@
       "id": 8802186297625,
       "handle": "space-hopper-wce-ipa",
       "title": "Space Hopper West Coast Edition",
-      "publishedAt": "2023-09-18T06:42:33-04:00",
+      "publishedAt": "2026-08-22T08:21:20-04:00",
       "available": false,
-      "fingerprint": "de568100037baec3"
+      "fingerprint": "6dd81ff8843813a8"
     },
     {
       "id": 8802186461465,
@@ -37,8 +37,8 @@
       "handle": "sun-lit-lager",
       "title": "Sunlit",
       "publishedAt": "2024-08-16T05:20:08-04:00",
-      "available": true,
-      "fingerprint": "7e2535cd0c25fbdb"
+      "available": false,
+      "fingerprint": "56bdc19938eef63b"
     },
     {
       "id": 8802186920217,
@@ -95,6 +95,14 @@
       "publishedAt": "2024-08-06T11:46:49-04:00",
       "available": true,
       "fingerprint": "55f627219eff67a0"
+    },
+    {
+      "id": 9668339302681,
+      "handle": "prostmeister-oktoberfest-lager",
+      "title": "Prostmeister",
+      "publishedAt": "2026-08-20T05:24:33-04:00",
+      "available": true,
+      "fingerprint": "a1887a8c837a342f"
     },
     {
       "id": 9668339564825,
@@ -197,8 +205,8 @@
       "handle": "en-casa-lime",
       "title": "En Casa Lime",
       "publishedAt": "2025-08-11T11:57:30-04:00",
-      "available": true,
-      "fingerprint": "667556b2d9968cee"
+      "available": false,
+      "fingerprint": "e025a8e35ab7897d"
     },
     {
       "id": 10013814325529,
