@@ -20,9 +20,9 @@
       "id": 8802186297625,
       "handle": "space-hopper-wce-ipa",
       "title": "Space Hopper West Coast Edition",
-      "publishedAt": "2023-09-18T06:42:33-04:00",
-      "available": false,
-      "fingerprint": "de568100037baec3"
+      "publishedAt": "2026-08-22T08:21:20-04:00",
+      "available": true,
+      "fingerprint": "49f524eab42e6df8"
     },
     {
       "id": 8802186461465,
@@ -61,8 +61,8 @@
       "handle": "brewgooder-hazy-ipa-remixed",
       "title": "Brewgooder Hazy IPA Remixed",
       "publishedAt": "2024-01-18T12:57:37-05:00",
-      "available": false,
-      "fingerprint": "94efbfd781111cd1"
+      "available": true,
+      "fingerprint": "2bfb214818f99eb6"
     },
     {
       "id": 9055751799065,
@@ -95,6 +95,14 @@
       "publishedAt": "2024-08-06T11:46:49-04:00",
       "available": true,
       "fingerprint": "55f627219eff67a0"
+    },
+    {
+      "id": 9668339302681,
+      "handle": "prostmeister-oktoberfest-lager",
+      "title": "Prostmeister",
+      "publishedAt": "2026-08-20T05:24:33-04:00",
+      "available": true,
+      "fingerprint": "a1887a8c837a342f"
     },
     {
       "id": 9668339564825,
@@ -193,20 +201,20 @@
       "fingerprint": "552f70ff1cbb01b0"
     },
     {
-      "id": 10001576788249,
-      "handle": "en-casa-lime",
-      "title": "En Casa Lime",
-      "publishedAt": "2025-08-11T11:57:30-04:00",
-      "available": true,
-      "fingerprint": "667556b2d9968cee"
-    },
-    {
       "id": 10013814325529,
       "handle": "after-midnight",
       "title": "After Midnight",
       "publishedAt": "2025-08-26T11:03:11-04:00",
       "available": true,
       "fingerprint": "4f38c95241ae0aa6"
+    },
+    {
+      "id": 10106769703193,
+      "handle": "prostmeister-with-stein",
+      "title": "Prostmeister with Stein",
+      "publishedAt": "2026-09-03T12:45:52-04:00",
+      "available": true,
+      "fingerprint": "bfcd35bf64bbc684"
     },
     {
       "id": 10195577241881,
@@ -262,7 +270,7 @@
       "title": "Proper English",
       "publishedAt": "2026-07-30T11:13:36-04:00",
       "available": true,
-      "fingerprint": "dc8e8e977c73e906"
+      "fingerprint": "7089763225f66659"
     },
     {
       "id": 10748272607513,
