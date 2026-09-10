@@ -28,6 +28,7 @@ Work backward from tap day. Tap Planner turns a target date into a brew schedule
 - [Custom recipe planner](#custom-recipe-planner)
 - [Rotation planner](#rotation-planner)
 - [Release timeline](#release-timeline)
+- [Brew labels](#brew-labels)
 - [Feasibility checks](#feasibility-checks)
 - [Calendar export](#calendar-export)
 - [BrewPack data pipeline](#brewpack-data-pipeline)
@@ -46,16 +47,17 @@ Work backward from tap day. Tap Planner turns a target date into a brew schedule
 
 Tap Planner is a small Next.js app for people using Pinter's home brewing system. Pick a BrewPack (or your own recipe) and a date you want to tap it, and Tap Planner works backward through fermentation, an optional cold crash, and conditioning to tell you exactly when to start brewing — then lets you drop the whole schedule into your calendar.
 
-There are three planners sharing one calculation engine:
+Five pages. The first three share one calculation engine:
 
-| Planner | Route | Use it when... |
+| Page | Route | Use it when... |
 |---|---|---|
-| **Official** | `/` | You're brewing a real Pinter BrewPack and want its recommended or minimum timing |
-| **Custom** | `/custom` | You're brewing your own recipe, or want to override a BrewPack's default timing |
-| **Rotation** | `/rotation` | You run several Pinters and want them staggered so you never run dry |
+| **Official planner** | `/` | You're brewing a real Pinter BrewPack and want its recommended or minimum timing |
+| **Custom planner** | `/custom` | You're brewing your own recipe, or want to override a BrewPack's default timing |
+| **Rotation planner** | `/rotation` | You run several Pinters and want them staggered so you never run dry |
+| **Release timeline** | `/releases` | You want to know when a pack appeared, or when a seasonal might return |
+| **Brew labels** | `/labels` | You want a printed 4x6 card saying what is in the fridge |
 
-Plus `/releases`, an estimated release timeline, and `/labels`, a printable 4x6
-label maker for what is in the fridge.
+`SiteNav` is shared by all five and rendered over each page's hero.
 
 No accounts, no database, nothing stored server-side. Everything lives in the URL and the browser for the length of one calculation.
 
@@ -342,6 +344,67 @@ Both are marked `continue-on-error` so a store-feed hiccup reports a warning ins
 Between them the timeline cannot drift: new packs land within hours, and availability or re-release changes land within a week.
 
 Reviewing those PRs: a pack moving from a day-precision date to a month-precision one means it was re-released. That is the rules working, not a regression.
+
+---
+
+## Brew labels
+
+`/labels` prints a 4x6 card per brew: name, style, ABV, brew and tap dates,
+batch number, and up to three lines of tasting notes.
+
+### Two paper sizes
+
+| Mode | `@page` | Cards |
+|---|---|---|
+| 4x6 index card | `4in 6in` | One |
+| US Letter | `letter landscape` | Two, side by side, with dashed cut guides |
+
+Landscape Letter, not portrait: two 4x6 cards are 8in wide, so portrait leaves
+0.25in per side — most printers' unprintable margin, which would clip the cut
+guides. Landscape leaves 1.5in. The two cards are independent, so a brewer with
+two Pinters going can print both on one sheet; **Make both the same** copies
+one slot to the other.
+
+Physical sizes live in one place at the top of `app/labels/page.tsx`
+(`CARD_W`, `CARD_H`, `SHEET_W`, `SHEET_H`, `PAGE_SIZE`).
+
+### Why the card is SVG, not CSS
+
+`LabelCard` draws the entire card — artwork, headings, data rows — as a single
+400x600 SVG (100 units per inch). This is deliberate and worth preserving:
+
+- **Browsers only print CSS backgrounds when the user ticks "background
+  graphics".** SVG fills always print. A CSS-styled card would come out blank
+  for most people.
+- Preview and print are provably identical, because they are the same drawing.
+- It sidesteps the browser inconsistencies you hit laying out a physical-size
+  card in CSS inches.
+
+The cost is that SVG has no text wrapping, so `LabelCard` does its own greedy
+wrap and picks the largest heading size that fits in three lines. Layout is
+top-anchored for the title and bottom-anchored for the data block, with the gap
+between them clamped — bottom-anchoring alone left a card with only a tap date
+showing a large void in the middle.
+
+### Artwork
+
+`PackThumb` and `LabelCard` both prefer a captured Pinter pack shot and fall
+back to a motif generated from the beer style (`lib/labels.ts` picks a colour
+profile and motif; `LabelArt` draws it). The fallback is not dead code: it
+covers custom recipes and any pack captured after its first appearance. See
+[Data and image policy](#data-and-image-policy).
+
+### Verifying a change
+
+```powershell
+pnpm preview:labels
+```
+
+Renders every case plus the 2-up sheet to `scripts/out/*.png` and asserts no
+text escapes the trim. **Look at the PNGs.** This is how the layout bugs were
+found — text printing off the bottom of the card, and a locale-dependent date
+that rendered "Sept" or "Sep" depending on the browser — none of which lint,
+build, or the served HTML caught.
 
 ---
 
