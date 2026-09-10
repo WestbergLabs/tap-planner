@@ -6,6 +6,7 @@ import Image from "next/image";
 
 import BrewPackPicker from "@/components/BrewPackPicker";
 import SiteNav from "@/components/SiteNav";
+import PinterNotice from "@/components/PinterNotice";
 import LabelCard, { type LabelFields } from "@/components/LabelCard";
 import { brewPacks, type BrewPack } from "@/data/brewpacks.generated";
 import { getBrewPackImage } from "@/lib/brewpackImages";
@@ -560,10 +561,12 @@ export default function LabelsPage() {
 
           <footer className="mt-6 space-y-2 text-center text-xs leading-5 text-muted">
             <p>
-              Labels are generated in your browser and are not stored. Pack
-              shots are Pinter&rsquo;s own product images; packs without one
-              fall back to artwork generated from the beer style.
+              Labels are generated in your browser and are not stored. Packs
+              without a product image fall back to artwork generated from the
+              beer style.
             </p>
+
+            <PinterNotice />
           </footer>
         </div>
       </main>

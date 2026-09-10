@@ -13,6 +13,7 @@ import Image from "next/image";
 import BrewPackPicker from "@/components/BrewPackPicker";
 import PackThumb from "@/components/PackThumb";
 import SiteNav from "@/components/SiteNav";
+import PinterNotice from "@/components/PinterNotice";
 import { brewPacks } from "@/data/brewpacks.generated";
 import {
   calculateSchedule,
@@ -780,6 +781,8 @@ export default function Home() {
             Planning only. Follow the official Pinter app for brewing
             instructions and active brew guidance.
           </p>
+
+          <PinterNotice />
 
           <p>
             Header photo by Karl Joshua Bernal on Unsplash.

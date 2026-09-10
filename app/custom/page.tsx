@@ -15,6 +15,7 @@ import { useSearchParams } from "next/navigation";
 import BrewPackPicker from "@/components/BrewPackPicker";
 import PackThumb from "@/components/PackThumb";
 import SiteNav from "@/components/SiteNav";
+import PinterNotice from "@/components/PinterNotice";
 import { brewPacks, type BrewPack } from "@/data/brewpacks.generated";
 import {
   calculateSchedule,
@@ -984,6 +985,8 @@ function CustomPlanner() {
             Planning only. Custom schedules are calculated in your browser and
             are not stored.
           </p>
+
+          <PinterNotice />
         </footer>
       </div>
     </main>

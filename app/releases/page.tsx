@@ -12,6 +12,7 @@ import { useMemo, useState } from "react";
 
 import Image from "next/image";
 
+import PinterNotice from "@/components/PinterNotice";
 import SiteNav, { ISSUES_URL } from "@/components/SiteNav";
 import { releases, type BrewPackRelease } from "@/data/releases.generated";
 import {
@@ -333,9 +334,10 @@ export default function ReleasesPage() {
 
         <footer className="mt-6 space-y-2 text-center text-xs leading-5 text-muted">
           <p>
-            Unofficial fan project. Dates are estimated from public store data
-            and are not endorsed by or affiliated with Pinter.
+            Dates are estimated from public store data, not published by Pinter.
           </p>
+
+          <PinterNotice />
 
           <p>Header photo by Karl Joshua Bernal on Unsplash.</p>
         </footer>

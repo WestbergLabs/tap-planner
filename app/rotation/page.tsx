@@ -13,6 +13,7 @@ import Image from "next/image";
 import BeerPicker, { CUSTOM_BEER } from "@/components/BeerPicker";
 import PackThumb from "@/components/PackThumb";
 import SiteNav from "@/components/SiteNav";
+import PinterNotice from "@/components/PinterNotice";
 import { brewPacks } from "@/data/brewpacks.generated";
 import {
   addDays,
@@ -943,6 +944,8 @@ export default function RotationPage() {
             rotation is only as accurate as it. Everything is calculated in your
             browser and nothing is stored.
           </p>
+
+          <PinterNotice />
         </footer>
       </div>
     </main>
