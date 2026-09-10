@@ -68,6 +68,10 @@ number, tasting notes.
   different beers. Printed landscape, because two 4×6 cards are 8in wide and
   portrait leaves less margin than most printers can manage.
 
+Not printing at 4×6? Save the card instead — **PNG** at 1200×1800 (300dpi at
+4×6, with headroom to go bigger) or **SVG**, which stays sharp at any size.
+Both are built in the browser from the card on screen.
+
 <details>
 <summary><strong>Which paper survives a fridge?</strong></summary>
 

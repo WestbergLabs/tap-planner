@@ -134,5 +134,14 @@ inch). This is deliberate: browsers only print CSS backgrounds when the user tic
 `pnpm preview:labels`, which asserts no text escapes the trim and writes PNGs to
 look at.
 
+**Label export re-reads the card from the DOM.** `lib/labelImage.ts` clones the
+preview's live `<svg>` rather than re-rendering it, so a downloaded file can
+never disagree with what is on screen. The one thing it must do first is inline
+the pack shot as a data URI: an SVG has no access to external resources once it
+leaves the page — a browser rasterising one through `<img>` refuses to fetch
+them, and a relative path is meaningless in a file sitting in Downloads. Skip
+that and the photo silently vanishes, leaving a bare gradient. `drive-labels.mjs`
+checks it by sampling a pixel in the artwork panel of the exported PNG.
+
 **Catalog changes go through a PR.** The scanner opens one for review; nothing about
 the BrewPack list publishes silently.

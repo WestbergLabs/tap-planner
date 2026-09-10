@@ -167,6 +167,62 @@ async function main() {
        .map(i => i.getAttribute('href')).join(' | ') || 'none'`,
   );
 
+  // 5) Download the card as a PNG. Headless has nowhere to put a file, so the
+  //    anchor click is intercepted and the blob decoded in-page instead. This
+  //    checks the part that cannot fail quietly: the pack shot has to be
+  //    inlined as a data URI before rasterising, or the photo silently drops
+  //    out of the export and the card comes back as a bare gradient.
+  const exported = await evaluate(
+    ws,
+    `(async () => {
+      let captured = null;
+      const click = HTMLAnchorElement.prototype.click;
+      HTMLAnchorElement.prototype.click = function () {
+        if (this.download) {
+          // Start the read synchronously: the object URL is revoked on the
+          // next tick, and blocking the click here does not stop that.
+          captured = { name: this.download, bytes: fetch(this.href).then((r) => r.arrayBuffer()) };
+          return;
+        }
+        return click.apply(this, arguments);
+      };
+
+      const button = [...document.querySelectorAll('button')]
+        .find((b) => b.textContent.startsWith('Download PNG'));
+      if (!button) return 'no download button';
+      button.click();
+
+      for (let i = 0; i < 60 && captured === null; i++) {
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      HTMLAnchorElement.prototype.click = click;
+      if (captured === null) return 'no download fired';
+
+      const bytes = new Uint8Array(await captured.bytes);
+      const png = String.fromCharCode(...bytes.slice(1, 4)) === 'PNG';
+      // Big-endian width/height from the IHDR chunk.
+      const view = new DataView(bytes.buffer);
+      const width = view.getUint32(16);
+      const height = view.getUint32(20);
+
+      // Sample the middle of the artwork panel. An empty or failed inline
+      // leaves the style gradient showing; the pack shot does not.
+      const bitmap = await createImageBitmap(new Blob([bytes]));
+      const canvas = new OffscreenCanvas(width, height);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(bitmap, 0, 0);
+      const [r, g, b, a] = ctx.getImageData(width / 2, height * 0.15, 1, 1).data;
+
+      return [
+        captured.name,
+        png ? 'png' : 'NOT PNG',
+        width + 'x' + height,
+        Math.round(bytes.length / 1024) + 'kb',
+        'art rgba(' + [r, g, b, a] + ')',
+      ].join('  ');
+    })()`,
+  );
+
   const shot = await send(ws, "Page.captureScreenshot", {
     format: "png",
     captureBeyondViewport: true,
@@ -179,6 +235,7 @@ async function main() {
   console.log(`mode switch:  ${switched}`);
   console.log(`preview cards:${cardCount}   tabs: ${tabCount}`);
   console.log(`card labels:  ${names}`);
+  console.log(`png export:   ${exported}`);
 
   ws.close();
 }

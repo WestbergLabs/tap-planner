@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import Image from "next/image";
 
@@ -10,6 +10,13 @@ import PinterNotice from "@/components/PinterNotice";
 import LabelCard, { type LabelFields } from "@/components/LabelCard";
 import { brewPacks, type BrewPack } from "@/data/brewpacks.generated";
 import { getBrewPackImage } from "@/lib/brewpackImages";
+import { safeFileName } from "@/lib/calendar";
+import {
+  downloadLabelPng,
+  downloadLabelSvg,
+  PNG_HEIGHT,
+  PNG_WIDTH,
+} from "@/lib/labelImage";
 import { getTodayString } from "@/lib/schedule";
 
 type PrintMode = "card" | "letter";
@@ -108,6 +115,11 @@ export default function LabelsPage() {
   const [activeSlot, setActiveSlot] = useState(0);
   const [printMode, setPrintMode] = useState<PrintMode>("card");
 
+  // Export reads the card straight out of the preview rather than re-rendering
+  // it, so the file can never disagree with what is on screen.
+  const previews = useRef<(HTMLElement | null)[]>([]);
+  const [exportError, setExportError] = useState("");
+
   const slotCount = printMode === "card" ? 1 : 2;
   const slot = Math.min(activeSlot, slotCount - 1);
   const fields = labels[slot];
@@ -152,6 +164,33 @@ export default function LabelsPage() {
   function copyToOtherSlot() {
     setLabels((current) => current.map(() => current[slot]));
     setSelectedIds((current) => current.map(() => current[slot]));
+  }
+
+  async function download(format: "png" | "svg") {
+    const card = previews.current[slot]?.querySelector("svg");
+
+    if (!card) {
+      setExportError("The preview is not ready yet. Try again in a moment.");
+      return;
+    }
+
+    const fileName = `${safeFileName(fields.name.trim() || "Untitled Brew")}-label.${format}`;
+
+    setExportError("");
+
+    try {
+      if (format === "png") {
+        await downloadLabelPng(card, fileName);
+      } else {
+        await downloadLabelSvg(card, fileName);
+      }
+    } catch (error) {
+      setExportError(
+        error instanceof Error
+          ? `Download failed: ${error.message}.`
+          : "Download failed.",
+      );
+    }
   }
 
   // `@page` size has to be a real stylesheet rule, so it is injected rather
@@ -419,6 +458,9 @@ export default function LabelsPage() {
                   <button
                     key={index}
                     type="button"
+                    ref={(node) => {
+                      previews.current[index] = node;
+                    }}
                     onClick={() => setActiveSlot(index)}
                     aria-label={`Edit card ${index + 1}`}
                     className={`w-full max-w-[260px] overflow-hidden rounded-2xl border-2 shadow-card transition ${
@@ -479,6 +521,55 @@ export default function LabelsPage() {
                 rather than &ldquo;fit to page&rdquo;, so the card comes out at
                 a true 4&#215;6.
               </p>
+
+              {/* Saving the card as a file is the way out of 4x6: any photo
+                  app or print shop can scale an image to whatever size the
+                  fridge, keg, or bottle actually needs. */}
+              <div className="mt-6 border-t border-border pt-5">
+                <p className={labelClass}>
+                  Save as an image
+                  {slotCount > 1 && ` — card ${slot + 1}`}
+                </p>
+
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => download("png")}
+                    className="rounded-xl border border-border-strong bg-field px-5 py-3 text-sm font-semibold text-foreground transition hover:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  >
+                    Download PNG
+                    <span className="mt-0.5 block text-xs font-normal text-muted">
+                      {PNG_WIDTH}&#215;{PNG_HEIGHT} — 300 dpi at 4&#215;6
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => download("svg")}
+                    className="rounded-xl border border-border-strong bg-field px-5 py-3 text-sm font-semibold text-foreground transition hover:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  >
+                    Download SVG
+                    <span className="mt-0.5 block text-xs font-normal text-muted">
+                      Vector — sharp at any size
+                    </span>
+                  </button>
+                </div>
+
+                <p className="mt-3 text-center text-xs leading-5 text-muted">
+                  Print either one at whatever size you like. The PNG opens
+                  anywhere; the SVG stays perfectly crisp if you scale it up
+                  past 6&#215;9.
+                </p>
+
+                {exportError !== "" && (
+                  <p
+                    role="status"
+                    className="mt-3 text-center text-xs leading-5 text-error"
+                  >
+                    {exportError}
+                  </p>
+                )}
+              </div>
             </div>
           </section>
 
