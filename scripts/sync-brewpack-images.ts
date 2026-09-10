@@ -33,9 +33,18 @@ const IMAGE_DIR = path.join(ROOT, "public", "brewpacks");
  */
 const IMAGE_WIDTH = 700;
 
+/**
+ * A second, much smaller copy for list UI. The pickers show a row of packs at
+ * once, and 700px shots would be roughly 180KB each; at 160px they are ~5KB, so
+ * a whole dropdown costs less than one full pack shot.
+ */
+const THUMB_WIDTH = 160;
+
 export type ImageRecord = {
   /** File name inside `public/brewpacks/`. */
   file: string;
+  /** Small copy of the same shot, for pickers and lists. */
+  thumb: string;
   /** Source URL this was captured from, used to detect replaced artwork. */
   src: string;
   /** SHA-256 of the stored bytes, so a re-run can verify without re-fetching. */
@@ -100,6 +109,11 @@ export function fileNameFor(id: string, src: string): string {
   return `${id}.${extension}`;
 }
 
+/** Thumbnail name for a pack, alongside the full-size file. */
+export function thumbNameFor(id: string, src: string): string {
+  return fileNameFor(id, src).replace(/\.(jpg|png)$/, ".thumb.$1");
+}
+
 async function main(): Promise<void> {
   const { packs } = await buildCatalog();
   const manifest = await readManifest();
@@ -116,23 +130,29 @@ async function main(): Promise<void> {
     const existing = manifest.packs[pack.id];
 
     // Only re-fetch when there is nothing yet, or Pinter swapped the artwork.
-    if (existing && existing.src === src) {
+    if (existing && existing.src === src && existing.thumb) {
       continue;
     }
 
     const file = fileNameFor(pack.id, src);
+    const thumb = thumbNameFor(pack.id, src);
 
     try {
-      const bytes = await fetchBytesWithRetry(sizedUrl(src));
+      const [bytes, thumbBytes] = await Promise.all([
+        fetchBytesWithRetry(sizedUrl(src)),
+        fetchBytesWithRetry(sizedUrl(src, THUMB_WIDTH)),
+      ]);
 
-      if (bytes.length === 0) {
+      if (bytes.length === 0 || thumbBytes.length === 0) {
         throw new Error("empty response body");
       }
 
       await writeFile(path.join(IMAGE_DIR, file), bytes);
+      await writeFile(path.join(IMAGE_DIR, thumb), thumbBytes);
 
       manifest.packs[pack.id] = {
         file,
+        thumb,
         src,
         sha256: createHash("sha256").update(bytes).digest("hex"),
         capturedAt: new Date().toISOString().slice(0, 10),

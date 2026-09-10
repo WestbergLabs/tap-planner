@@ -74,10 +74,16 @@ and drifts stages by a day for anyone west of Greenwich.
 engine (some render September as "Sept", others "Sep"), so the same card or `.ics`
 would differ per browser. `lib/labels.ts` hard-codes month names for this reason.
 
-**Label artwork has two sources.** Pinter pack shots in `public/brewpacks/` when
+**Pack artwork has two sources.** Pinter pack shots in `public/brewpacks/` when
 one was captured, and a procedurally generated motif (`lib/labels.ts` →
 `LabelArt`) as the fallback. The fallback is not dead code: it covers custom
 recipes and packs discontinued before capture began.
+
+`sync:images` writes two sizes per pack: a 700px shot for the printed label and
+a 160px `.thumb.` copy for `PackThumb`, which the three planners use beside the
+selected BrewPack. Use the thumb anywhere a pack appears in a list or panel —
+the full shot is ~180KB and only earns that on a printed card. `/releases`
+renders no artwork at all, by an earlier review decision.
 
 **`data/brewpack-images.json` is retained, never regenerated.** This is the whole
 reason older brews keep their pictures. `buildCatalog` rebuilds a discontinued

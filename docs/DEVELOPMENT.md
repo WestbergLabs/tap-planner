@@ -314,7 +314,7 @@ Three things are deliberately **not** stored:
 
 | Not stored | Why |
 |---|---|
-| Product artwork | The release timeline renders none. Hotlinking Pinter's CDN would put our traffic on their servers, and no redistribution license is confirmed. The label printer at `/labels` is the one exception, and it stores images locally rather than hotlinking — see [Data and image policy](#data-and-image-policy). |
+| Product artwork | The release timeline still renders none. Hotlinking Pinter's CDN would put our traffic on their servers, and no redistribution license is confirmed. The label printer at `/labels` is the one exception, and it stores images locally rather than hotlinking — see [Data and image policy](#data-and-image-policy). |
 | Marketing copy | Same reason. The product description is creative work, not a factual attribute, so the timeline describes packs with facts only. |
 | Variant price | Changes on every promotion, so a weekly regeneration would open pull requests carrying no news. It was never rendered either. |
 
@@ -555,17 +555,19 @@ The local header image is stored at `public/tap-handles.jpg`. Any required attri
 Including it is a deliberate owner decision made with that known, not an
 oversight, and it is scoped as tightly as the feature allows:
 
-- **The label printer (`/labels`) only.** The release timeline and all three
-  planners render no product artwork. Do not extend its use to a new page
-  without an explicit decision.
+- **The label printer and the planners.** `/labels` prints the full pack shot;
+  `/`, `/custom` and `/rotation` show a 160px thumbnail beside the BrewPack you
+  picked. The release timeline (`/releases`) deliberately renders none — that
+  was a review decision and stands. Do not extend beyond this without another
+  explicit decision.
 - **Captured locally, never hotlinked.** `pnpm sync:images` downloads pack
   shots into `public/brewpacks/`. Nothing renders from Pinter's CDN, so none of
   our traffic lands on their servers, and `next.config.ts` still declares no
   `images.remotePatterns`.
-- **Always optional.** Every label falls back to artwork generated from the
-  beer style (`lib/labels.ts`), so the feature works with zero Pinter assets.
-  Removing `public/brewpacks/` and the manifest degrades the page; it does not
-  break it.
+- **Always optional.** Every surface falls back to artwork generated from the
+  beer style (`lib/labels.ts` + `LabelArt`), so the app works with zero Pinter
+  assets. Removing `public/brewpacks/` and the manifest degrades the pages; it
+  does not break them.
 
 If Pinter asks for the images to come down, that is the whole remedy: delete
 `public/brewpacks/`, `data/brewpack-images.json`, `scripts/sync-brewpack-images.ts`,

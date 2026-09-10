@@ -10,6 +10,7 @@ import manifest from "@/data/brewpack-images.json";
  */
 type ImageRecord = {
   file: string;
+  thumb?: string;
   src: string;
   sha256: string;
   capturedAt: string;
@@ -17,11 +18,26 @@ type ImageRecord = {
 
 const packs = manifest.packs as Record<string, ImageRecord>;
 
-/** Public path to a pack's shot, or null when none was ever captured. */
+/** Public path to a pack's full-size shot, or null when none was captured. */
 export function getBrewPackImage(id: string): string | null {
   const record = packs[id];
 
   return record ? `/brewpacks/${record.file}` : null;
+}
+
+/**
+ * Small copy for list and panel UI. Falls back to the full-size file for
+ * manifest entries captured before thumbnails existed, so an older checkout
+ * still shows something rather than a broken image.
+ */
+export function getBrewPackThumb(id: string): string | null {
+  const record = packs[id];
+
+  if (!record) {
+    return null;
+  }
+
+  return `/brewpacks/${record.thumb ?? record.file}`;
 }
 
 /** How many packs currently have a captured image. */
