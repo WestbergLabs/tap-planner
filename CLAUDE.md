@@ -12,6 +12,8 @@ pnpm lint             # eslint (must be clean)
 pnpm build            # next build; also the TypeScript gate
 pnpm test             # discovery tests only
 pnpm import:brewpacks # regenerate the BrewPack catalog
+pnpm scan:releases    # rebuild the release timeline
+pnpm sync:images      # capture Pinter pack shots (never deletes)
 pnpm preview:labels   # render /labels cards to scripts/out/*.{svg,png}
 ```
 
@@ -42,19 +44,27 @@ field label and a missing space that lint, build, and the HTML all passed.
 
 ## Layout
 
-- `app/` — four pages, all `"use client"`: `/` (official planner), `/custom`,
-  `/rotation`, `/labels`.
+- `app/` — five pages, all `"use client"`: `/` (official planner), `/custom`,
+  `/rotation`, `/releases`, `/labels`.
 - `lib/schedule.ts` — all date math. `lib/calendar.ts` — `.ics` generation.
-  `lib/labels.ts` — style→artwork mapping for labels.
-- `components/` — `BrewPackPicker` (shared combobox), `LabelCard` + `LabelArt`.
-- `data/brewpacks.generated.ts` — **generated, do not hand-edit.** Change the
-  importer instead.
+  `lib/labels.ts` — style→artwork mapping. `lib/releases.ts` — timeline
+  grouping. `lib/brewpackImages.ts` — pack id → captured shot.
+- `components/` — `SiteNav` (shared nav, on every page), `BrewPackPicker` /
+  `BeerPicker` (comboboxes), `PackThumb` (pack shot with generated fallback),
+  `LabelCard` + `LabelArt`, `ReleaseStrip`, `PinterNotice`.
+- `data/*.generated.ts` — **generated, do not hand-edit.** Change the importer
+  or the release scanner instead.
 
 ## Conventions
 
 **Page shell.** Every page repeats the same structure rather than sharing a layout
-component: hero banner with a "back" pill → `<header>` with eyebrow/h1/lede →
-`rounded-[28px]` surface sections → muted `<footer>`. Copy an existing page.
+component: hero banner with `<SiteNav current="/route" />` rendered *outside* the
+hero div (the hero clips overflow, which would cut off the open menu) →
+`<header>` with eyebrow/h1/lede → `rounded-[28px]` surface sections → `<footer>`
+ending in `<PinterNotice />`. Copy an existing page.
+
+**The attribution notice is one shared component.** Never inline that wording —
+a legal notice that drifts between pages is worse than none.
 
 **Colors come from tokens**, never literals: `bg-surface`, `text-muted`,
 `border-border`, `text-accent`, and the `stage-*` families. Defined once in
@@ -84,6 +94,14 @@ a 160px `.thumb.` copy for `PackThumb`, used by the three planners beside the
 selected BrewPack and by every card on `/releases`. Use the thumb anywhere a
 pack appears in a list or panel — the full shot is ~180KB and only earns that
 on a printed card.
+
+**The `/releases` density strip is deliberately `aria-hidden`.** Hovering and
+clicking ticks is a mouse-only enhancement, which is normally a smell. It is
+acceptable here only because nothing lives in the strip alone: every release is
+in the card list below it, the year buttons are real buttons that do the
+filtering, and a screen reader gets a one-line summary instead of 38 unlabelled
+rectangles. If you ever put information *only* in the strip, that reasoning
+breaks and it needs real controls.
 
 **`data/brewpack-images.json` is retained, never regenerated.** This is the whole
 reason older brews keep their pictures. `buildCatalog` rebuilds a discontinued

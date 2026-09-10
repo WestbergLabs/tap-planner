@@ -25,6 +25,7 @@ import {
   formatReissueDate,
   formatReleaseLabel,
   groupByYear,
+  releaseYear,
   reissuedReleases,
   statusLabel,
   undatedReleases,
@@ -52,11 +53,17 @@ function TimelineOverview({
   years,
   selected,
   onSelect,
+  hoveredId,
+  onHover,
+  onPick,
 }: {
   releases: BrewPackRelease[];
   years: StripYear[];
   selected: number | null;
   onSelect: (year: number | null) => void;
+  hoveredId: string | null;
+  onHover: (id: string | null) => void;
+  onPick: (release: BrewPackRelease) => void;
 }) {
   return (
     <div className="mb-6 rounded-2xl border border-border bg-surface p-4 shadow-card">
@@ -64,6 +71,9 @@ function TimelineOverview({
         releases={allReleases}
         years={years}
         selectedYear={selected}
+        hoveredId={hoveredId}
+        onHover={onHover}
+        onPick={onPick}
       />
 
       <div className="mt-1 flex">
@@ -99,18 +109,35 @@ function TimelineOverview({
 
       <p className="mt-3 text-center text-xs leading-5 text-muted">
         {selected === null
-          ? "Each tick is one pack, stacked by the month it landed. Tap a year to filter."
+          ? "Each tick is one pack, stacked by the month it landed. A ring is a pack coming back. Tap a tick to jump to it, or a year to filter."
           : `Showing ${selected} only — tap it again to show everything.`}
       </p>
     </div>
   );
 }
 
-function ReleaseCard({ release }: { release: BrewPackRelease }) {
+function ReleaseCard({
+  release,
+  isHighlighted = false,
+  onHover,
+}: {
+  release: BrewPackRelease;
+  isHighlighted?: boolean;
+  onHover?: (id: string | null) => void;
+}) {
   const isEstimate = release.precision !== "day";
 
   return (
-    <li className="flex gap-4 rounded-2xl border border-border bg-surface p-4 shadow-card">
+    <li
+      id={`release-${release.id}`}
+      onMouseEnter={() => onHover?.(release.id)}
+      onMouseLeave={() => onHover?.(null)}
+      className={`flex scroll-mt-6 gap-4 rounded-2xl border bg-surface p-4 shadow-card transition ${
+        isHighlighted
+          ? "border-accent ring-2 ring-accent/35"
+          : "border-border"
+      }`}
+    >
       <PackThumb packId={release.id} style={release.style} size={64} />
 
       <div className="min-w-0 flex-1">
@@ -179,6 +206,8 @@ export default function ReleasesPage() {
   // null means "all years". Filtering rather than anchor-jumping: a jump left
   // every other year still sitting below you, so the list never got shorter.
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  // Shared between the strip and the cards, so hovering either highlights both.
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const available = useMemo(() => availableReleases(releases), []);
   const years = useMemo(() => groupByYear(releases), []);
@@ -206,6 +235,26 @@ export default function ReleasesPage() {
         : years.filter((entry) => entry.year === selectedYear),
     [years, selectedYear],
   );
+
+  // Clicking a tick jumps to that pack's card. If a year filter is hiding it,
+  // clear the filter first and scroll on the next frame, once it has rendered.
+  function handlePickRelease(release: BrewPackRelease) {
+    const year = releaseYear(release);
+
+    function scrollToCard() {
+      document
+        .getElementById(`release-${release.id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    if (selectedYear !== null && year !== selectedYear) {
+      setSelectedYear(null);
+      requestAnimationFrame(scrollToCard);
+      return;
+    }
+
+    scrollToCard();
+  }
 
   const tabClass = (isActive: boolean): string =>
     `flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background ${
@@ -342,7 +391,12 @@ export default function ReleasesPage() {
 
             <ul className="space-y-3">
               {available.map((release) => (
-                <ReleaseCard key={release.id} release={release} />
+                <ReleaseCard
+                  key={release.id}
+                  release={release}
+                  isHighlighted={hoveredId === release.id}
+                  onHover={setHoveredId}
+                />
               ))}
             </ul>
           </section>
@@ -357,6 +411,9 @@ export default function ReleasesPage() {
               years={stripYears}
               selected={selectedYear}
               onSelect={setSelectedYear}
+              hoveredId={hoveredId}
+              onHover={setHoveredId}
+              onPick={handlePickRelease}
             />
 
             {visibleYears.map(({ year, releases: yearReleases }) => (
@@ -381,7 +438,12 @@ export default function ReleasesPage() {
 
                 <ul className="space-y-3">
                   {yearReleases.map((release) => (
-                    <ReleaseCard key={release.id} release={release} />
+                    <ReleaseCard
+                  key={release.id}
+                  release={release}
+                  isHighlighted={hoveredId === release.id}
+                  onHover={setHoveredId}
+                />
                   ))}
                 </ul>
               </section>
@@ -415,7 +477,12 @@ export default function ReleasesPage() {
 
                 <ul className="space-y-3">
                   {undated.map((release) => (
-                    <ReleaseCard key={release.id} release={release} />
+                    <ReleaseCard
+                  key={release.id}
+                  release={release}
+                  isHighlighted={hoveredId === release.id}
+                  onHover={setHoveredId}
+                />
                   ))}
                 </ul>
               </section>

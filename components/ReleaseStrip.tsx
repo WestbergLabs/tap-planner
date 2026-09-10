@@ -44,11 +44,19 @@ export default function ReleaseStrip({
   releases: allReleases,
   years,
   selectedYear,
+  hoveredId,
+  onHover,
+  onPick,
 }: {
   releases: BrewPackRelease[];
   /** Years present in the data, ascending. Defines the strip's domain. */
   years: StripYear[];
   selectedYear: number | null;
+  /** Release currently hovered, in the strip or in the list. */
+  hoveredId?: string | null;
+  onHover?: (id: string | null) => void;
+  /** Called when a tick is clicked, to jump to that release's card. */
+  onPick?: (release: BrewPackRelease) => void;
 }) {
   if (years.length === 0) {
     return null;
@@ -79,6 +87,25 @@ export default function ReleaseStrip({
     }
 
     columns.set(index, [...(columns.get(index) ?? []), release]);
+  }
+
+  /** Centre x for a YYYY-MM-DD date, or null if outside the domain. */
+  function monthX(date: string | null): number | null {
+    if (!date) {
+      return null;
+    }
+
+    const [year, month] = date.split("-").map(Number);
+
+    if (!year || !month) {
+      return null;
+    }
+
+    const index = (year - firstYear) * MONTHS_PER_YEAR + (month - 1);
+
+    return index < 0 || index >= totalMonths
+      ? null
+      : index * monthWidth + monthWidth / 2;
   }
 
   const tallest = Math.max(...[...columns.values()].map((c) => c.length), 1);
@@ -126,23 +153,72 @@ export default function ReleaseStrip({
         {[...columns.entries()].map(([index, columnReleases]) => {
           const x = index * monthWidth + monthWidth / 2;
 
-          return columnReleases.map((release, stackIndex) => (
-            <rect
-              key={release.id}
-              x={x - 3.5}
-              y={BASELINE - (stackIndex + 1) * (TICK_H + TICK_GAP)}
-              width="7"
-              height={TICK_H}
-              rx="2"
-              fill={STATUS_FILL[release.status]}
-              opacity={
-                selectedYear === null ||
-                selectedYear === firstYear + Math.floor(index / MONTHS_PER_YEAR)
-                  ? 1
-                  : 0.25
-              }
-            />
-          ));
+          return columnReleases.map((release, stackIndex) => {
+            const y = BASELINE - (stackIndex + 1) * (TICK_H + TICK_GAP);
+            const inSelectedYear =
+              selectedYear === null ||
+              selectedYear === firstYear + Math.floor(index / MONTHS_PER_YEAR);
+            const reissueX = monthX(release.reissuedOn);
+
+            return (
+              <g
+                key={release.id}
+                opacity={inSelectedYear ? 1 : 0.25}
+                onMouseEnter={() => onHover?.(release.id)}
+                onMouseLeave={() => onHover?.(null)}
+                onClick={() => onPick?.(release)}
+                style={{ cursor: onPick ? "pointer" : undefined }}
+              >
+                {/* Reissue: a rule from the original launch to the month it
+                    came back, ending in an open ring. Shows at a glance which
+                    seasonals actually recur and how long the gap was. */}
+                {reissueX !== null && (
+                  <>
+                    <line
+                      x1={x}
+                      y1={y + TICK_H / 2}
+                      x2={reissueX}
+                      y2={y + TICK_H / 2}
+                      stroke={STATUS_FILL[release.status]}
+                      strokeWidth="1.25"
+                      strokeDasharray="2 2"
+                      opacity="0.55"
+                    />
+                    <circle
+                      cx={reissueX}
+                      cy={y + TICK_H / 2}
+                      r="3.25"
+                      fill="var(--surface)"
+                      stroke={STATUS_FILL[release.status]}
+                      strokeWidth="1.5"
+                    />
+                  </>
+                )}
+
+                <rect
+                  x={x - 3.5}
+                  y={y}
+                  width="7"
+                  height={TICK_H}
+                  rx="2"
+                  fill={STATUS_FILL[release.status]}
+                  stroke={
+                    hoveredId === release.id ? "var(--foreground)" : "none"
+                  }
+                  strokeWidth="1.5"
+                />
+
+                {/* Widens the pointer target without changing the drawing. */}
+                <rect
+                  x={x - monthWidth / 2}
+                  y={y - TICK_GAP}
+                  width={monthWidth}
+                  height={TICK_H + TICK_GAP * 2}
+                  fill="transparent"
+                />
+              </g>
+            );
+          });
         })}
       </svg>
 
@@ -170,6 +246,14 @@ export function ReleaseStripLegend() {
           <span className="text-xs text-muted">{STATUS_LABEL[status]}</span>
         </li>
       ))}
+
+      <li className="flex items-center gap-1.5">
+        <span
+          aria-hidden="true"
+          className="block h-2.5 w-2.5 rounded-full border-[1.5px] border-muted bg-surface"
+        />
+        <span className="text-xs text-muted">Came back</span>
+      </li>
     </ul>
   );
 }
