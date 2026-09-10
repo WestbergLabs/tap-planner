@@ -573,12 +573,33 @@ export default function LabelsPage() {
             </div>
           </section>
 
-          <section className="mt-6 overflow-hidden rounded-[28px] border border-border bg-surface shadow-card">
-            <div className="rounded-t-[28px] border-b border-border px-5 py-4 sm:px-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+          {/* Reference reading rather than part of building a label, so it
+              starts closed and gives the page back to the preview. A native
+              <details> keeps the keyboard and screen-reader behaviour for
+              free, and there is no open state to hold. */}
+          <details className="group mt-6 overflow-hidden rounded-[28px] border border-border bg-surface shadow-card">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 border-b border-transparent px-5 py-4 transition hover:bg-field group-open:border-border sm:px-6 [&::-webkit-details-marker]:hidden">
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
                 Which paper for a fridge?
-              </p>
-            </div>
+              </span>
+
+              <svg
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                aria-hidden="true"
+                className="shrink-0 text-muted transition-transform group-open:rotate-180"
+              >
+                <path
+                  d="m7 10 5 5 5-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </summary>
 
             <div className="px-5 py-6 sm:px-6">
               <p className="text-sm leading-6 text-muted">
@@ -648,7 +669,7 @@ export default function LabelsPage() {
                 </div>
               </div>
             </div>
-          </section>
+          </details>
 
           <footer className="mt-6 space-y-2 text-center text-xs leading-5 text-muted">
             <p>
