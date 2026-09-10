@@ -54,6 +54,9 @@ There are three planners sharing one calculation engine:
 | **Custom** | `/custom` | You're brewing your own recipe, or want to override a BrewPack's default timing |
 | **Rotation** | `/rotation` | You run several Pinters and want them staggered so you never run dry |
 
+Plus `/releases`, an estimated release timeline, and `/labels`, a printable 4x6
+label maker for what is in the fridge.
+
 No accounts, no database, nothing stored server-side. Everything lives in the URL and the browser for the length of one calculation.
 
 ---
@@ -93,6 +96,8 @@ Then open [http://localhost:3000](http://localhost:3000).
 | `pnpm scan:quick` | Quick discovery scan (regenerates only on a relevant change) |
 | `pnpm scan:full` | Full verification scan (rebuild catalog + discovery state) |
 | `pnpm scan:releases` | Rebuild the estimated release timeline behind `/releases` |
+| `pnpm sync:images` | Capture Pinter pack shots for `/labels` (never deletes) |
+| `pnpm preview:labels` | Render label cards to `scripts/out/` and check the trim |
 
 Before pushing a change, always run both:
 
@@ -111,6 +116,7 @@ pnpm build
     ci.yml                          # Lint + build on PRs and pushes to main
     brewpack-quick-scan.yml         # ~6-hourly Shopify discovery scan (+ timeline on a catalog change)
     brewpack-full-verification.yml  # Weekly full re-verification + release timeline
+    brewpack-image-sync.yml         # Weekly Pinter pack-shot capture for /labels
 
 app/
   custom/
@@ -120,6 +126,8 @@ app/
   releases/
     layout.tsx                # Metadata for /releases (the page is a client component)
     page.tsx                  # Estimated BrewPack release timeline  →  /releases
+  labels/
+    page.tsx                  # Printable 4x6 brew labels  →  /labels
   globals.css                 # Global design, responsive layout, mobile fixes
   layout.tsx                  # App metadata and root layout
   page.tsx                    # Official BrewPack planner  →  /
@@ -128,24 +136,33 @@ components/
   BrewPackPicker.tsx           # Accessible BrewPack search combobox (official + custom planners)
   BeerPicker.tsx               # Compact searchable beer combobox for the rotation lineup
   SiteNav.tsx                  # Shared hamburger menu + help link, on every page hero
+  LabelCard.tsx                # One printable 4x6 label, drawn entirely as SVG
+  LabelArt.tsx                 # Generated motifs used when a pack has no photo
 
 data/
   brewpacks.generated.ts       # Generated BrewPack catalog used by the app
   pinter-product-state.json    # Discovery state (Shopify id/handle/fingerprint per product)
   releases.generated.ts        # Generated release timeline (estimated dates + copy/imagery)
+  brewpack-images.json         # Retained pack-shot manifest (append/update only, never pruned)
 
 lib/
   calendar.ts                  # Browser-only .ics calendar generation, shared by both planners
   schedule.ts                  # Date + schedule-calculation utilities, shared by both planners
   releases.ts                  # Formatting + grouping for the release timeline
+  labels.ts                    # Beer style -> generated artwork profile
+  brewpackImages.ts            # Pack id -> captured pack shot, or null
 
 public/
   tap-handles.jpg              # Local hero image
+  brewpacks/                   # Captured Pinter pack shots (see the image policy)
 
 scripts/
   import-brewpacks.ts          # Full catalog build: resolve + validate + write
   brewpack-scan.ts             # Two-level discovery scanner (quick / full)
   release-scan.ts              # Whole-store scraper for the release timeline
+  sync-brewpack-images.ts      # Capture pack shots into public/brewpacks/
+  label-preview.tsx            # Render labels to PNG + assert nothing overflows the trim
+  drive-labels.mjs             # Drive /labels in a real browser over the DevTools Protocol
   lib/
     discovery.ts               # Pure discovery logic (fingerprint, classify, state)
     discovery.test.ts          # Discovery unit tests (pnpm test)
@@ -297,11 +314,11 @@ Three things are deliberately **not** stored:
 
 | Not stored | Why |
 |---|---|
-| Product artwork | Pinter's, no confirmed redistribution license. See [Data and image policy](#data-and-image-policy). Hotlinking their CDN would also put our traffic on their servers. |
+| Product artwork | The release timeline renders none. Hotlinking Pinter's CDN would put our traffic on their servers, and no redistribution license is confirmed. The label printer at `/labels` is the one exception, and it stores images locally rather than hotlinking — see [Data and image policy](#data-and-image-policy). |
 | Marketing copy | Same reason. The product description is creative work, not a factual attribute, so the timeline describes packs with facts only. |
 | Variant price | Changes on every promotion, so a weekly regeneration would open pull requests carrying no news. It was never rendered either. |
 
-`next.config.ts` deliberately declares no `images.remotePatterns`, so a future change cannot quietly start rendering remote artwork without that being an explicit decision.
+`next.config.ts` deliberately declares no `images.remotePatterns`, so a future change cannot quietly start rendering *remote* artwork without that being an explicit decision. Pack shots used by `/labels` are local files, captured by `pnpm sync:images`.
 
 ### Views
 
@@ -527,9 +544,32 @@ flowchart LR
 | | |
 |---|---|
 | **BrewPack data** | Sourced from publicly available Pinter documentation. |
-| **Product artwork** | Not included — no redistribution license has been confirmed for official BrewPack product artwork. |
+| **Marketing copy** | Not included — product descriptions are creative work, not factual attributes. |
+| **Product artwork** | Included for the label printer only. See below. |
 
 The local header image is stored at `public/tap-handles.jpg`. Any required attribution should stay visible wherever it's used.
+
+### Product artwork
+
+**No redistribution license has been confirmed for Pinter's BrewPack artwork.**
+Including it is a deliberate owner decision made with that known, not an
+oversight, and it is scoped as tightly as the feature allows:
+
+- **The label printer (`/labels`) only.** The release timeline and all three
+  planners render no product artwork. Do not extend its use to a new page
+  without an explicit decision.
+- **Captured locally, never hotlinked.** `pnpm sync:images` downloads pack
+  shots into `public/brewpacks/`. Nothing renders from Pinter's CDN, so none of
+  our traffic lands on their servers, and `next.config.ts` still declares no
+  `images.remotePatterns`.
+- **Always optional.** Every label falls back to artwork generated from the
+  beer style (`lib/labels.ts`), so the feature works with zero Pinter assets.
+  Removing `public/brewpacks/` and the manifest degrades the page; it does not
+  break it.
+
+If Pinter asks for the images to come down, that is the whole remedy: delete
+`public/brewpacks/`, `data/brewpack-images.json`, `scripts/sync-brewpack-images.ts`,
+and the image-sync workflow. Nothing else depends on them.
 
 ---
 

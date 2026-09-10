@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 
 import Image from "next/image";
-import Link from "next/link";
 
 import BrewPackPicker from "@/components/BrewPackPicker";
+import SiteNav from "@/components/SiteNav";
 import LabelCard, { type LabelFields } from "@/components/LabelCard";
 import { brewPacks, type BrewPack } from "@/data/brewpacks.generated";
 import { getBrewPackImage } from "@/lib/brewpackImages";
@@ -185,23 +185,22 @@ export default function LabelsPage() {
       <main className="label-screen min-h-screen bg-transparent px-4 py-10 text-foreground sm:py-14">
         <div className="mx-auto max-w-2xl">
           <header className="mb-9 border-b border-border pb-7">
-            <div className="relative mb-6 min-h-[180px] overflow-hidden rounded-[28px] border border-border bg-foreground shadow-hero">
-              <Image
-                src="/tap-handles.jpg"
-                alt="A row of beer taps behind a bar"
-                fill
-                priority
-                sizes="(max-width: 768px) 100vw, 672px"
-                className="object-cover object-[center_42%]"
-              />
+            <div className="relative z-30 mb-6">
+              <div className="relative min-h-[180px] overflow-hidden rounded-[28px] border border-border bg-foreground shadow-hero">
+                <Image
+                  src="/tap-handles.jpg"
+                  alt="A row of beer taps behind a bar"
+                  fill
+                  priority
+                  sizes="(max-width: 768px) 100vw, 672px"
+                  className="object-cover object-[center_42%]"
+                />
+              </div>
 
-              <div className="absolute inset-x-0 top-0 p-5 sm:p-6">
-                <Link
-                  href="/"
-                  className="inline-flex items-center gap-1.5 rounded-full bg-black/35 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-white backdrop-blur transition hover:bg-black/55 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black/40"
-                >
-                  &larr; Back to BrewPack planner
-                </Link>
+              {/* Rendered outside the hero: the hero clips its overflow for
+                  the rounded corners, which would cut off the open menu. */}
+              <div className="absolute inset-x-0 top-0 flex justify-end p-5 sm:p-6">
+                <SiteNav current="/labels" />
               </div>
             </div>
 

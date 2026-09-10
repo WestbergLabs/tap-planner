@@ -42,6 +42,11 @@ const LINKS: NavLink[] = [
     label: "Release timeline",
     description: "When each pack appeared",
   },
+  {
+    href: "/labels",
+    label: "Brew labels",
+    description: "Print a 4×6 fridge card",
+  },
 ];
 
 export default function SiteNav({
