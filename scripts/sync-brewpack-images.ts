@@ -49,6 +49,15 @@ export type ImageRecord = {
   src: string;
   /** SHA-256 of the stored bytes, so a re-run can verify without re-fetching. */
   sha256: string;
+  /**
+   * Shopify's numeric product id. Our catalog id is slugified from the pack
+   * name, so a rename produces a NEW id and would orphan this entry. The
+   * numeric id survives renames, so a sync can recognise "same product, new
+   * key" and carry the image across instead of losing it.
+   */
+  productId?: number;
+  /** Pack name at capture time. Only to make an orphaned entry legible. */
+  name?: string;
   /** ISO date the image was first captured or last replaced. */
   capturedAt: string;
 };
@@ -123,14 +132,49 @@ async function main(): Promise<void> {
   const withSource = packs.filter((pack) => pack.imageSrc);
   const added: string[] = [];
   const replaced: string[] = [];
+  const renamed: string[] = [];
   const failed: string[] = [];
+  let backfilled = 0;
+
+  // Reverse index so a renamed pack can be matched by its Shopify product id.
+  const byProductId = new Map<number, string>();
+
+  for (const [id, record] of Object.entries(manifest.packs)) {
+    if (record.productId !== undefined) {
+      byProductId.set(record.productId, id);
+    }
+  }
 
   for (const pack of withSource) {
     const src = pack.imageSrc as string;
+
+    // A rename gives the pack a new catalog id. Recognise it by product id and
+    // move the existing entry across rather than re-capturing under the new
+    // key and leaving the old one orphaned.
+    const previousId =
+      pack.shopProductId !== undefined
+        ? byProductId.get(pack.shopProductId)
+        : undefined;
+
+    if (previousId !== undefined && previousId !== pack.id) {
+      manifest.packs[pack.id] = manifest.packs[previousId];
+      delete manifest.packs[previousId];
+      byProductId.set(pack.shopProductId as number, pack.id);
+      renamed.push(`${previousId} -> ${pack.id}`);
+    }
+
     const existing = manifest.packs[pack.id];
 
     // Only re-fetch when there is nothing yet, or Pinter swapped the artwork.
+    // A record missing productId predates rename tracking and is topped up
+    // below without a download.
     if (existing && existing.src === src && existing.thumb) {
+      if (existing.productId === undefined && pack.shopProductId !== undefined) {
+        existing.productId = pack.shopProductId;
+        existing.name = pack.name;
+        backfilled += 1;
+      }
+
       continue;
     }
 
@@ -155,6 +199,8 @@ async function main(): Promise<void> {
         thumb,
         src,
         sha256: createHash("sha256").update(bytes).digest("hex"),
+        productId: pack.shopProductId,
+        name: pack.name,
         capturedAt: new Date().toISOString().slice(0, 10),
       };
 
@@ -177,6 +223,8 @@ async function main(): Promise<void> {
   console.log(`With a shop image:    ${withSource.length}`);
   console.log(`Newly captured:       ${added.length}`);
   console.log(`Artwork replaced:     ${replaced.length}`);
+  console.log(`Carried over rename:  ${renamed.length}`);
+  console.log(`Product id backfill:  ${backfilled}`);
   console.log(`Retained (not live):  ${retained.length}`);
 
   for (const name of added) {
@@ -185,6 +233,10 @@ async function main(): Promise<void> {
 
   for (const name of replaced) {
     console.log(`  ~ ${name}`);
+  }
+
+  for (const move of renamed) {
+    console.log(`  > ${move}`);
   }
 
   for (const id of retained) {

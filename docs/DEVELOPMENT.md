@@ -96,7 +96,8 @@ Then open [http://localhost:3000](http://localhost:3000).
 | `pnpm scan:quick` | Quick discovery scan (regenerates only on a relevant change) |
 | `pnpm scan:full` | Full verification scan (rebuild catalog + discovery state) |
 | `pnpm scan:releases` | Rebuild the estimated release timeline behind `/releases` |
-| `pnpm sync:images` | Capture Pinter pack shots for `/labels` (never deletes) |
+| `pnpm sync:images` | Capture Pinter pack shots (never deletes) |
+| `pnpm recover:images` | Recover shots for delisted packs via archived filenames |
 | `pnpm preview:labels` | Render label cards to `scripts/out/` and check the trim |
 
 Before pushing a change, always run both:
@@ -161,6 +162,7 @@ scripts/
   brewpack-scan.ts             # Two-level discovery scanner (quick / full)
   release-scan.ts              # Whole-store scraper for the release timeline
   sync-brewpack-images.ts      # Capture pack shots into public/brewpacks/
+  recover-missing-images.ts    # Recover delisted packs' shots (manual, re-runnable)
   label-preview.tsx            # Render labels to PNG + assert nothing overflows the trim
   drive-labels.mjs             # Drive /labels in a real browser over the DevTools Protocol
   lib/

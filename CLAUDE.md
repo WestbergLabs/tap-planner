@@ -14,6 +14,7 @@ pnpm test             # discovery tests only
 pnpm import:brewpacks # regenerate the BrewPack catalog
 pnpm scan:releases    # rebuild the release timeline
 pnpm sync:images      # capture Pinter pack shots (never deletes)
+pnpm recover:images   # recover shots for delisted packs, via archived filenames
 pnpm preview:labels   # render /labels cards to scripts/out/*.{svg,png}
 ```
 
@@ -102,6 +103,14 @@ in the card list below it, the year buttons are real buttons that do the
 filtering, and a screen reader gets a one-line summary instead of 38 unlabelled
 rectangles. If you ever put information *only* in the strip, that reasoning
 breaks and it needs real controls.
+
+**Missing images come from Pinter, never from image search.** A delisted pack
+is absent from every collection feed, so its *filename* is unknown — but the
+file itself is still on Pinter's CDN. `pnpm recover:images` reads the filename
+out of an archived product page and then fetches the image from Pinter. Nothing
+but the filename comes from the archive. Do not substitute web image search
+results: unknown provenance, frequently the wrong beer, and a worse licence
+position than the manufacturer's own photo.
 
 **`data/brewpack-images.json` is retained, never regenerated.** This is the whole
 reason older brews keep their pictures. `buildCatalog` rebuilds a discontinued

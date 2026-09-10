@@ -81,6 +81,13 @@ const BrewPackSchema = z.object({
    * at `data/brewpack-images.json` instead.
    */
   imageSrc: z.string().url().optional(),
+  /**
+   * Shopify's numeric product id. Stable across renames, where our catalog id
+   * is not (it is slugified from the name), so `sync:images` uses it to carry
+   * a captured pack shot over to the new id instead of orphaning it. Like
+   * `imageSrc`, in memory only -- never written to the generated catalog.
+   */
+  shopProductId: z.number().int().positive().optional(),
 });
 
 export type BrewPack = z.infer<typeof BrewPackSchema>;
@@ -447,6 +454,7 @@ async function resolveShopPack(
     // Missing imagery is not a reason to hold a pack pending; the catalog is
     // about timing, and `/labels` falls back to generated artwork.
     imageSrc: product.images?.[0]?.src ?? undefined,
+    shopProductId: product.id,
   };
 
   return { pack: BrewPackSchema.parse(candidate) };
