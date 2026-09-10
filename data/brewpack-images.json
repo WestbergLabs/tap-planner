@@ -115,6 +115,14 @@
       "productId": 10195577241881,
       "name": "Deep Shade"
     },
+    "dog-house": {
+      "file": "dog-house.jpg",
+      "thumb": "dog-house.thumb.jpg",
+      "src": "https://pinter.com/cdn/shop/files/DogHouseIPA_03.jpg",
+      "sha256": "666896693a39dfbd3a936f60c6fff4212357810e8864cbb55660584292e385df",
+      "name": "Dog House",
+      "capturedAt": "2026-09-10"
+    },
     "en-casa": {
       "file": "en-casa.jpg",
       "thumb": "en-casa.thumb.jpg",
@@ -329,6 +337,14 @@
       "capturedAt": "2026-09-10",
       "productId": 8802186199321,
       "name": "Whole Nine Yards"
+    },
+    "winters-slumber": {
+      "file": "winters-slumber.jpg",
+      "thumb": "winters-slumber.thumb.jpg",
+      "src": "https://pinterdirect.shop/images/pinterdirect.shop/images/product/winters-slumber-1.jpg",
+      "sha256": "741965eb5ec86912722b03f73e70311d5159c2b02f72df03bade18ae200ef7a5",
+      "name": "Winter's Slumber (Christmas Ale)",
+      "capturedAt": "2026-09-10"
     },
     "yeastie-boys-bigmouth-remixed": {
       "file": "yeastie-boys-bigmouth-remixed.jpg",

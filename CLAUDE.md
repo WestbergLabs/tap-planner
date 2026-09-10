@@ -106,11 +106,16 @@ breaks and it needs real controls.
 
 **Missing images come from Pinter, never from image search.** A delisted pack
 is absent from every collection feed, so its *filename* is unknown — but the
-file itself is still on Pinter's CDN. `pnpm recover:images` reads the filename
-out of an archived product page and then fetches the image from Pinter. Nothing
-but the filename comes from the archive. Do not substitute web image search
-results: unknown provenance, frequently the wrong beer, and a worse licence
-position than the manufacturer's own photo.
+file itself is still served. `pnpm recover:images` finds the name on Pinter's
+blog, on `pinterdirect.shop` (their direct store, which keeps packs the main
+Shopify storefront drops), or in a Wayback snapshot, then fetches the image
+from Pinter. Nothing but the filename comes from the archive. Do not
+substitute web image search results: unknown provenance, frequently the wrong
+beer, and a worse licence position than the manufacturer's own photo.
+
+Only Shopify honours the `width` parameter. `pinterdirect.shop` ignores it, so
+a pack recovered from there stores a full-size file as its thumbnail; the
+script says so when it happens.
 
 **`data/brewpack-images.json` is retained, never regenerated.** This is the whole
 reason older brews keep their pictures. `buildCatalog` rebuilds a discontinued
