@@ -101,6 +101,7 @@ Then open [http://localhost:3000](http://localhost:3000).
 | `pnpm sync:images` | Capture Pinter pack shots (never deletes) |
 | `pnpm recover:images` | Recover shots for delisted packs via archived filenames |
 | `pnpm preview:labels` | Render label cards to `scripts/out/` and check the trim |
+| `node scripts/pack-collage.mjs` | Rebuild the README pack-shot collage |
 
 Before pushing a change, always run both:
 
@@ -138,7 +139,8 @@ app/
 components/
   BrewPackPicker.tsx           # Accessible BrewPack search combobox (official + custom planners)
   BeerPicker.tsx               # Compact searchable beer combobox for the rotation lineup
-  SiteNav.tsx                  # Shared hamburger menu + help link, on every page hero
+  SiteNav.tsx                  # Shared nav: pill bar from sm up, menu below
+  BackToTop.tsx                # "Top up" scroll-to-top, mounted in the root layout
   LabelCard.tsx                # One printable 4x6 label, drawn entirely as SVG
   LabelArt.tsx                 # Generated motifs used when a pack has no photo
 
@@ -166,6 +168,7 @@ scripts/
   sync-brewpack-images.ts      # Capture pack shots into public/brewpacks/
   recover-missing-images.ts    # Recover delisted packs' shots (manual, re-runnable)
   label-preview.tsx            # Render labels to PNG + assert nothing overflows the trim
+  pack-collage.mjs             # Build the README pack-shot collage
   drive-labels.mjs             # Drive /labels in a real browser over the DevTools Protocol
   lib/
     discovery.ts               # Pure discovery logic (fingerprint, classify, state)

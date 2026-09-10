@@ -10,7 +10,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-000000?style=flat-square&logo=vercel&logoColor=white)](https://vercel.com/)
 
-<img src="docs/images/schedule.png" alt="Tap Planner showing a Dark Matter schedule: start brewing Saturday 12 December, begin conditioning 17 December, tap day 24 December" width="620">
+<img src="docs/images/schedule.png" alt="Tap Planner showing a Dark Matter schedule: start brewing Saturday 12 December, begin conditioning 17 December, tap day 24 December" width="460">
 
 </div>
 
@@ -56,7 +56,7 @@ Tap Planner never asks for calendar access and adds nothing automatically.
 ## Brew labels
 
 <div align="center">
-<img src="docs/images/label-sheet.png" alt="Two 4x6 brew labels laid out on a Letter sheet with dashed cut guides" width="680">
+<img src="docs/images/label-sheet.png" alt="Two 4x6 brew labels laid out on a Letter sheet with dashed cut guides" width="540">
 </div>
 
 Print a 4×6 card for each brew — name, style, ABV, brew and tap dates, batch
@@ -96,7 +96,7 @@ A strip of clear packing tape over the front laminates any card for about a cent
 ## Release timeline
 
 <div align="center">
-<img src="docs/images/releases.png" alt="The release timeline, showing a density strip of releases by month above year filters and pack cards" width="680">
+<img src="docs/images/releases.png" alt="The release timeline, showing a density strip of releases by month above year filters and pack cards" width="520">
 </div>
 
 Pinter has never published release dates, so these are **estimates** worked out
@@ -111,16 +111,20 @@ ring is a pack coming back; hover either and the pair links up.
 
 ## Artwork
 
-Packs are shown with Pinter's own product photography where it's available.
-Where it isn't — a custom recipe, or a pack that left the store before capture
-began — Tap Planner generates artwork from the beer style instead:
+Every pack in the catalog is shown with Pinter's own product photography:
 
 <div align="center">
-<img src="docs/images/label-gallery.png" alt="Eight generated label designs showing hop, grain, roast, citrus, orchard, bubble and spice motifs in style-appropriate colours" width="680">
+<img src="docs/images/pack-collage.png" alt="A grid of eighteen Pinter BrewPack product shots, each a poured glass beside its pouch on a bright single-colour background" width="600">
 </div>
 
-Colour comes from the style, and the motif from its family. Nothing is
-downloaded at runtime and nothing is hotlinked.
+Where a photo isn't available — a custom recipe, or a pack that leaves the
+store before it is ever captured — Tap Planner generates a label design from
+the beer style instead, so a card never comes out blank. Colour comes from the
+style and the motif from its family: hops for the IPAs, grain for the lagers,
+roasted beans for the stouts.
+
+Images are stored locally and served from this app. Nothing is hotlinked, and
+nothing is fetched from Pinter at runtime.
 
 ## Staying current
 
