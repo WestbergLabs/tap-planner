@@ -39,10 +39,11 @@ const sleep = (ms: number): Promise<void> =>
  * `Retry-After` header when present on a 429. Throws a descriptive error once
  * retries are exhausted or on a non-retryable status (e.g. 404).
  */
-export async function fetchTextWithRetry(
+async function fetchWithRetry<T>(
   url: string,
-  options: FetchOptions = {},
-): Promise<string> {
+  options: FetchOptions,
+  consume: (response: Response) => Promise<T>,
+): Promise<T> {
   const { timeoutMs, retries, backoffMs } = { ...DEFAULTS, ...options };
 
   let lastError: unknown;
@@ -58,7 +59,9 @@ export async function fetchTextWithRetry(
       });
 
       if (response.ok) {
-        return await response.text();
+        // Consumed inside the try so the per-attempt timeout still covers the
+        // body read, which matters for multi-megabyte image downloads.
+        return await consume(response);
       }
 
       if (!isRetryableStatus(response.status) || attempt === retries) {
@@ -95,6 +98,29 @@ export async function fetchTextWithRetry(
 
   const detail = lastError instanceof Error ? lastError.message : String(lastError);
   throw new Error(`Failed to fetch ${url} after ${retries + 1} attempts: ${detail}`);
+}
+
+/** Fetch a URL as text with a timeout and limited retries. */
+export function fetchTextWithRetry(
+  url: string,
+  options: FetchOptions = {},
+): Promise<string> {
+  return fetchWithRetry(url, options, (response) => response.text());
+}
+
+/**
+ * Fetch a URL as raw bytes, for images. Uses a longer default timeout than the
+ * text helpers because pack shots are far larger than a JSON or HTML response.
+ */
+export function fetchBytesWithRetry(
+  url: string,
+  options: FetchOptions = {},
+): Promise<Buffer> {
+  return fetchWithRetry(
+    url,
+    { timeoutMs: 30_000, ...options },
+    async (response) => Buffer.from(await response.arrayBuffer()),
+  );
 }
 
 /** Fetch and parse JSON with the same retry semantics as `fetchTextWithRetry`. */

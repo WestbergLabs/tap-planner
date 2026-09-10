@@ -72,6 +72,15 @@ const BrewPackSchema = z.object({
   yeast: z.string().min(1),
   hopperIncluded: z.boolean(),
   discontinued: z.boolean().optional(),
+  /**
+   * Pack shot URL on Pinter's CDN, present only for packs currently in the
+   * shop feed. Deliberately NOT written to the generated catalog: the catalog
+   * rebuilds discontinued packs from the support page, which carries no
+   * imagery, so a field here would be erased the moment a pack stops selling.
+   * `sync:images` reads it in memory and records it in the retained manifest
+   * at `data/brewpack-images.json` instead.
+   */
+  imageSrc: z.string().url().optional(),
 });
 
 export type BrewPack = z.infer<typeof BrewPackSchema>;
@@ -435,6 +444,9 @@ async function resolveShopPack(
     abv: abv as number,
     yeast: yeast as string,
     hopperIncluded: support ? support.hopperIncluded : hopperFromTags(tags),
+    // Missing imagery is not a reason to hold a pack pending; the catalog is
+    // about timing, and `/labels` falls back to generated artwork.
+    imageSrc: product.images?.[0]?.src ?? undefined,
   };
 
   return { pack: BrewPackSchema.parse(candidate) };

@@ -1,0 +1,115 @@
+name: BrewPack Image Sync
+
+# Capture Pinter pack shots for the label printer at /labels.
+#
+# The sync is append/update-only: it downloads images for packs currently in
+# Pinter's shop feed and NEVER deletes. A pack that stops selling keeps the
+# image captured while it was on sale, which is the only way discontinued and
+# seasonal brews get a picture at all -- the support page that keeps them in
+# the catalog carries no imagery.
+#
+# Runs weekly rather than every six hours like the catalog scans: artwork
+# changes far less often than timing data, and each changed image is a new
+# binary blob in git history.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Once per week, Tuesday 08:15 UTC — deliberately not sharing a slot with
+    # the Monday full verification.
+    - cron: "15 8 * * 2"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# Its own group: this touches public/ and data/brewpack-images.json, which the
+# catalog scans never write, so it is safe to run alongside them.
+concurrency:
+  group: brewpack-images
+  cancel-in-progress: false
+
+jobs:
+  image-sync:
+    name: Sync BrewPack images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Sync pack shots from Pinter
+        run: pnpm sync:images
+
+      - name: Check for image changes
+        id: changes
+        shell: bash
+        run: |
+          if git diff --quiet -- data/brewpack-images.json public/brewpacks/ \
+            && [ -z "$(git ls-files --others --exclude-standard -- public/brewpacks/)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No new or replaced pack shots. Nothing to do."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Pack shot changes detected:"
+            git status --short -- data/brewpack-images.json public/brewpacks/
+          fi
+
+      - name: Validate changed images
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          pnpm lint
+          pnpm build
+
+      - name: Commit and open or update pull request
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          branch="automation/brewpack-image-sync"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git switch -C "$branch"
+          git add data/brewpack-images.json public/brewpacks/
+          git commit -m "chore: sync BrewPack pack shots"
+          git push --force-with-lease origin "$branch"
+
+          existing_pr="$(
+            gh pr list --head "$branch" --base main --state open \
+              --json number --jq '.[0].number // empty'
+          )"
+
+          if [ -n "$existing_pr" ]; then
+            echo "Updated existing pull request #$existing_pr."
+          else
+            cat > pr-body.md <<'EOF'
+          The weekly image sync captured new or replaced BrewPack pack shots from Pinter's shop feed, for use by the label printer at `/labels`.
+
+          These are Pinter's product images. Review that each one is appropriate to redistribute before merging.
+
+          The sync never deletes: images for packs that have left the shop are retained so discontinued and seasonal brews keep their artwork. This pull request was generated automatically and validated with lint and a production build.
+          EOF
+
+            gh pr create \
+              --base main \
+              --head "$branch" \
+              --title "chore: sync BrewPack pack shots" \
+              --body-file pr-body.md
+          fi
