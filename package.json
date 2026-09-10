@@ -12,7 +12,10 @@
     "import:brewpacks": "tsx scripts/import-brewpacks.ts",
     "scan:quick": "tsx scripts/brewpack-scan.ts",
     "scan:full": "tsx scripts/brewpack-scan.ts --full",
-    "scan:releases": "tsx scripts/release-scan.ts"
+    "scan:releases": "tsx scripts/release-scan.ts",
+    "preview:labels": "tsx scripts/label-preview.tsx",
+    "sync:images": "tsx scripts/sync-brewpack-images.ts",
+    "recover:images": "tsx scripts/recover-missing-images.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",
@@ -22,6 +25,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

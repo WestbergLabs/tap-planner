@@ -13,7 +13,9 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 
 import BrewPackPicker from "@/components/BrewPackPicker";
+import PackThumb from "@/components/PackThumb";
 import SiteNav from "@/components/SiteNav";
+import PinterNotice from "@/components/PinterNotice";
 import { brewPacks, type BrewPack } from "@/data/brewpacks.generated";
 import {
   calculateSchedule,
@@ -502,9 +504,17 @@ function CustomPlanner() {
             {showBrewPackNotice && (
               <div
                 role="status"
-                className="rounded-2xl border border-stage-brew/40 bg-stage-brew-soft px-5 py-4 text-sm leading-6 text-foreground"
+                className="flex items-center gap-4 rounded-2xl border border-stage-brew/40 bg-stage-brew-soft px-5 py-4 text-sm leading-6 text-foreground"
               >
-                Starting with official BrewPack timing. Adjust any value below.
+                <PackThumb
+                  packId={selectedBrewPackId}
+                  style={style}
+                  size={52}
+                />
+                <span>
+                  Starting with official BrewPack timing. Adjust any value
+                  below.
+                </span>
               </div>
             )}
 
@@ -975,6 +985,8 @@ function CustomPlanner() {
             Planning only. Custom schedules are calculated in your browser and
             are not stored.
           </p>
+
+          <PinterNotice />
         </footer>
       </div>
     </main>

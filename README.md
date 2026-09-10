@@ -1,228 +1,157 @@
 <div align="center">
 
-<h1>🍺 Tap Planner</h1>
+# 🍺 Tap Planner
 
-<p><strong>Choose your tap date. Tap Planner works backward and tells you when to begin.</strong></p>
+**Choose your tap date. Tap Planner works backward and tells you when to begin.**
 
-<p>
-  <a href="https://tap-planner.vercel.app/">
-    <img src="https://img.shields.io/badge/OPEN%20TAP%20PLANNER-BF3B2B?style=for-the-badge&logo=vercel&logoColor=white" alt="Open Tap Planner">
-  </a>
-</p>
+[![Open Tap Planner](https://img.shields.io/badge/OPEN%20TAP%20PLANNER-BF3B2B?style=for-the-badge&logo=vercel&logoColor=white)](https://tap-planner.vercel.app/)
 
-<img src="public/tap-handles.jpg" alt="Tap handles" width="620">
+[![Next.js](https://img.shields.io/badge/Next.js-111111?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-000000?style=flat-square&logo=vercel&logoColor=white)](https://vercel.com/)
 
-<p>
-  <img src="https://img.shields.io/badge/Next.js-111111?style=flat-square&logo=nextdotjs&logoColor=white" alt="Next.js">
-  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
-  <img src="https://img.shields.io/badge/Deployed%20on-Vercel-000000?style=flat-square&logo=vercel&logoColor=white" alt="Vercel">
-</p>
+<img src="docs/images/schedule.png" alt="Tap Planner showing a Dark Matter schedule: start brewing Saturday 12 December, begin conditioning 17 December, tap day 24 December" width="460">
 
 </div>
 
-<hr>
+---
 
-<h2>Plan your next pour without counting backward by hand</h2>
+Pinter tells you how long a BrewPack takes. It doesn't tell you when to start
+if you want it ready for a particular day. Tap Planner does that arithmetic —
+fermentation, an optional cold crash, and conditioning, counted backward from
+your tap date — and then gets out of the way.
 
-<p>
-Tap Planner is a simple scheduling tool for Pinter owners. Pick an official BrewPack,
-choose the day you want it ready, and Tap Planner calculates the full timeline from
-brew day through tap day — then export it straight to your calendar.
-</p>
+No accounts, no database, nothing stored. Every calculation happens in your
+browser.
 
-<table>
-  <tr>
-    <td align="center" width="25%">
-      <strong>🍺 Pick a BrewPack</strong><br><br>
-      Search by name or style and load the official timing details.
-    </td>
-    <td align="center" width="25%">
-      <strong>📅 Choose tap day</strong><br><br>
-      Select the date you want your drink ready to pour.
-    </td>
-    <td align="center" width="25%">
-      <strong>✅ Get your schedule</strong><br><br>
-      See exactly when to brew, cold crash, condition, and tap.
-    </td>
-    <td align="center" width="25%">
-      <strong>📆 Export it</strong><br><br>
-      Download an all-day calendar file for every stage in one click.
-    </td>
-  </tr>
-</table>
+## Five ways to use it
 
-<hr>
+| | Page | Use it when |
+|---|---|---|
+| 🍺 | **BrewPack planner** — `/` | You're brewing an official pack and want its recommended or minimum timing |
+| 🧪 | **Custom planner** — `/custom` | You're brewing your own recipe, or overriding a pack's timing |
+| 🔄 | **Rotation planner** — `/rotation` | You run several Pinters and want them staggered so you never run dry |
+| 📅 | **Release timeline** — `/releases` | You want to know when a pack appeared, or when a seasonal might return |
+| 🏷️ | **Brew labels** — `/labels` | You want to know what's actually in the fridge |
 
-<h2>Example schedule</h2>
+## How the schedule works
 
-<p>For a July 28 tap date with 8 brewing days, 2 cold-crash days, and 3 conditioning days:</p>
+Pick a pack, pick the day you want to pour, and Tap Planner counts backward:
 
-<table>
-  <thead>
-    <tr>
-      <th align="center">🍺 Brew</th>
-      <th align="center">❄️ Cold crash</th>
-      <th align="center">🟡 Condition</th>
-      <th align="center">🔴 Tap</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td align="center"><strong>July 15</strong></td>
-      <td align="center"><strong>July 23</strong></td>
-      <td align="center"><strong>July 25</strong></td>
-      <td align="center"><strong>July 28</strong></td>
-    </tr>
-  </tbody>
-</table>
+```
+(brewing or fermentation) + cold crash + conditioning = total lead time
+```
 
-<p align="center"><strong>13 total days from brew start to tap day</strong></p>
+For a 24 December tap date with 5 brewing days and 7 conditioning days, it
+tells you to start on 12 December — and shows every stage in between.
 
-<hr>
+You can switch between **recommended** and **minimum** timing, add 1–3 days of
+cold crash, and it will tell you plainly when a date isn't achievable rather
+than quietly producing a schedule that starts in the past.
 
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <h3>Schedule options</h3>
-      <p>
-      Use official recommended timing for the intended BrewPack schedule,
-      or switch to minimum timing when you have less lead time.
-      </p>
-      <p>
-      An optional cold-crash stage can add 1, 2, or 3 days between brewing
-      and conditioning.
-      </p>
-    </td>
-    <td width="50%" valign="top">
-      <h3>BrewPack information</h3>
-      <p>
-      Tap Planner includes BrewPack name, style, ABV, recommended timing,
-      minimum timing, yeast, Hopper inclusion, and discontinued status.
-      </p>
-      <p>
-      Discontinued BrewPacks remain in the data but are hidden from normal search.
-      </p>
-    </td>
-  </tr>
-</table>
+**Add schedule to calendar** downloads a standard `.ics` file with each stage
+as an all-day event spanning its real date range. Generated in your browser —
+Tap Planner never asks for calendar access and adds nothing automatically.
 
-<hr>
+## Brew labels
 
-<h2>Three ways to plan</h2>
+<div align="center">
+<img src="docs/images/label-sheet.png" alt="Two 4x6 brew labels laid out on a Letter sheet with dashed cut guides" width="540">
+</div>
 
-<table>
-  <tr>
-    <td width="33%" valign="top">
-      <h3>🍺 Official BrewPacks</h3>
-      <p>
-      Pick an official Pinter BrewPack and let Tap Planner load its recommended
-      and minimum timing, then work backward from your tap date.
-      </p>
-    </td>
-    <td width="33%" valign="top">
-      <h3>🧪 Custom recipes</h3>
-      <p>
-      Planning your own recipe or different timing? Build a fully custom
-      schedule at <code>/custom</code> — set your own fermentation, cold-crash,
-      and conditioning days.
-      </p>
-    </td>
-    <td width="33%" valign="top">
-      <h3>🔄 Never run dry</h3>
-      <p>
-      Running several Pinters? The rotation planner at <code>/rotation</code>
-      lines up a different beer in each and tells you when to start every brew,
-      so a fresh one is always ready as the last runs dry.
-      </p>
-    </td>
-  </tr>
-</table>
+Print a 4×6 card for each brew — name, style, ABV, brew and tap dates, batch
+number, tasting notes.
 
-<p align="center"><em>Custom recipe details are used only to calculate your schedule and are never saved.</em></p>
+- **4×6 index card** — one label, for photo trays, 4×6 sticker sheets, and
+  thermal label printers.
+- **US Letter** — two labels side by side with cut guides, and they can be two
+  different beers. Printed landscape, because two 4×6 cards are 8in wide and
+  portrait leaves less margin than most printers can manage.
 
-<hr>
+<details>
+<summary><strong>Which paper survives a fridge?</strong></summary>
 
-<h2>📆 Add your schedule to your calendar</h2>
+Any paper works, but a fridge is cold, humid, and prone to condensation.
 
-<p>
-Once a schedule is calculated — on both the official and custom planners — an
-<strong>Add schedule to calendar</strong> button appears in the result. One click downloads a
-standard <code>.ics</code> file you can open in <strong>Apple Calendar</strong>,
-<strong>Google Calendar</strong>, <strong>Outlook</strong>, and most other calendar apps.
-</p>
+| Paper | Verdict |
+|---|---|
+| Waterproof synthetic (vinyl, polypropylene) | **Best** — immune to condensation |
+| Matte photo paper, RC-coated | **Great** — resists moisture, still writable |
+| Cardstock, 65–110lb | **Good** — stiff and cheap, softens if it gets damp |
+| Plain printer paper | **Works** — goes wrinkly in a few days |
 
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <h3>📅 Full timeline, not just a reminder</h3>
-      <p>
-      Each stage becomes an all-day event that <strong>spans its real date range</strong> —
-      brewing through cold crash, cold crash through conditioning, conditioning through tap —
-      so your calendar shows the whole brew at a glance. Tap day lands as a single day. Cold
-      crash is only included when you actually use it.
-      </p>
-    </td>
-    <td width="50%" valign="top">
-      <h3>🔒 Yours alone</h3>
-      <p>
-      The file is generated <strong>entirely in your browser</strong>. Tap Planner never asks
-      for calendar account access, never talks to a calendar service, and stores nothing. You
-      download a file and open it yourself — nothing is added to any calendar automatically.
-      </p>
-    </td>
-  </tr>
-</table>
+Two things matter more than the paper:
 
-<p>
-Every event is titled with the BrewPack or schedule name (for example,
-<code>Dark Matter: Tap day</code>) and carries a short description with the style, ABV,
-stage, stage duration, the timing mode for official BrewPacks, and the total lead time. Dates
-use time-zone-safe all-day values, so a stage never drifts by a day no matter where you open it.
-</p>
+- **Your ink.** Laser toner is fused plastic and waterproof on anything,
+  including copy paper. Consumer inkjet dye ink runs the moment condensation
+  touches it.
+- **Apply labels at room temperature, then chill.** Standard adhesive barely
+  grabs an already-cold surface. This is the most common reason fridge labels
+  fall off.
 
-<hr>
+A strip of clear packing tape over the front laminates any card for about a cent.
 
-<h2>Automatic catalog monitoring</h2>
+</details>
 
-<table>
-  <tr>
-    <td align="center" width="25%"><strong>1</strong><br><br>Check Pinter's public BrewPack page</td>
-    <td align="center" width="25%"><strong>2</strong><br><br>Validate and compare the catalog</td>
-    <td align="center" width="25%"><strong>3</strong><br><br>Run lint and a production build</td>
-    <td align="center" width="25%"><strong>4</strong><br><br>Open a pull request for review</td>
-  </tr>
-</table>
+## Release timeline
 
-<blockquote>
-<strong>Nothing is published silently.</strong> Catalog changes must be reviewed and merged before they reach the live app.
-</blockquote>
+<div align="center">
+<img src="docs/images/releases.png" alt="The release timeline, showing a density strip of releases by month above year filters and pack cards" width="520">
+</div>
 
-<hr>
+Pinter has never published release dates, so these are **estimates** worked out
+from timestamps on the online store. Treat it as trivia and a rough guide to
+when seasonals reappear, not a source of truth — anything marked *Approx.* is
+month-only on purpose, because a pack that goes away and comes back has its
+store date overwritten by the return.
 
-<h2>Important notice</h2>
+The density strip plots one mark per release event by month, so launch waves
+and quiet stretches are visible as shape. A filled tick is a launch, an open
+ring is a pack coming back; hover either and the pair links up.
 
-<p>
-Tap Planner is an independent community project. It is not an official Pinter product
-and is not affiliated with or endorsed by Pinter.
-</p>
+## Artwork
 
-<p>
-Use Tap Planner for schedule planning. Continue using the official Pinter app for
-active brewing instructions, safety guidance, product support, and decisions during your brew.
-</p>
+Every pack in the catalog is shown with Pinter's own product photography:
 
-<hr>
+<div align="center">
+<img src="docs/images/pack-collage.png" alt="A grid of eighteen Pinter BrewPack product shots, each a poured glass beside its pouch on a bright single-colour background" width="600">
+</div>
+
+Where a photo isn't available — a custom recipe, or a pack that leaves the
+store before it is ever captured — Tap Planner generates a label design from
+the beer style instead, so a card never comes out blank. Colour comes from the
+style and the motif from its family: hops for the IPAs, grain for the lagers,
+roasted beans for the stouts.
+
+Images are stored locally and served from this app. Nothing is hotlinked, and
+nothing is fetched from Pinter at runtime.
+
+## Staying current
+
+A scheduled workflow checks Pinter's public BrewPack listing, validates the
+catalog, runs lint and a production build, and opens a pull request.
+
+> **Nothing is published silently.** Catalog and image changes are reviewed and
+> merged before they reach the live app.
+
+## Important notice
+
+Tap Planner is an independent community project. It is **not** affiliated with,
+endorsed by, or sponsored by Pinter. "Pinter", BrewPack names, and all official
+product images and artwork are the property of their respective owners, and are
+used here only to identify the pack you are brewing.
+
+Use Tap Planner for planning. Continue using the official Pinter app for
+brewing instructions, safety guidance, product support, and decisions during
+your brew.
+
+---
 
 <div align="center">
 
-<h3>Developer documentation</h3>
+**[Developer documentation](docs/DEVELOPMENT.md)** — setup, project structure,
+the BrewPack pipeline, the image policy, and deployment.
 
-<p>
-Technical setup, project structure, BrewPack importing, automated monitoring,
-and deployment details are available in the
-<a href="docs/DEVELOPMENT.md">developer documentation</a>.
-</p>
-
-<p><strong>Built for better brew planning. 🍻</strong></p>
+Built for better brew planning. 🍻
 
 </div>

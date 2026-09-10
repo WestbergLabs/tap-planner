@@ -24,6 +24,8 @@ export type ShopifyProduct = {
   body_html?: string | null;
   tags?: string[];
   variants?: Array<{ available?: boolean }>;
+  /** Product imagery. Only the first image is used, as the pack shot. */
+  images?: Array<{ src?: string | null }>;
 };
 
 /** A normalized product reduced to the fields relevant to Tap Planner. */

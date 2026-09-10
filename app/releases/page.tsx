@@ -12,6 +12,12 @@ import { useMemo, useState } from "react";
 
 import Image from "next/image";
 
+import PackThumb from "@/components/PackThumb";
+import ReleaseStrip, {
+  ReleaseStripLegend,
+  type StripYear,
+} from "@/components/ReleaseStrip";
+import PinterNotice from "@/components/PinterNotice";
 import SiteNav, { ISSUES_URL } from "@/components/SiteNav";
 import { releases, type BrewPackRelease } from "@/data/releases.generated";
 import {
@@ -19,6 +25,7 @@ import {
   formatReissueDate,
   formatReleaseLabel,
   groupByYear,
+  releaseYear,
   reissuedReleases,
   statusLabel,
   undatedReleases,
@@ -32,77 +39,222 @@ const statusChipClass: Record<BrewPackRelease["status"], string> = {
   discontinued: "border-stage-tap/30 bg-stage-tap-soft text-stage-tap",
 };
 
-function ReleaseCard({ release }: { release: BrewPackRelease }) {
+/**
+ * The timeline overview: a density strip of every dated release, with an
+ * aligned row of year buttons that filter the list below.
+ *
+ * The strip is decorative (`aria-hidden`); the buttons carry the same
+ * information as text and do the actual filtering, so nothing is visual-only.
+ * Both share the same equal-width-per-year geometry, which is why the columns
+ * line up with the labels.
+ */
+function TimelineOverview({
+  releases: allReleases,
+  years,
+  selected,
+  onSelect,
+  hoveredId,
+  onHover,
+  onPick,
+}: {
+  releases: BrewPackRelease[];
+  years: StripYear[];
+  selected: number | null;
+  onSelect: (year: number | null) => void;
+  hoveredId: string | null;
+  onHover: (id: string | null) => void;
+  onPick: (release: BrewPackRelease) => void;
+}) {
+  return (
+    <div className="mb-6 rounded-2xl border border-border bg-surface p-4 shadow-card">
+      <ReleaseStrip
+        releases={allReleases}
+        years={years}
+        selectedYear={selected}
+        hoveredId={hoveredId}
+        onHover={onHover}
+        onPick={onPick}
+      />
+
+      <div className="mt-1 flex">
+        {years.map(({ year, count }) => {
+          const isSelected = selected === year;
+
+          return (
+            <button
+              key={year}
+              type="button"
+              aria-pressed={isSelected}
+              onClick={() => onSelect(isSelected ? null : year)}
+              className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-2 transition focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface ${
+                isSelected ? "bg-accent-soft" : "hover:bg-field"
+              }`}
+            >
+              <span
+                className={`text-sm font-semibold tabular-nums ${
+                  isSelected ? "text-accent" : "text-foreground"
+                }`}
+              >
+                {year}
+              </span>
+              <span className="text-xs tabular-nums text-muted">
+                {count} {count === 1 ? "pack" : "packs"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <ReleaseStripLegend />
+
+      <p className="mt-3 text-center text-xs leading-5 text-muted">
+        {selected === null
+          ? "Each tick is one pack, stacked by the month it landed. A ring is a pack coming back. Tap a tick to jump to it, or a year to filter."
+          : `Showing ${selected} only — tap it again to show everything.`}
+      </p>
+    </div>
+  );
+}
+
+function ReleaseCard({
+  release,
+  isHighlighted = false,
+  onHover,
+}: {
+  release: BrewPackRelease;
+  isHighlighted?: boolean;
+  onHover?: (id: string | null) => void;
+}) {
   const isEstimate = release.precision !== "day";
 
   return (
-    <li className="rounded-2xl border border-border bg-surface p-4 shadow-card">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-        <span
-          className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
-            isEstimate
-              ? "border-border-strong bg-field text-muted"
-              : "border-border bg-field text-foreground"
-          }`}
-        >
-          {formatReleaseLabel(release)}
-        </span>
+    <li
+      id={`release-${release.id}`}
+      onMouseEnter={() => onHover?.(release.id)}
+      onMouseLeave={() => onHover?.(null)}
+      className={`flex scroll-mt-6 gap-4 rounded-2xl border bg-surface p-4 shadow-card transition ${
+        isHighlighted
+          ? "border-accent ring-2 ring-accent/35"
+          : "border-border"
+      }`}
+    >
+      <PackThumb packId={release.id} style={release.style} size={64} />
 
-        <span
-          className={`rounded-full border px-2.5 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] ${statusChipClass[release.status]}`}
-        >
-          {statusLabel(release)}
-        </span>
-      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+          <span
+            className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
+              isEstimate
+                ? "border-border-strong bg-field text-muted"
+                : "border-border bg-field text-foreground"
+            }`}
+          >
+            {formatReleaseLabel(release)}
+          </span>
 
-      <h3 className="mt-2.5 font-display text-lg uppercase leading-tight sm:text-xl">
-        {release.name}
-      </h3>
-
-      <p className="mt-0.5 text-sm text-muted">
-        {release.style} &middot; {release.abv}%
-      </p>
-
-      {(release.flavors.length > 0 || release.badges.length > 0) && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {release.flavors.map((flavor) => (
-            <span
-              key={flavor}
-              className="rounded-full border border-border bg-field px-2.5 py-1 text-[0.7rem] capitalize text-muted"
-            >
-              {flavor}
-            </span>
-          ))}
-
-          {release.badges.map((badge) => (
-            <span
-              key={badge}
-              className="rounded-full border border-accent/30 bg-accent-soft px-2.5 py-1 text-[0.7rem] font-semibold text-accent"
-            >
-              {badge}
-            </span>
-          ))}
+          <span
+            className={`rounded-full border px-2.5 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] ${statusChipClass[release.status]}`}
+          >
+            {statusLabel(release)}
+          </span>
         </div>
-      )}
 
-      {release.reissuedOn && (
-        <p className="mt-3 rounded-lg border border-border bg-field px-3 py-2 text-xs leading-5 text-muted">
-          Came back around {formatReissueDate(release.reissuedOn)}, which resets
-          the store&rsquo;s date. That is why the release above is a month
-          rather than a day.
+        <h3 className="mt-2.5 font-display text-lg uppercase leading-tight sm:text-xl">
+          {release.name}
+        </h3>
+
+        <p className="mt-0.5 text-sm text-muted">
+          {release.style} &middot; {release.abv}%
         </p>
-      )}
+
+        {(release.flavors.length > 0 || release.badges.length > 0) && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {release.flavors.map((flavor) => (
+              <span
+                key={flavor}
+                className="rounded-full border border-border bg-field px-2.5 py-1 text-[0.7rem] capitalize text-muted"
+              >
+                {flavor}
+              </span>
+            ))}
+
+            {release.badges.map((badge) => (
+              <span
+                key={badge}
+                className="rounded-full border border-accent/30 bg-accent-soft px-2.5 py-1 text-[0.7rem] font-semibold text-accent"
+              >
+                {badge}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {release.reissuedOn && (
+          <p className="mt-3 rounded-lg border border-border bg-field px-3 py-2 text-xs leading-5 text-muted">
+            Came back around {formatReissueDate(release.reissuedOn)}, which resets
+            the store&rsquo;s date. That is why the release above is a month
+            rather than a day.
+          </p>
+        )}
+      </div>
     </li>
   );
 }
 
 export default function ReleasesPage() {
   const [view, setView] = useState<View>("available");
+  // null means "all years". Filtering rather than anchor-jumping: a jump left
+  // every other year still sitting below you, so the list never got shorter.
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  // Shared between the strip and the cards, so hovering either highlights both.
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const available = useMemo(() => availableReleases(releases), []);
   const years = useMemo(() => groupByYear(releases), []);
   const undated = useMemo(() => undatedReleases(releases), []);
   const reissued = useMemo(() => reissuedReleases(releases), []);
+
+  // Ascending for the strip and the button row; the card list stays
+  // newest-first below, because a chart of time reads left to right but a
+  // "what is new" list reads top down.
+  const stripYears = useMemo<StripYear[]>(
+    () =>
+      [...years]
+        .map(({ year, releases: yearReleases }) => ({
+          year,
+          count: yearReleases.length,
+        }))
+        .sort((a, b) => a.year - b.year),
+    [years],
+  );
+
+  const visibleYears = useMemo(
+    () =>
+      selectedYear === null
+        ? years
+        : years.filter((entry) => entry.year === selectedYear),
+    [years, selectedYear],
+  );
+
+  // Clicking a tick jumps to that pack's card. If a year filter is hiding it,
+  // clear the filter first and scroll on the next frame, once it has rendered.
+  function handlePickRelease(release: BrewPackRelease) {
+    const year = releaseYear(release);
+
+    function scrollToCard() {
+      document
+        .getElementById(`release-${release.id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    if (selectedYear !== null && year !== selectedYear) {
+      setSelectedYear(null);
+      requestAnimationFrame(scrollToCard);
+      return;
+    }
+
+    scrollToCard();
+  }
 
   const tabClass = (isActive: boolean): string =>
     `flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background ${
@@ -239,7 +391,12 @@ export default function ReleasesPage() {
 
             <ul className="space-y-3">
               {available.map((release) => (
-                <ReleaseCard key={release.id} release={release} />
+                <ReleaseCard
+                  key={release.id}
+                  release={release}
+                  isHighlighted={hoveredId === release.id}
+                  onHover={setHoveredId}
+                />
               ))}
             </ul>
           </section>
@@ -249,25 +406,17 @@ export default function ReleasesPage() {
             role="tabpanel"
             aria-labelledby="tab-history"
           >
-            <nav aria-label="Jump to year" className="mb-6">
-              <ul className="flex flex-wrap gap-2">
-                {years.map(({ year, releases: yearReleases }) => (
-                  <li key={year}>
-                    <a
-                      href={`#year-${year}`}
-                      className="inline-flex items-baseline gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-sm font-semibold text-foreground transition hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
-                    >
-                      {year}
-                      <span className="text-xs font-normal text-muted">
-                        {yearReleases.length}
-                      </span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </nav>
+            <TimelineOverview
+              releases={releases}
+              years={stripYears}
+              selected={selectedYear}
+              onSelect={setSelectedYear}
+              hoveredId={hoveredId}
+              onHover={setHoveredId}
+              onPick={handlePickRelease}
+            />
 
-            {years.map(({ year, releases: yearReleases }) => (
+            {visibleYears.map(({ year, releases: yearReleases }) => (
               <section
                 key={year}
                 id={`year-${year}`}
@@ -289,13 +438,18 @@ export default function ReleasesPage() {
 
                 <ul className="space-y-3">
                   {yearReleases.map((release) => (
-                    <ReleaseCard key={release.id} release={release} />
+                    <ReleaseCard
+                  key={release.id}
+                  release={release}
+                  isHighlighted={hoveredId === release.id}
+                  onHover={setHoveredId}
+                />
                   ))}
                 </ul>
               </section>
             ))}
 
-            {undated.length > 0 && (
+            {undated.length > 0 && selectedYear === null && (
               <section aria-labelledby="undated-heading" className="mb-8">
                 <div className="mb-3 border-b border-border pb-2">
                   <h2
@@ -323,7 +477,12 @@ export default function ReleasesPage() {
 
                 <ul className="space-y-3">
                   {undated.map((release) => (
-                    <ReleaseCard key={release.id} release={release} />
+                    <ReleaseCard
+                  key={release.id}
+                  release={release}
+                  isHighlighted={hoveredId === release.id}
+                  onHover={setHoveredId}
+                />
                   ))}
                 </ul>
               </section>
@@ -333,9 +492,10 @@ export default function ReleasesPage() {
 
         <footer className="mt-6 space-y-2 text-center text-xs leading-5 text-muted">
           <p>
-            Unofficial fan project. Dates are estimated from public store data
-            and are not endorsed by or affiliated with Pinter.
+            Dates are estimated from public store data, not published by Pinter.
           </p>
+
+          <PinterNotice />
 
           <p>Header photo by Karl Joshua Bernal on Unsplash.</p>
         </footer>

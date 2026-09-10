@@ -11,7 +11,9 @@ import {
 import Image from "next/image";
 
 import BeerPicker, { CUSTOM_BEER } from "@/components/BeerPicker";
+import PackThumb from "@/components/PackThumb";
 import SiteNav from "@/components/SiteNav";
+import PinterNotice from "@/components/PinterNotice";
 import { brewPacks } from "@/data/brewpacks.generated";
 import {
   addDays,
@@ -550,25 +552,49 @@ export default function RotationPage() {
                     </legend>
 
                     <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
-                      <div>
-                        <label
-                          htmlFor={`beer-${index}-input`}
-                          className={labelClass}
-                        >
-                          Beer
-                        </label>
-                        <BeerPicker
-                          instanceId={`beer-${index}`}
-                          brewPacks={activeBrewPacks}
-                          value={slot.kind === "custom" ? CUSTOM_BEER : slot.brewPackId}
-                          onChange={(value) => {
-                            if (value === CUSTOM_BEER) {
-                              updateSlot(index, { kind: "custom" });
-                            } else {
-                              updateSlot(index, { kind: "brewpack", brewPackId: value });
-                            }
-                          }}
+                      <div className="flex items-end gap-3">
+                        <PackThumb
+                          packId={
+                            slot.kind === "brewpack" ? slot.brewPackId : null
+                          }
+                          style={
+                            activeBrewPacks.find(
+                              (pack) =>
+                                slot.kind === "brewpack" &&
+                                pack.id === slot.brewPackId,
+                            )?.style ?? ""
+                          }
+                          size={48}
+                          className="mb-1"
                         />
+
+                        <div className="min-w-0 flex-1">
+                          <label
+                            htmlFor={`beer-${index}-input`}
+                            className={labelClass}
+                          >
+                            Beer
+                          </label>
+                          <BeerPicker
+                            instanceId={`beer-${index}`}
+                            brewPacks={activeBrewPacks}
+                            value={
+                              slot.kind === "custom"
+                                ? CUSTOM_BEER
+                                : slot.brewPackId
+                            }
+                            onChange={(value) => {
+                              if (value === CUSTOM_BEER) {
+                                updateSlot(index, { kind: "custom" });
+                              } else {
+                                updateSlot(index, {
+                                  kind: "brewpack",
+                                  brewPackId: value,
+                                });
+                              }
+                            }}
+                          />
+                        </div>
                       </div>
 
                       <div className="sm:w-32">
@@ -918,6 +944,8 @@ export default function RotationPage() {
             rotation is only as accurate as it. Everything is calculated in your
             browser and nothing is stored.
           </p>
+
+          <PinterNotice />
         </footer>
       </div>
     </main>

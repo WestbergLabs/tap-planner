@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+import BackToTop from "@/components/BackToTop";
+
 const siteUrl = "https://tap-planner.vercel.app";
 
 export const metadata: Metadata = {
@@ -47,7 +49,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <BackToTop />
+      </body>
     </html>
   );
 }

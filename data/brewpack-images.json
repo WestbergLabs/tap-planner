@@ -1,0 +1,359 @@
+{
+  "packs": {
+    "adnams-ghost-ship-remixed": {
+      "file": "adnams-ghost-ship-remixed.jpg",
+      "thumb": "adnams-ghost-ship-remixed.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/Banner__AdnamsGhostShipRemixed-min.jpg?v=1748620236",
+      "sha256": "c572e484e7c6c95d37417de0b5507e4c1a8dd1b8d7c02c79b24b301be41b39e7",
+      "capturedAt": "2026-09-10",
+      "productId": 9944057839897,
+      "name": "Adnams Ghost Ship Remixed"
+    },
+    "after-midnight": {
+      "file": "after-midnight.jpg",
+      "thumb": "after-midnight.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/AfterMidnight-CustomPouch_03.jpg?v=1765280593",
+      "sha256": "318d2a4d284a790628fb93bf5179bd5b6673b7554781a08e913e20b815201b09",
+      "capturedAt": "2026-09-10",
+      "productId": 10013814325529,
+      "name": "After Midnight"
+    },
+    "all-american-haze": {
+      "file": "all-american-haze.jpg",
+      "thumb": "all-american-haze.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/AllAmericanHaze_03_1.jpg?v=1754399298",
+      "sha256": "f28a2cac6451f4ffb28b2883ee12f64d724d841d385fce88b7131f668bb5d9ad",
+      "capturedAt": "2026-09-10",
+      "productId": 9997222773017,
+      "name": "All American Haze"
+    },
+    "ancestors": {
+      "file": "ancestors.jpg",
+      "thumb": "ancestors.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/Ancestors_03.jpg?v=1768498889",
+      "sha256": "32350da318f7ff9b462d1c9635f7a93e9a86138ecf0d1ee7038b587d4775855d",
+      "capturedAt": "2026-09-10",
+      "productId": 8866010988825,
+      "name": "Ancestor's"
+    },
+    "appalachian-mountain-brewery": {
+      "file": "appalachian-mountain-brewery.png",
+      "thumb": "appalachian-mountain-brewery.thumb.png",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/AMB_Gold_WorldBeerAwards2026.png?v=1788449272",
+      "sha256": "bd0677d8d2c51f3959437fb8377313194e3d30bbdb128b75c519d02b38319a55",
+      "capturedAt": "2026-09-10",
+      "productId": 9668339958041,
+      "name": "Appalachian Mountain Brewery"
+    },
+    "bavarian-rhapsody": {
+      "file": "bavarian-rhapsody.jpg",
+      "thumb": "bavarian-rhapsody.thumb.jpg",
+      "src": "https://pinter.com/cdn/shop/files/BavarianRhapsody2.jpg",
+      "sha256": "9489c0e42869a137ebe42395ed51cf206a4360b5c4c89c594be15ccaee67326e",
+      "name": "Bavarian Rhapsody",
+      "capturedAt": "2026-09-10"
+    },
+    "black-magic-hour": {
+      "file": "black-magic-hour.jpg",
+      "thumb": "black-magic-hour.thumb.jpg",
+      "src": "https://pinter.com/cdn/shop/files/BlackMagicHour-Custom_03.jpg",
+      "sha256": "024d172ac89de08cd6afd4345a967c2ee99eadc6cece51e026c664e1cf5e0c7f",
+      "name": "Black Magic Hour",
+      "capturedAt": "2026-09-10"
+    },
+    "brewdog-elvis-juice-remixed": {
+      "file": "brewdog-elvis-juice-remixed.jpg",
+      "thumb": "brewdog-elvis-juice-remixed.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/BrewDog-ElvisJuiceRemixed_03copy_3131cbd7-786f-4715-b6aa-9fc6f6240fc9.jpg?v=1770292363",
+      "sha256": "2ea39ee0afe7eca353e5ab6882e21acb734fa3f8433a748f246202cf67eb78a9",
+      "capturedAt": "2026-09-10",
+      "productId": 9873439621401,
+      "name": "BrewDog Elvis Juice Remixed"
+    },
+    "brewdog-hazy-jane-remixed": {
+      "file": "brewdog-hazy-jane-remixed.png",
+      "thumb": "brewdog-hazy-jane-remixed.thumb.png",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/BrewdogHazyJane_Bronze_USABeerRatings2026.png?v=1788449290",
+      "sha256": "8a45903a8f71832b30c2e8e46c525f05f909acadf54136a56a9384a0dec8ca2e",
+      "capturedAt": "2026-09-10",
+      "productId": 9770541547801,
+      "name": "BrewDog Hazy Jane Remixed"
+    },
+    "brewdog-punk-ipa-remixed": {
+      "file": "brewdog-punk-ipa-remixed.jpg",
+      "thumb": "brewdog-punk-ipa-remixed.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/BrewDog-PunkIPARemixed2.jpg?v=1759247473",
+      "sha256": "0d688f524faea9013380fe4ff9c1d943a16b731b5240c7c4fc40586ffabe57e2",
+      "capturedAt": "2026-09-10",
+      "productId": 9770541252889,
+      "name": "BrewDog Punk IPA Remixed"
+    },
+    "brewgooder-hazy-ipa-remixed": {
+      "file": "brewgooder-hazy-ipa-remixed.jpg",
+      "thumb": "brewgooder-hazy-ipa-remixed.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/BannerProductBreweryCollab.jpg?v=1765285749",
+      "sha256": "4424c6694d99acfc5ab7d6754e850c1532d9aa14a3af58eee792a28a79789205",
+      "capturedAt": "2026-09-10",
+      "productId": 8961621000473,
+      "name": "Brewgooder Hazy IPA Remixed"
+    },
+    "dark-matter": {
+      "file": "dark-matter.jpg",
+      "thumb": "dark-matter.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/DarkMatter2_03.jpg?v=1759247267",
+      "sha256": "da1ba83aa4ee6544f3fc2562580c92504b3f0b608618bfad2e776dd8b41ad664",
+      "capturedAt": "2026-09-10",
+      "productId": 8802186002713,
+      "name": "Dark Matter"
+    },
+    "deep-shade": {
+      "file": "deep-shade.png",
+      "thumb": "deep-shade.thumb.png",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/DeepShadeCoffee_Gold_USABeerRatings2026.png?v=1788449297",
+      "sha256": "0a845a1cef2818a7cb928ee7f626813db837c23e22b18b0d511089716daa75d5",
+      "capturedAt": "2026-09-10",
+      "productId": 10195577241881,
+      "name": "Deep Shade"
+    },
+    "dog-house": {
+      "file": "dog-house.jpg",
+      "thumb": "dog-house.thumb.jpg",
+      "src": "https://pinter.com/cdn/shop/files/DogHouseIPA_03.jpg",
+      "sha256": "666896693a39dfbd3a936f60c6fff4212357810e8864cbb55660584292e385df",
+      "name": "Dog House",
+      "capturedAt": "2026-09-10"
+    },
+    "en-casa": {
+      "file": "en-casa.jpg",
+      "thumb": "en-casa.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/EnCasa2_03.jpg?v=1759322281",
+      "sha256": "3f505255e3b69bdcda66781f0be835269ce1ec79bf284cff3859a39b920f49bb",
+      "capturedAt": "2026-09-10",
+      "productId": 9518057980185,
+      "name": "En Casa"
+    },
+    "en-casa-lime": {
+      "file": "en-casa-lime.jpg",
+      "thumb": "en-casa-lime.thumb.jpg",
+      "src": "https://pinter.com/cdn/shop/files/EnCasaLime_03.jpg",
+      "sha256": "e32f2559432c025ba7f180162e11e88766c821d8f51d8a865a3c9baa6c2fad47",
+      "name": "En Casa Lime",
+      "capturedAt": "2026-09-10"
+    },
+    "fourpure-citrus-ipa-remixed": {
+      "file": "fourpure-citrus-ipa-remixed.jpg",
+      "thumb": "fourpure-citrus-ipa-remixed.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/FourpureCitrusIPARemixed_03_copy.jpg?v=1736248493",
+      "sha256": "452847a0549e6b2865ceb317fcff25b6df7362b2ed53a2b917725d8e00dfaced",
+      "capturedAt": "2026-09-10",
+      "productId": 9809484742937,
+      "name": "Fourpure Citrus IPA Remixed"
+    },
+    "golden-grove": {
+      "file": "golden-grove.png",
+      "thumb": "golden-grove.thumb.png",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/GoldenGrove_Silver_USABeerRatings2026_e246b494-c219-47be-8e26-1333bb2755c2.png?v=1788449360",
+      "sha256": "dd29af0a8659682cb6b9cf673eafdac15bd69a7c6819497ffdc2f04e5ae767d3",
+      "capturedAt": "2026-09-10",
+      "productId": 9878937960729,
+      "name": "Golden Grove"
+    },
+    "great-lakes-burning-river-remixed": {
+      "file": "great-lakes-burning-river-remixed.png",
+      "thumb": "great-lakes-burning-river-remixed.thumb.png",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/BannerProduct-GreatLakesBurningRiverRemixedBreweryCollab.png?v=1785745046",
+      "sha256": "94b0a00ef8e8e428b992181306f781fa899a80f2cfc77c94bf1537c08d14bce4",
+      "capturedAt": "2026-09-10",
+      "productId": 10620030189849,
+      "name": "Great Lakes Burning River Remixed"
+    },
+    "hopewell-west-coast-lager": {
+      "file": "hopewell-west-coast-lager.png",
+      "thumb": "hopewell-west-coast-lager.thumb.png",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/HopewellWestCoastLager_Gold_WorldBeerAwards2026.png?v=1788449310",
+      "sha256": "dcef686ee54c9c9e9c5ac86540f6003177ae21057f4f24a1a69588453020618e",
+      "capturedAt": "2026-09-10",
+      "productId": 10301797826841,
+      "name": "Hopewell West Coast Lager"
+    },
+    "iron-maidens-trooper-remixed": {
+      "file": "iron-maidens-trooper-remixed.png",
+      "thumb": "iron-maidens-trooper-remixed.thumb.png",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/Trooper_World_sBestBitter_WorldBeerAwards2026-1.png?v=1788448922",
+      "sha256": "acbe6d436b1c1e2c6c5fb345b3c2863970ee004b2d659b3751c7a07919bec87a",
+      "capturedAt": "2026-09-10",
+      "productId": 9913436832025,
+      "name": "Iron Maiden's Trooper Remixed"
+    },
+    "lagunitas-super-cluster-remixed": {
+      "file": "lagunitas-super-cluster-remixed.png",
+      "thumb": "lagunitas-super-cluster-remixed.thumb.png",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/Banner-LagunitasBreweryCollab_SuperCluster.png?v=1784641531",
+      "sha256": "48e536f5d3d081db46008b8df826be868bde7b20c54edbb054dc28355c653d3c",
+      "capturedAt": "2026-09-10",
+      "productId": 10732933808409,
+      "name": "Lagunitas Super Cluster Remixed"
+    },
+    "lemon-lime-hard-seltzer": {
+      "file": "lemon-lime-hard-seltzer.jpg",
+      "thumb": "lemon-lime-hard-seltzer.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/SeltzerSeries-Lemon_Lime_03_1fc1c27a-2535-4cdd-8593-9b5a6f13d325.jpg?v=1722957091",
+      "sha256": "41d5ac82d33c9bfab35c4793c5ec2f6e29efe9606718d775798cad5c9a99c38c",
+      "capturedAt": "2026-09-10",
+      "productId": 9635982737689,
+      "name": "Lemon & Lime Hard Seltzer"
+    },
+    "pear-with-me": {
+      "file": "pear-with-me.jpg",
+      "thumb": "pear-with-me.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/PearWithMe-CustomPouch_03.jpg?v=1765280688",
+      "sha256": "5a49f1f8359cd52aabdcacab9ea6e217ede14bb22494ef467b547cca6cc9297c",
+      "capturedAt": "2026-09-10",
+      "productId": 10001566466329,
+      "name": "Pear with me"
+    },
+    "proper-english": {
+      "file": "proper-english.jpg",
+      "thumb": "proper-english.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/ProperEnglish_03.jpg?v=1785319416",
+      "sha256": "502b91f4815315a398ee201d287fcebfd5468b4e13241e2663c158d921f99a00",
+      "capturedAt": "2026-09-10",
+      "productId": 10739806142745,
+      "name": "Proper English"
+    },
+    "prostmeister": {
+      "file": "prostmeister.jpg",
+      "thumb": "prostmeister.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/Prostmeister2_03_1.jpg?v=1759415941",
+      "sha256": "40b8f79e92acb18d561c1ed4fd5135c28df31b69ae41813f1759b34a8fd04c35",
+      "capturedAt": "2026-09-10",
+      "productId": 9668339302681,
+      "name": "Prostmeister"
+    },
+    "prostmeister-with-stein": {
+      "file": "prostmeister-with-stein.jpg",
+      "thumb": "prostmeister-with-stein.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/Prostmeister_Stein2.jpg?v=1759246998",
+      "sha256": "6422f5bdc151fcceb3683b51758de584a205d68a7d7866d1ae522da43e8f7545",
+      "capturedAt": "2026-09-10",
+      "productId": 10106769703193,
+      "name": "Prostmeister with Stein"
+    },
+    "razz-session": {
+      "file": "razz-session.jpg",
+      "thumb": "razz-session.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/RazzSession-CustomPouch_03.jpg?v=1765281418",
+      "sha256": "9601f5abeba1397cff1ec7cd1ab6d64353976b6b99f84f146604a737351f9879",
+      "capturedAt": "2026-09-10",
+      "productId": 9668339564825,
+      "name": "Razz Session"
+    },
+    "shadow-and-cream": {
+      "file": "shadow-and-cream.png",
+      "thumb": "shadow-and-cream.thumb.png",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/Shadow_Cream-Silver_WorldBeerAwards2026-2.png?v=1788449332",
+      "sha256": "f3a996f4b013bc5b793999d0ae1c5493a59cc0af5aa1539935acc38a5b26b322",
+      "capturedAt": "2026-09-10",
+      "productId": 9869955924249,
+      "name": "Shadow & Cream"
+    },
+    "snap-pilsner": {
+      "file": "snap-pilsner.jpg",
+      "thumb": "snap-pilsner.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/SnapPilsner_03.jpg?v=1768409109",
+      "sha256": "b062f6a07a91b1747d77f59fbc30a99b5a96c3c28a038311398faf384df463e7",
+      "capturedAt": "2026-09-10",
+      "productId": 10239632834841,
+      "name": "Snap Pilsner"
+    },
+    "space-hopper": {
+      "file": "space-hopper.jpg",
+      "thumb": "space-hopper.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/SpaceHopper2_03.jpg?v=1759247350",
+      "sha256": "d8093f5ccfdbb47356d19a856382cee0849f2280c7bd5e2b2c985c8187292fcb",
+      "capturedAt": "2026-09-10",
+      "productId": 8802186461465,
+      "name": "Space Hopper"
+    },
+    "space-hopper-west-coast-edition": {
+      "file": "space-hopper-west-coast-edition.jpg",
+      "thumb": "space-hopper-west-coast-edition.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/SpaceHopperWestCoastEdition-CustomPouch_03.jpg?v=1765286831",
+      "sha256": "b5562d07a51fba20e28f8202272f3f28a0e3fd2e5af6eeae7dd270c47cbfd6c7",
+      "capturedAt": "2026-09-10",
+      "productId": 8802186297625,
+      "name": "Space Hopper West Coast Edition"
+    },
+    "sport-beer": {
+      "file": "sport-beer.jpg",
+      "thumb": "sport-beer.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/SportBeer_03.jpg?v=1786003031",
+      "sha256": "b31172cb73a491564eb71836c73fc9b0b2c129142cf0c7aa78ad625fb7dd84c8",
+      "capturedAt": "2026-09-10",
+      "productId": 10748272607513,
+      "name": "Sport Beer"
+    },
+    "stars-and-stripes": {
+      "file": "stars-and-stripes.jpg",
+      "thumb": "stars-and-stripes.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/Stars_Stripes-CustomPouch_03.jpg?v=1765285684",
+      "sha256": "c3a3348921625d7be00007a8599edcef8100c7f7b463cc69c9c90f805ed96afb",
+      "capturedAt": "2026-09-10",
+      "productId": 9055751799065,
+      "name": "Stars & Stripes"
+    },
+    "sumpin-easy-remixed": {
+      "file": "sumpin-easy-remixed.png",
+      "thumb": "sumpin-easy-remixed.thumb.png",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/LagunitasSumpin_EasyRemixed-SilverWorldBeerAwards2026-1.png?v=1788449315",
+      "sha256": "1e152afc104347719165f7aa4f309ebd8e106b7430ac3e361a5f95a90dd45a13",
+      "capturedAt": "2026-09-10",
+      "productId": 10318035419417,
+      "name": "Sumpin' Easy Remixed"
+    },
+    "sunlit": {
+      "file": "sunlit.jpg",
+      "thumb": "sunlit.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/Sunlit-CustomPouch_03.jpg?v=1765281473",
+      "sha256": "27f2359b300e5d06e4ca571db6072a9c2fd2bd574d66545900e8b82875199283",
+      "capturedAt": "2026-09-10",
+      "productId": 8802186756377,
+      "name": "Sunlit"
+    },
+    "waltham-forest": {
+      "file": "waltham-forest.jpg",
+      "thumb": "waltham-forest.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/WalthamForest-CustomPouch_1800x1800_2326d143-23df-4ba0-9b2f-be840db94ec6.jpg?v=1784534091",
+      "sha256": "02e3ccfb3382991d6080289639d5a92e08622179bd9dff8e1492213fb50369d5",
+      "capturedAt": "2026-09-10",
+      "productId": 9425777492249,
+      "name": "Waltham Forest"
+    },
+    "whole-nine-yards": {
+      "file": "whole-nine-yards.jpg",
+      "thumb": "whole-nine-yards.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/WholeNineYards-CustomPouch_03.jpg?v=1765286008",
+      "sha256": "fc6aeabfdcb2d332a985732165e7c5091763f2499e7be1ea0a8e2de81203d2eb",
+      "capturedAt": "2026-09-10",
+      "productId": 8802186199321,
+      "name": "Whole Nine Yards"
+    },
+    "winters-slumber": {
+      "file": "winters-slumber.jpg",
+      "thumb": "winters-slumber.thumb.jpg",
+      "src": "https://pinterdirect.shop/images/pinterdirect.shop/images/product/winters-slumber-1.jpg",
+      "sha256": "741965eb5ec86912722b03f73e70311d5159c2b02f72df03bade18ae200ef7a5",
+      "name": "Winter's Slumber (Christmas Ale)",
+      "capturedAt": "2026-09-10"
+    },
+    "yeastie-boys-bigmouth-remixed": {
+      "file": "yeastie-boys-bigmouth-remixed.jpg",
+      "thumb": "yeastie-boys-bigmouth-remixed.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/Banner_BigmouthRemixed.jpg?v=1732877480",
+      "sha256": "b15bcd9e91d15047bc66b955d05c5c705afbb4608b05aff64a61d833a4021a2b",
+      "capturedAt": "2026-09-10",
+      "productId": 8802186920217,
+      "name": "Yeastie Boys Bigmouth Remixed"
+    }
+  }
+}

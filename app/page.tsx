@@ -11,7 +11,9 @@ import {
 import Image from "next/image";
 
 import BrewPackPicker from "@/components/BrewPackPicker";
+import PackThumb from "@/components/PackThumb";
 import SiteNav from "@/components/SiteNav";
+import PinterNotice from "@/components/PinterNotice";
 import { brewPacks } from "@/data/brewpacks.generated";
 import {
   calculateSchedule,
@@ -411,16 +413,24 @@ export default function Home() {
             {selectedPack && (
               <div className="border-y border-border py-4">
                 <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-                      On tap
-                    </p>
-                    <h2 className="mt-1 font-display text-2xl uppercase leading-tight">
-                      {selectedPack.name}
-                    </h2>
-                    <p className="mt-1 text-sm text-muted">
-                      {selectedPack.style}
-                    </p>
+                  <div className="flex min-w-0 items-start gap-3">
+                    <PackThumb
+                      packId={selectedPack.id}
+                      style={selectedPack.style}
+                      size={76}
+                    />
+
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
+                        On tap
+                      </p>
+                      <h2 className="mt-1 font-display text-2xl uppercase leading-tight">
+                        {selectedPack.name}
+                      </h2>
+                      <p className="mt-1 text-sm text-muted">
+                        {selectedPack.style}
+                      </p>
+                    </div>
                   </div>
 
                   <div className="border-l border-border pl-4 text-right">
@@ -771,6 +781,8 @@ export default function Home() {
             Planning only. Follow the official Pinter app for brewing
             instructions and active brew guidance.
           </p>
+
+          <PinterNotice />
 
           <p>
             Header photo by Karl Joshua Bernal on Unsplash.
