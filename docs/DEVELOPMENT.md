@@ -314,7 +314,7 @@ Three things are deliberately **not** stored:
 
 | Not stored | Why |
 |---|---|
-| Product artwork | The release timeline still renders none. Hotlinking Pinter's CDN would put our traffic on their servers, and no redistribution license is confirmed. The label printer at `/labels` is the one exception, and it stores images locally rather than hotlinking — see [Data and image policy](#data-and-image-policy). |
+| Product artwork | The scan stores no image URLs and nothing hotlinks Pinter's CDN — that would put our traffic on their servers. Artwork rendered on the timeline comes from the local capture in `public/brewpacks/`, shared with the rest of the app. See [Data and image policy](#data-and-image-policy). |
 | Marketing copy | Same reason. The product description is creative work, not a factual attribute, so the timeline describes packs with facts only. |
 | Variant price | Changes on every promotion, so a weekly regeneration would open pull requests carrying no news. It was never rendered either. |
 
@@ -555,11 +555,11 @@ The local header image is stored at `public/tap-handles.jpg`. Any required attri
 Including it is a deliberate owner decision made with that known, not an
 oversight, and it is scoped as tightly as the feature allows:
 
-- **The label printer and the planners.** `/labels` prints the full pack shot;
-  `/`, `/custom` and `/rotation` show a 160px thumbnail beside the BrewPack you
-  picked. The release timeline (`/releases`) deliberately renders none — that
-  was a review decision and stands. Do not extend beyond this without another
-  explicit decision.
+- **Every page that names a pack.** `/labels` prints the full pack shot; `/`,
+  `/custom`, `/rotation` and `/releases` show a 160px thumbnail. `/releases`
+  originally rendered none, because it was *hotlinking* Pinter's CDN; that
+  objection is answered by capturing locally, and the owner has since decided
+  the thumbnails stay.
 - **Captured locally, never hotlinked.** `pnpm sync:images` downloads pack
   shots into `public/brewpacks/`. Nothing renders from Pinter's CDN, so none of
   our traffic lands on their servers, and `next.config.ts` still declares no

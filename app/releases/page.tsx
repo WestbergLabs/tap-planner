@@ -12,6 +12,7 @@ import { useMemo, useState } from "react";
 
 import Image from "next/image";
 
+import PackThumb from "@/components/PackThumb";
 import PinterNotice from "@/components/PinterNotice";
 import SiteNav, { ISSUES_URL } from "@/components/SiteNav";
 import { releases, type BrewPackRelease } from "@/data/releases.generated";
@@ -33,77 +34,165 @@ const statusChipClass: Record<BrewPackRelease["status"], string> = {
   discontinued: "border-stage-tap/30 bg-stage-tap-soft text-stage-tap",
 };
 
+/**
+ * Release counts per year, drawn as bars. A timeline's whole job is to show
+ * the shape of the data, and a scrolling list of cards never could: this makes
+ * "2024 was the busy year" readable at a glance. Doubles as the year filter.
+ */
+function YearBars({
+  years,
+  selected,
+  onSelect,
+}: {
+  years: { year: number; count: number }[];
+  selected: number | null;
+  onSelect: (year: number | null) => void;
+}) {
+  const busiest = Math.max(...years.map((entry) => entry.count), 1);
+
+  // Oldest on the left. The card list below is newest-first (what people want
+  // to read), but a chart of time is read left to right, and reversing it here
+  // is what makes this register as a timeline rather than a list of buttons.
+  const chronological = [...years].sort((a, b) => a.year - b.year);
+
+  return (
+    <div className="mb-6 rounded-2xl border border-border bg-surface p-4 shadow-card">
+      <div className="flex items-end justify-between gap-2 sm:gap-3">
+        {chronological.map(({ year, count }) => {
+          const isSelected = selected === year;
+
+          return (
+            <button
+              key={year}
+              type="button"
+              aria-pressed={isSelected}
+              onClick={() => onSelect(isSelected ? null : year)}
+              title={`${count} ${count === 1 ? "pack" : "packs"} in ${year}`}
+              className="group flex flex-1 flex-col items-center gap-1.5 rounded-xl px-1 py-1 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
+            >
+              <span className="text-xs font-semibold tabular-nums text-muted">
+                {count}
+              </span>
+
+              {/* Bars are sized against the busiest year, with a floor so a
+                  one-pack year is still a visible target. */}
+              <span
+                aria-hidden="true"
+                style={{ height: `${Math.max(12, (count / busiest) * 72)}px` }}
+                className={`w-full rounded-md transition ${
+                  isSelected
+                    ? "bg-accent"
+                    : "bg-accent/45 group-hover:bg-accent/70"
+                }`}
+              />
+
+              <span
+                className={`text-xs font-semibold tabular-nums transition ${
+                  isSelected ? "text-accent" : "text-muted"
+                }`}
+              >
+                {year}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <p className="mt-3 text-center text-xs leading-5 text-muted">
+        {selected === null
+          ? "Tap a year to show only its packs."
+          : `Showing ${selected} only — tap it again to show everything.`}
+      </p>
+    </div>
+  );
+}
+
 function ReleaseCard({ release }: { release: BrewPackRelease }) {
   const isEstimate = release.precision !== "day";
 
   return (
-    <li className="rounded-2xl border border-border bg-surface p-4 shadow-card">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-        <span
-          className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
-            isEstimate
-              ? "border-border-strong bg-field text-muted"
-              : "border-border bg-field text-foreground"
-          }`}
-        >
-          {formatReleaseLabel(release)}
-        </span>
+    <li className="flex gap-4 rounded-2xl border border-border bg-surface p-4 shadow-card">
+      <PackThumb packId={release.id} style={release.style} size={64} />
 
-        <span
-          className={`rounded-full border px-2.5 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] ${statusChipClass[release.status]}`}
-        >
-          {statusLabel(release)}
-        </span>
-      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+          <span
+            className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
+              isEstimate
+                ? "border-border-strong bg-field text-muted"
+                : "border-border bg-field text-foreground"
+            }`}
+          >
+            {formatReleaseLabel(release)}
+          </span>
 
-      <h3 className="mt-2.5 font-display text-lg uppercase leading-tight sm:text-xl">
-        {release.name}
-      </h3>
-
-      <p className="mt-0.5 text-sm text-muted">
-        {release.style} &middot; {release.abv}%
-      </p>
-
-      {(release.flavors.length > 0 || release.badges.length > 0) && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {release.flavors.map((flavor) => (
-            <span
-              key={flavor}
-              className="rounded-full border border-border bg-field px-2.5 py-1 text-[0.7rem] capitalize text-muted"
-            >
-              {flavor}
-            </span>
-          ))}
-
-          {release.badges.map((badge) => (
-            <span
-              key={badge}
-              className="rounded-full border border-accent/30 bg-accent-soft px-2.5 py-1 text-[0.7rem] font-semibold text-accent"
-            >
-              {badge}
-            </span>
-          ))}
+          <span
+            className={`rounded-full border px-2.5 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] ${statusChipClass[release.status]}`}
+          >
+            {statusLabel(release)}
+          </span>
         </div>
-      )}
 
-      {release.reissuedOn && (
-        <p className="mt-3 rounded-lg border border-border bg-field px-3 py-2 text-xs leading-5 text-muted">
-          Came back around {formatReissueDate(release.reissuedOn)}, which resets
-          the store&rsquo;s date. That is why the release above is a month
-          rather than a day.
+        <h3 className="mt-2.5 font-display text-lg uppercase leading-tight sm:text-xl">
+          {release.name}
+        </h3>
+
+        <p className="mt-0.5 text-sm text-muted">
+          {release.style} &middot; {release.abv}%
         </p>
-      )}
+
+        {(release.flavors.length > 0 || release.badges.length > 0) && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {release.flavors.map((flavor) => (
+              <span
+                key={flavor}
+                className="rounded-full border border-border bg-field px-2.5 py-1 text-[0.7rem] capitalize text-muted"
+              >
+                {flavor}
+              </span>
+            ))}
+
+            {release.badges.map((badge) => (
+              <span
+                key={badge}
+                className="rounded-full border border-accent/30 bg-accent-soft px-2.5 py-1 text-[0.7rem] font-semibold text-accent"
+              >
+                {badge}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {release.reissuedOn && (
+          <p className="mt-3 rounded-lg border border-border bg-field px-3 py-2 text-xs leading-5 text-muted">
+            Came back around {formatReissueDate(release.reissuedOn)}, which resets
+            the store&rsquo;s date. That is why the release above is a month
+            rather than a day.
+          </p>
+        )}
+      </div>
     </li>
   );
 }
 
 export default function ReleasesPage() {
   const [view, setView] = useState<View>("available");
+  // null means "all years". Filtering rather than anchor-jumping: a jump left
+  // every other year still sitting below you, so the list never got shorter.
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
 
   const available = useMemo(() => availableReleases(releases), []);
   const years = useMemo(() => groupByYear(releases), []);
   const undated = useMemo(() => undatedReleases(releases), []);
   const reissued = useMemo(() => reissuedReleases(releases), []);
+
+  const visibleYears = useMemo(
+    () =>
+      selectedYear === null
+        ? years
+        : years.filter((entry) => entry.year === selectedYear),
+    [years, selectedYear],
+  );
 
   const tabClass = (isActive: boolean): string =>
     `flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background ${
@@ -250,25 +339,16 @@ export default function ReleasesPage() {
             role="tabpanel"
             aria-labelledby="tab-history"
           >
-            <nav aria-label="Jump to year" className="mb-6">
-              <ul className="flex flex-wrap gap-2">
-                {years.map(({ year, releases: yearReleases }) => (
-                  <li key={year}>
-                    <a
-                      href={`#year-${year}`}
-                      className="inline-flex items-baseline gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-sm font-semibold text-foreground transition hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-background"
-                    >
-                      {year}
-                      <span className="text-xs font-normal text-muted">
-                        {yearReleases.length}
-                      </span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </nav>
+            <YearBars
+              years={years.map(({ year, releases: yearReleases }) => ({
+                year,
+                count: yearReleases.length,
+              }))}
+              selected={selectedYear}
+              onSelect={setSelectedYear}
+            />
 
-            {years.map(({ year, releases: yearReleases }) => (
+            {visibleYears.map(({ year, releases: yearReleases }) => (
               <section
                 key={year}
                 id={`year-${year}`}
@@ -296,7 +376,7 @@ export default function ReleasesPage() {
               </section>
             ))}
 
-            {undated.length > 0 && (
+            {undated.length > 0 && selectedYear === null && (
               <section aria-labelledby="undated-heading" className="mb-8">
                 <div className="mb-3 border-b border-border pb-2">
                   <h2

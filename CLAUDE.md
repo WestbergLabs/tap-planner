@@ -80,10 +80,10 @@ one was captured, and a procedurally generated motif (`lib/labels.ts` →
 recipes and packs discontinued before capture began.
 
 `sync:images` writes two sizes per pack: a 700px shot for the printed label and
-a 160px `.thumb.` copy for `PackThumb`, which the three planners use beside the
-selected BrewPack. Use the thumb anywhere a pack appears in a list or panel —
-the full shot is ~180KB and only earns that on a printed card. `/releases`
-renders no artwork at all, by an earlier review decision.
+a 160px `.thumb.` copy for `PackThumb`, used by the three planners beside the
+selected BrewPack and by every card on `/releases`. Use the thumb anywhere a
+pack appears in a list or panel — the full shot is ~180KB and only earns that
+on a printed card.
 
 **`data/brewpack-images.json` is retained, never regenerated.** This is the whole
 reason older brews keep their pictures. `buildCatalog` rebuilds a discontinued
