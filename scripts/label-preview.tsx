@@ -200,3 +200,66 @@ if (!fitsWidth || !fitsHeight) {
 if (failures > 0) {
   process.exitCode = 1;
 }
+
+// ---------------------------------------------------------------------------
+// Gallery: every generated motif and colour profile on one sheet, for judging
+// the artwork without a photo anywhere in sight.
+// ---------------------------------------------------------------------------
+
+const GALLERY: { name: string; style: string; abv: string; tapped: string }[] = [
+  { name: "All American Haze", style: "Hazy IPA", abv: "6", tapped: "2026-09-14" },
+  { name: "Dark Matter", style: "Classic Stout", abv: "5", tapped: "2026-09-18" },
+  { name: "Snap Pilsner", style: "Pilsner", abv: "4.5", tapped: "2026-09-21" },
+  { name: "Space Hopper", style: "Grapefruit IPA", abv: "5.6", tapped: "2026-09-25" },
+  { name: "Cloudy Apple Cider", style: "Cloudy Apple Cider", abv: "4.5", tapped: "2026-10-02" },
+  { name: "Lemon & Lime Seltzer", style: "Hard Seltzer", abv: "4", tapped: "2026-10-06" },
+  { name: "Winter's Slumber", style: "Spiced Winter Ale", abv: "6.5", tapped: "2026-10-11" },
+  { name: "Razz Session", style: "Sour Ale", abv: "4.2", tapped: "2026-10-15" },
+];
+
+const COLS = 4;
+const PAD = 40;
+const GAP = 40;
+const GW = PAD * 2 + COLS * 400 + (COLS - 1) * GAP;
+const ROWS = Math.ceil(GALLERY.length / COLS);
+const GH = PAD * 2 + ROWS * 600 + (ROWS - 1) * GAP;
+
+const galleryCards = GALLERY.map((entry, index) => {
+  const x = PAD + (index % COLS) * (400 + GAP);
+  const y = PAD + Math.floor(index / COLS) * (600 + GAP);
+
+  return renderToStaticMarkup(
+    <LabelCard
+      gradientId={`gal-${index}`}
+      fields={{
+        name: entry.name,
+        style: entry.style,
+        abv: entry.abv,
+        brewedDate: "",
+        tappedDate: entry.tapped,
+        batch: "",
+        notes: "",
+      }}
+    />,
+  ).replace(
+    'width="100%" height="100%"',
+    `x="${x}" y="${y}" width="400" height="600"`,
+  );
+}).join("");
+
+const gallery =
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${GW} ${GH}">` +
+  `<rect width="${GW}" height="${GH}" fill="#f3efe6"/>${galleryCards}</svg>`;
+
+writeFileSync(new URL("./out/gallery.svg", import.meta.url), gallery);
+writeFileSync(
+  new URL("./out/gallery.png", import.meta.url),
+  new Resvg(gallery, {
+    fitTo: { mode: "width", value: 1500 },
+    font: { loadSystemFonts: true, defaultFontFamily: "Arial" },
+  })
+    .render()
+    .asPng(),
+);
+
+console.log(`PASS  gallery      ${GALLERY.length} generated-art cards`);
