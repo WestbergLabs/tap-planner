@@ -13,6 +13,10 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 
 import PackThumb from "@/components/PackThumb";
+import ReleaseStrip, {
+  ReleaseStripLegend,
+  type StripYear,
+} from "@/components/ReleaseStrip";
 import PinterNotice from "@/components/PinterNotice";
 import SiteNav, { ISSUES_URL } from "@/components/SiteNav";
 import { releases, type BrewPackRelease } from "@/data/releases.generated";
@@ -35,30 +39,35 @@ const statusChipClass: Record<BrewPackRelease["status"], string> = {
 };
 
 /**
- * Release counts per year, drawn as bars. A timeline's whole job is to show
- * the shape of the data, and a scrolling list of cards never could: this makes
- * "2024 was the busy year" readable at a glance. Doubles as the year filter.
+ * The timeline overview: a density strip of every dated release, with an
+ * aligned row of year buttons that filter the list below.
+ *
+ * The strip is decorative (`aria-hidden`); the buttons carry the same
+ * information as text and do the actual filtering, so nothing is visual-only.
+ * Both share the same equal-width-per-year geometry, which is why the columns
+ * line up with the labels.
  */
-function YearBars({
+function TimelineOverview({
+  releases: allReleases,
   years,
   selected,
   onSelect,
 }: {
-  years: { year: number; count: number }[];
+  releases: BrewPackRelease[];
+  years: StripYear[];
   selected: number | null;
   onSelect: (year: number | null) => void;
 }) {
-  const busiest = Math.max(...years.map((entry) => entry.count), 1);
-
-  // Oldest on the left. The card list below is newest-first (what people want
-  // to read), but a chart of time is read left to right, and reversing it here
-  // is what makes this register as a timeline rather than a list of buttons.
-  const chronological = [...years].sort((a, b) => a.year - b.year);
-
   return (
     <div className="mb-6 rounded-2xl border border-border bg-surface p-4 shadow-card">
-      <div className="flex items-end justify-between gap-2 sm:gap-3">
-        {chronological.map(({ year, count }) => {
+      <ReleaseStrip
+        releases={allReleases}
+        years={years}
+        selectedYear={selected}
+      />
+
+      <div className="mt-1 flex">
+        {years.map(({ year, count }) => {
           const isSelected = selected === year;
 
           return (
@@ -67,40 +76,30 @@ function YearBars({
               type="button"
               aria-pressed={isSelected}
               onClick={() => onSelect(isSelected ? null : year)}
-              title={`${count} ${count === 1 ? "pack" : "packs"} in ${year}`}
-              className="group flex flex-1 flex-col items-center gap-1.5 rounded-xl px-1 py-1 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface"
+              className={`flex flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-2 transition focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface ${
+                isSelected ? "bg-accent-soft" : "hover:bg-field"
+              }`}
             >
-              <span className="text-xs font-semibold tabular-nums text-muted">
-                {count}
-              </span>
-
-              {/* Bars are sized against the busiest year, with a floor so a
-                  one-pack year is still a visible target. */}
               <span
-                aria-hidden="true"
-                style={{ height: `${Math.max(12, (count / busiest) * 72)}px` }}
-                className={`w-full rounded-md transition ${
-                  isSelected
-                    ? "bg-accent"
-                    : "bg-accent/45 group-hover:bg-accent/70"
-                }`}
-              />
-
-              <span
-                className={`text-xs font-semibold tabular-nums transition ${
-                  isSelected ? "text-accent" : "text-muted"
+                className={`text-sm font-semibold tabular-nums ${
+                  isSelected ? "text-accent" : "text-foreground"
                 }`}
               >
                 {year}
+              </span>
+              <span className="text-xs tabular-nums text-muted">
+                {count} {count === 1 ? "pack" : "packs"}
               </span>
             </button>
           );
         })}
       </div>
 
+      <ReleaseStripLegend />
+
       <p className="mt-3 text-center text-xs leading-5 text-muted">
         {selected === null
-          ? "Tap a year to show only its packs."
+          ? "Each tick is one pack, stacked by the month it landed. Tap a year to filter."
           : `Showing ${selected} only — tap it again to show everything.`}
       </p>
     </div>
@@ -185,6 +184,20 @@ export default function ReleasesPage() {
   const years = useMemo(() => groupByYear(releases), []);
   const undated = useMemo(() => undatedReleases(releases), []);
   const reissued = useMemo(() => reissuedReleases(releases), []);
+
+  // Ascending for the strip and the button row; the card list stays
+  // newest-first below, because a chart of time reads left to right but a
+  // "what is new" list reads top down.
+  const stripYears = useMemo<StripYear[]>(
+    () =>
+      [...years]
+        .map(({ year, releases: yearReleases }) => ({
+          year,
+          count: yearReleases.length,
+        }))
+        .sort((a, b) => a.year - b.year),
+    [years],
+  );
 
   const visibleYears = useMemo(
     () =>
@@ -339,11 +352,9 @@ export default function ReleasesPage() {
             role="tabpanel"
             aria-labelledby="tab-history"
           >
-            <YearBars
-              years={years.map(({ year, releases: yearReleases }) => ({
-                year,
-                count: yearReleases.length,
-              }))}
+            <TimelineOverview
+              releases={releases}
+              years={stripYears}
               selected={selectedYear}
               onSelect={setSelectedYear}
             />
