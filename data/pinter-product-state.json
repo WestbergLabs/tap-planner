@@ -97,14 +97,6 @@
       "fingerprint": "55f627219eff67a0"
     },
     {
-      "id": 9668339302681,
-      "handle": "prostmeister-oktoberfest-lager",
-      "title": "Prostmeister",
-      "publishedAt": "2026-08-20T05:24:33-04:00",
-      "available": true,
-      "fingerprint": "a1887a8c837a342f"
-    },
-    {
       "id": 9668339564825,
       "handle": "sour-beer",
       "title": "Razz Session",
@@ -221,8 +213,8 @@
       "handle": "prostmeister-with-stein",
       "title": "Prostmeister with Stein",
       "publishedAt": "2026-09-03T12:45:52-04:00",
-      "available": true,
-      "fingerprint": "bfcd35bf64bbc684"
+      "available": false,
+      "fingerprint": "ceb8002c661a81a0"
     },
     {
       "id": 10195577241881,
