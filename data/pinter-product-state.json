@@ -22,7 +22,7 @@
       "title": "Space Hopper West Coast Edition",
       "publishedAt": "2026-08-22T08:21:20-04:00",
       "available": true,
-      "fingerprint": "49f524eab42e6df8"
+      "fingerprint": "19f4cd6e479acdb8"
     },
     {
       "id": 8802186461465,
@@ -95,14 +95,6 @@
       "publishedAt": "2024-08-06T11:46:49-04:00",
       "available": true,
       "fingerprint": "55f627219eff67a0"
-    },
-    {
-      "id": 9668339302681,
-      "handle": "prostmeister-oktoberfest-lager",
-      "title": "Prostmeister",
-      "publishedAt": "2026-08-20T05:24:33-04:00",
-      "available": true,
-      "fingerprint": "a1887a8c837a342f"
     },
     {
       "id": 9668339564825,
@@ -221,8 +213,8 @@
       "handle": "prostmeister-with-stein",
       "title": "Prostmeister with Stein",
       "publishedAt": "2026-09-03T12:45:52-04:00",
-      "available": true,
-      "fingerprint": "bfcd35bf64bbc684"
+      "available": false,
+      "fingerprint": "ceb8002c661a81a0"
     },
     {
       "id": 10195577241881,
