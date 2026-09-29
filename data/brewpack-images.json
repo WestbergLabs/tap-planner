@@ -277,13 +277,13 @@
       "name": "Space Hopper"
     },
     "space-hopper-west-coast-edition": {
-      "file": "space-hopper-west-coast-edition.jpg",
-      "thumb": "space-hopper-west-coast-edition.thumb.jpg",
-      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/SpaceHopperWestCoastEdition-CustomPouch_03.jpg?v=1765286831",
-      "sha256": "b5562d07a51fba20e28f8202272f3f28a0e3fd2e5af6eeae7dd270c47cbfd6c7",
-      "capturedAt": "2026-09-10",
+      "file": "space-hopper-west-coast-edition.png",
+      "thumb": "space-hopper-west-coast-edition.thumb.png",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/SpaceHopperWestCoastEdition-CustomPouch_No_hopper.png?v=1790603553",
+      "sha256": "807c7806b394f4258c97fa53e7c0dea80912be992b4805cd9e239ac6d7ba76f5",
       "productId": 8802186297625,
-      "name": "Space Hopper West Coast Edition"
+      "name": "Space Hopper West Coast Edition",
+      "capturedAt": "2026-09-29"
     },
     "sport-beer": {
       "file": "sport-beer.jpg",
