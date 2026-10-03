@@ -17,6 +17,7 @@ import {
   CARD_SIZES,
   cardPixels,
   type CardSize,
+  isLandscape,
 } from "@/lib/labelSizes";
 import { getTodayString } from "@/lib/schedule";
 
@@ -499,7 +500,9 @@ export default function LabelsPage() {
                       className={`w-full overflow-hidden border-2 shadow-card transition ${
                         printMode === "sheet"
                           ? "min-w-[88px] max-w-[calc(20%-0.8rem)] rounded-lg"
-                          : "max-w-[260px] rounded-2xl"
+                          : isLandscape(cardSize)
+                            ? "max-w-[380px] rounded-2xl"
+                            : "max-w-[260px] rounded-2xl"
                       } ${
                         slotCount > 1 && slot === index
                           ? "border-accent"

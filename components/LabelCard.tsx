@@ -1,5 +1,5 @@
 import LabelArt from "@/components/LabelArt";
-import { CARD_SIZES, type CardSize, viewHeight } from "@/lib/labelSizes";
+import { CARD_SIZES, type CardSize, isLandscape } from "@/lib/labelSizes";
 import { formatAbv, formatLabelDate, getStyleProfile } from "@/lib/labels";
 
 /**
@@ -72,11 +72,14 @@ function wrapText(
  * Choose the largest heading size that fits the name in `maxLines`, so short
  * names print big and long ones stay inside the card instead of overflowing.
  */
-function fitHeading(name: string, maxLines: number) {
-  const sizes = [40, 36, 32, 28, 25, 22];
-
+function fitHeading(
+  name: string,
+  maxLines: number,
+  width: number,
+  sizes: number[],
+) {
   for (const fontSize of sizes) {
-    const lines = wrapText(name, fontSize, CONTENT_WIDTH, 0.66);
+    const lines = wrapText(name, fontSize, width, 0.66);
 
     if (lines.length <= maxLines) {
       return { fontSize, lines };
@@ -87,7 +90,7 @@ function fitHeading(name: string, maxLines: number) {
 
   return {
     fontSize,
-    lines: wrapText(name, fontSize, CONTENT_WIDTH, 0.66).slice(0, maxLines),
+    lines: wrapText(name, fontSize, width, 0.66).slice(0, maxLines),
   };
 }
 
@@ -101,12 +104,29 @@ export default function LabelCard({
   /** Must be unique per rendered card -- SVG gradient ids are document global. */
   gradientId: string;
 }) {
-  const CARD_HEIGHT = viewHeight(size);
-  const ART_BOTTOM = Math.round(CARD_HEIGHT * ART_RATIO);
+  const CARD_WIDTH = size.viewW;
+  const CARD_HEIGHT = size.viewH;
+  const landscape = isLandscape(size);
+
+  // Landscape: the art is a full-height panel on the left and the text sits in
+  // a column to its right, past the (vertical) foam edge. Portrait: art on top.
+  const ART_RIGHT =
+    "artFrac" in size ? Math.round(CARD_WIDTH * size.artFrac) : CARD_WIDTH;
+  const ART_BOTTOM = landscape
+    ? CARD_HEIGHT
+    : Math.round(CARD_HEIGHT * ART_RATIO);
+
+  const left = landscape ? ART_RIGHT + 14 + 24 : MARGIN;
+  const right = CARD_WIDTH - (landscape ? 30 : MARGIN);
+  const textWidth = right - left;
   const profile = getStyleProfile(fields.style);
   const name = fields.name.trim() === "" ? "Untitled Brew" : fields.name.trim();
 
-  const heading = fitHeading(name.toUpperCase(), 3);
+  const heading = landscape
+    ? fitHeading(name.toUpperCase(), CARD_HEIGHT >= 500 ? 3 : 2, textWidth, [
+        34, 30, 27, 24, 21, 18,
+      ])
+    : fitHeading(name.toUpperCase(), 3, CONTENT_WIDTH, [40, 36, 32, 28, 25, 22]);
   const abv = formatAbv(fields.abv);
   const style = fields.style.trim();
   const subtitle = [style, abv].filter((part) => part !== "").join("  ·  ");
@@ -119,14 +139,17 @@ export default function LabelCard({
     { label: "ID", value: fields.batch.trim(), always: false },
   ].filter((row) => row.always || row.value !== "");
 
-  const notes = wrapText(fields.notes.trim(), 13, CONTENT_WIDTH, 0.52).slice(0, 3);
+  // Tasting notes do not survive the short landscape cards: the tall one
+  // keeps two lines, the business card drops them.
+  const noteLines = landscape ? (CARD_HEIGHT >= 500 ? 2 : 0) : 3;
+  const notes = wrapText(fields.notes.trim(), 13, textWidth, 0.52).slice(0, noteLines);
 
   // Vertical layout. The title block hangs from the bottom of the artwork and
   // the meta block is anchored to the foot of the card, so slack collects in
   // the middle as deliberate whitespace. Laying everything out top-down
   // instead would push the last note line off a 600-unit card once the name
   // wraps to three lines and every field is filled.
-  const headingTop = ART_BOTTOM + 52;
+  const headingTop = landscape ? 62 : ART_BOTTOM + 52;
   const headingBottom =
     headingTop + heading.fontSize * 1.02 * (heading.lines.length - 1);
 
@@ -153,7 +176,7 @@ export default function LabelCard({
 
   const MIN_TITLE_GAP = 22;
   // Taller cards (2x3.5) get the extra height as more breathing room.
-  const MAX_TITLE_GAP = 92 + (CARD_HEIGHT - 600) / 2;
+  const MAX_TITLE_GAP = landscape ? 60 : 92 + (CARD_HEIGHT - 600) / 2;
   const META_FLOOR = CARD_HEIGHT - 36;
 
   const ruleY = Math.max(
@@ -165,6 +188,21 @@ export default function LabelCard({
   const notesTop =
     (rows.length > 0 ? rowsTop + ROW_GAP * (rows.length - 1) : ruleY) +
     ROWS_TO_NOTES;
+
+  // The motif is a 100x100 box. Portrait centres it near the top of the card;
+  // landscape centres it in the art panel.
+  const motifScale = landscape ? (ART_RIGHT / 100) * 0.72 : 1.56;
+  const motifTransform = landscape
+    ? `translate(${(ART_RIGHT - 100 * motifScale) / 2}, ${(CARD_HEIGHT - 100 * motifScale) / 2}) scale(${motifScale})`
+    : `translate(${CARD_WIDTH / 2 - 78}, 30) scale(${motifScale})`;
+
+  // The foam edge: horizontal under the art on portrait cards, vertical beside
+  // it on landscape ones. Same scallops, drawn along the other axis.
+  const foamPath = landscape
+    ? `M${ART_RIGHT - 26} 0${"c0 34 18 34 18 68s-18 34-18 68 ".repeat(
+        Math.ceil(CARD_HEIGHT / 136) + 1,
+      )}h40V0Z`
+    : `M0 ${ART_BOTTOM - 26}c34 0 34 18 68 18s34-18 68-18 34 18 68 18 34-18 68-18 34 18 68 18 34-18 60-18v40H0Z`;
 
   return (
     <svg
@@ -188,7 +226,7 @@ export default function LabelCard({
       <rect x="0" y="0" width={CARD_WIDTH} height={CARD_HEIGHT} fill="#ffffff" />
 
       {/* Artwork panel. */}
-      <rect x="0" y="0" width={CARD_WIDTH} height={ART_BOTTOM} fill={`url(#${gradientId})`} />
+      <rect x="0" y="0" width={ART_RIGHT} height={ART_BOTTOM} fill={`url(#${gradientId})`} />
 
       {fields.image ? (
         // Pack shots are square and the panel is 3:2, so something has to give.
@@ -201,19 +239,19 @@ export default function LabelCard({
           href={fields.image}
           x="0"
           y="0"
-          width={CARD_WIDTH}
+          width={ART_RIGHT}
           height={ART_BOTTOM}
           preserveAspectRatio="xMidYMin slice"
         />
       ) : (
-        <g transform={`translate(${CARD_WIDTH / 2 - 78}, 30) scale(1.56)`}>
+        <g transform={motifTransform}>
           <LabelArt motif={profile.motif} ink={profile.motifInk} />
         </g>
       )}
 
       {/* Foam head: the artwork panel pours into the body of the card. */}
       <path
-        d={`M0 ${ART_BOTTOM - 26}c34 0 34 18 68 18s34-18 68-18 34 18 68 18 34-18 68-18 34 18 68 18 34-18 60-18v40H0Z`}
+        d={foamPath}
         fill={profile.foam}
       />
 
@@ -221,7 +259,7 @@ export default function LabelCard({
       {heading.lines.map((line, index) => (
         <text
           key={line + index}
-          x={MARGIN}
+          x={left}
           y={headingTop + heading.fontSize * 1.02 * index}
           fontSize={heading.fontSize}
           fontWeight="700"
@@ -234,7 +272,7 @@ export default function LabelCard({
 
       {subtitle !== "" && (
         <text
-          x={MARGIN}
+          x={left}
           y={subtitleY}
           fontSize="15"
           fontWeight="600"
@@ -250,9 +288,9 @@ export default function LabelCard({
           floating line with nothing beneath it. */}
       {hasMeta && (
         <line
-          x1={MARGIN}
+          x1={left}
           y1={ruleY}
-          x2={CARD_WIDTH - MARGIN}
+          x2={right}
           y2={ruleY}
           stroke="#d8d1c5"
           strokeWidth="2"
@@ -263,7 +301,7 @@ export default function LabelCard({
       {rows.map((row, index) => (
         <g key={row.label}>
           <text
-            x={MARGIN}
+            x={left}
             y={rowsTop + ROW_GAP * index}
             fontSize="13"
             fontWeight="700"
@@ -273,7 +311,7 @@ export default function LabelCard({
             {row.label.toUpperCase()}
           </text>
           <text
-            x={CARD_WIDTH - MARGIN}
+            x={right}
             y={rowsTop + ROW_GAP * index}
             fontSize="17"
             fontWeight="600"
@@ -284,8 +322,8 @@ export default function LabelCard({
           </text>
           {row.value === "" && (
             <line
-              x1={MARGIN + 90}
-              x2={CARD_WIDTH - MARGIN}
+              x1={left + 90}
+              x2={right}
               y1={rowsTop + ROW_GAP * index + 3}
               y2={rowsTop + ROW_GAP * index + 3}
               stroke="#b9b3a8"
@@ -298,7 +336,7 @@ export default function LabelCard({
       {notes.map((line, index) => (
         <text
           key={line + index}
-          x={MARGIN}
+          x={left}
           y={notesTop + NOTE_LINE * index}
           fontSize="13"
           fill="#6f6a61"
