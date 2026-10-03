@@ -175,7 +175,7 @@ async function main() {
   const exportPng = (sizeId) => evaluate(
     ws,
     `(async () => {
-      const select = document.getElementById('png-size');
+      const select = document.getElementById('card-size');
       if (!select) return 'no size select';
       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')
         .set.call(select, ${JSON.stringify(sizeId)});
@@ -231,7 +231,7 @@ async function main() {
 
   // Every preset must come out at its own pixel size, not just the default.
   const exportedAll = [];
-  for (const [id, size] of [["4x6", "1200x1800"], ["3x4.5", "900x1350"], ["2x3", "600x900"]]) {
+  for (const [id, size] of [["4x6", "1200x1800"], ["3x4.5", "900x1350"], ["2x3.5", "600x1050"], ["2x3", "600x900"]]) {
     const line = await exportPng(id);
     exportedAll.push(`${id}: ${line}${line.includes(size) ? "  OK" : "  FAIL expected " + size}`);
   }

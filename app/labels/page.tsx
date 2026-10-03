@@ -11,16 +11,16 @@ import LabelCard, { type LabelFields } from "@/components/LabelCard";
 import { brewPacks, type BrewPack } from "@/data/brewpacks.generated";
 import { getBrewPackImage } from "@/lib/brewpackImages";
 import { safeFileName } from "@/lib/calendar";
+import { downloadLabelPng, downloadLabelSvg } from "@/lib/labelImage";
 import {
-  downloadLabelPng,
-  downloadLabelSvg,
-  PNG_SIZES,
-  type PngSize,
-  pngPixels,
-} from "@/lib/labelImage";
+  BUSINESS_CARD,
+  CARD_SIZES,
+  cardPixels,
+  type CardSize,
+} from "@/lib/labelSizes";
 import { getTodayString } from "@/lib/schedule";
 
-type PrintMode = "card" | "letter";
+type PrintMode = "card" | "letter" | "sheet";
 
 /**
  * Physical sizes, in one place. A 4x6 card is the fixed unit; the multi-card
@@ -32,11 +32,19 @@ type PrintMode = "card" | "letter";
  * most printers' unprintable margin -- the guides would be clipped. Swap
  * SHEET_W/SHEET_H and PAGE_SIZE together if you print on a different stock.
  */
-const CARD_W = "4in";
-const CARD_H = "6in";
 const SHEET_W = "11in";
 const SHEET_H = "8.5in";
 const PAGE_SIZE = "letter landscape";
+
+/**
+ * Business-card stock (Avery 5371 style: ten 3.5x2 blanks per Letter sheet),
+ * fed landscape so the cards read portrait: 5 across, 2 down, 2x3.5 each, with
+ * no gutters. 10in x 7in of cards on 11in x 8.5in leaves 0.5in left/right and
+ * 0.75in top/bottom.
+ */
+const SHEET_COLS = 5;
+const SHEET_CARDS = 10;
+const SHEET_PAD = "0.75in 0.5in";
 
 const EMPTY_FIELDS: LabelFields = {
   name: "",
@@ -103,16 +111,23 @@ const PRINT_MODES: { value: PrintMode; title: string; blurb: string }[] = [
     blurb:
       "Standard 8.5×11 paper, printed sideways. Two labels with cut guides, and they can be different beers.",
   },
+  {
+    value: "sheet",
+    title: "Business cards — 10 per sheet",
+    blurb:
+      "Avery-style 2×3.5 perforated stock. Up to ten different beers; empty cards stay blank so you can reuse a part sheet.",
+  },
 ];
 
 export default function LabelsPage() {
   // Both slots are always held in state, even in single-card mode, so
   // switching paper size back and forth never discards what was typed.
-  const [labels, setLabels] = useState<LabelFields[]>([
-    EMPTY_FIELDS,
-    EMPTY_FIELDS,
-  ]);
-  const [selectedIds, setSelectedIds] = useState(["", ""]);
+  const [labels, setLabels] = useState<LabelFields[]>(() =>
+    Array.from({ length: SHEET_CARDS }, () => EMPTY_FIELDS),
+  );
+  const [selectedIds, setSelectedIds] = useState(() =>
+    Array.from({ length: SHEET_CARDS }, () => ""),
+  );
   const [activeSlot, setActiveSlot] = useState(0);
   const [printMode, setPrintMode] = useState<PrintMode>("card");
 
@@ -120,9 +135,20 @@ export default function LabelsPage() {
   // it, so the file can never disagree with what is on screen.
   const previews = useRef<(HTMLElement | null)[]>([]);
   const [exportError, setExportError] = useState("");
-  const [pngSize, setPngSize] = useState<PngSize>(PNG_SIZES[0]);
+  const [cardSizeId, setCardSizeId] = useState<string>(CARD_SIZES[0].id);
 
-  const slotCount = printMode === "card" ? 1 : 2;
+  // The business-card sheet only makes sense at 2x3.5, so it overrides the
+  // picker rather than letting the two disagree.
+  const cardSize: CardSize =
+    printMode === "sheet"
+      ? BUSINESS_CARD
+      : (CARD_SIZES.find((s) => s.id === cardSizeId) ?? CARD_SIZES[0]);
+  const cardW = `${cardSize.widthIn}in`;
+  const cardH = `${cardSize.heightIn}in`;
+  const px = cardPixels(cardSize);
+
+  const slotCount =
+    printMode === "card" ? 1 : printMode === "letter" ? 2 : SHEET_CARDS;
   const slot = Math.min(activeSlot, slotCount - 1);
   const fields = labels[slot];
 
@@ -161,9 +187,9 @@ export default function LabelsPage() {
     );
   }
 
-  /** Two identical cards is still a common case: one for the fridge, one for
+  /** Identical cards is still a common case: one for the fridge, one for
       the Pinter. Without this the only way to get it is typing it twice. */
-  function copyToOtherSlot() {
+  function copyToAllSlots() {
     setLabels((current) => current.map(() => current[slot]));
     setSelectedIds((current) => current.map(() => current[slot]));
   }
@@ -182,7 +208,7 @@ export default function LabelsPage() {
 
     try {
       if (format === "png") {
-        await downloadLabelPng(card, fileName, pngSize);
+        await downloadLabelPng(card, fileName, cardSize);
       } else {
         await downloadLabelSvg(card, fileName);
       }
@@ -199,7 +225,7 @@ export default function LabelsPage() {
   // than set inline.
   const pageRule =
     printMode === "card"
-      ? `@page { size: ${CARD_W} ${CARD_H}; margin: 0; }`
+      ? `@page { size: ${cardW} ${cardH}; margin: 0; }`
       : `@page { size: ${PAGE_SIZE}; margin: 0; }`;
 
   const fieldClass =
@@ -255,8 +281,9 @@ export default function LabelsPage() {
             </h1>
 
             <p className="mt-4 max-w-xl text-base leading-7 text-muted">
-              Pick a BrewPack, add your dates, and print a 4&#215;6 card on
-              whatever paper you have.
+              Pick a BrewPack, add your dates, and print a card on whatever
+              paper you have &mdash; index cards, business cards, or a full
+              sheet.
             </p>
           </header>
 
@@ -273,7 +300,7 @@ export default function LabelsPage() {
                   <div
                     role="tablist"
                     aria-label="Which card to edit"
-                    className="flex gap-2"
+                    className="flex flex-wrap gap-2"
                   >
                     {labels.map((label, index) => (
                       <button
@@ -289,7 +316,7 @@ export default function LabelsPage() {
                         }`}
                       >
                         Card {index + 1}
-                        {label.name.trim() !== "" && (
+                        {slotCount <= 2 && label.name.trim() !== "" && (
                           <span className="ml-1.5 font-normal opacity-80">
                             {label.name.trim()}
                           </span>
@@ -300,10 +327,10 @@ export default function LabelsPage() {
 
                   <button
                     type="button"
-                    onClick={copyToOtherSlot}
+                    onClick={copyToAllSlots}
                     className="rounded-full border border-border px-3.5 py-2 text-xs font-semibold text-muted transition hover:border-border-strong hover:text-foreground"
                   >
-                    Make both the same
+                    Make all the same
                   </button>
                 </div>
               )}
@@ -456,33 +483,71 @@ export default function LabelsPage() {
 
             <div className="px-5 py-6 sm:px-6">
               <div className="flex flex-wrap items-start justify-center gap-4">
-                {labels.slice(0, slotCount).map((label, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    ref={(node) => {
-                      previews.current[index] = node;
-                    }}
-                    onClick={() => setActiveSlot(index)}
-                    aria-label={`Edit card ${index + 1}`}
-                    className={`w-full max-w-[260px] overflow-hidden rounded-2xl border-2 shadow-card transition ${
-                      slotCount > 1 && slot === index
-                        ? "border-accent"
-                        : "border-border-strong hover:border-accent/50"
-                    }`}
-                  >
-                    <LabelCard
-                      fields={label}
-                      gradientId={`label-preview-${index}`}
-                    />
-                  </button>
-                ))}
+                {labels.slice(0, slotCount).map((label, index) => {
+                  const blank = printMode === "sheet" && label.name.trim() === "";
+
+                  return (
+                    <button
+                      key={index}
+                      type="button"
+                      ref={(node) => {
+                        previews.current[index] = node;
+                      }}
+                      onClick={() => setActiveSlot(index)}
+                      aria-label={`Edit card ${index + 1}`}
+                      style={{ aspectRatio: `${cardSize.widthIn} / ${cardSize.heightIn}` }}
+                      className={`w-full overflow-hidden border-2 shadow-card transition ${
+                        printMode === "sheet"
+                          ? "min-w-[88px] max-w-[calc(20%-0.8rem)] rounded-lg"
+                          : "max-w-[260px] rounded-2xl"
+                      } ${
+                        slotCount > 1 && slot === index
+                          ? "border-accent"
+                          : "border-border-strong hover:border-accent/50"
+                      } ${blank ? "border-dashed bg-field" : ""}`}
+                    >
+                      {blank ? (
+                        <span className="flex h-full items-center justify-center text-xs text-muted">
+                          {index + 1}
+                        </span>
+                      ) : (
+                        <LabelCard
+                          fields={label}
+                          size={cardSize}
+                          gradientId={`label-preview-${index}`}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
 
-              <fieldset className="mt-7">
+              <label className="mt-7 block" htmlFor="card-size">
+                <span className={labelClass}>Card size</span>
+                <select
+                  id="card-size"
+                  className={`${fieldClass} mt-2 disabled:opacity-60`}
+                  value={cardSize.id}
+                  disabled={printMode === "sheet"}
+                  onChange={(event) => setCardSizeId(event.target.value)}
+                >
+                  {CARD_SIZES.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+                {printMode === "sheet" && (
+                  <span className="mt-1.5 block text-xs leading-5 text-muted">
+                    Business-card sheets are always 2&#215;3.5.
+                  </span>
+                )}
+              </label>
+
+              <fieldset className="mt-6">
                 <legend className={labelClass}>Paper size</legend>
 
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div className="mt-3 grid gap-3 sm:grid-cols-3">
                   {PRINT_MODES.map((option) => (
                     <label
                       key={option.value}
@@ -521,7 +586,7 @@ export default function LabelsPage() {
               <p className="mt-3 text-center text-xs leading-5 text-muted">
                 In the print dialog set scale to <strong>100%</strong>{" "}
                 rather than &ldquo;fit to page&rdquo;, so the card comes out at
-                a true 4&#215;6.
+                a true {cardSize.widthIn}&#215;{cardSize.heightIn}.
               </p>
 
               {/* Saving the card as a file is the way out of 4x6: any photo
@@ -533,30 +598,6 @@ export default function LabelsPage() {
                   {slotCount > 1 && ` — card ${slot + 1}`}
                 </p>
 
-                <label
-                  className="mt-3 flex items-center gap-3 text-sm text-muted"
-                  htmlFor="png-size"
-                >
-                  PNG size
-                  <select
-                    id="png-size"
-                    className={`${fieldClass} flex-1`}
-                    value={pngSize.id}
-                    onChange={(event) =>
-                      setPngSize(
-                        PNG_SIZES.find((s) => s.id === event.target.value) ??
-                          PNG_SIZES[0],
-                      )
-                    }
-                  >
-                    {PNG_SIZES.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <button
                     type="button"
@@ -565,7 +606,7 @@ export default function LabelsPage() {
                   >
                     Download PNG
                     <span className="mt-0.5 block text-xs font-normal text-muted">
-                      {pngPixels(pngSize).width}&#215;{pngPixels(pngSize).height} — 300 dpi
+                      {px.width}&#215;{px.height} — 300 dpi
                     </span>
                   </button>
 
@@ -714,10 +755,10 @@ export default function LabelsPage() {
           browser's "background graphics" option is left off. */}
       <div className="label-sheet hidden">
         {printMode === "card" ? (
-          <div style={{ width: CARD_W, height: CARD_H }}>
-            <LabelCard fields={labels[0]} gradientId="label-print-0" />
+          <div style={{ width: cardW, height: cardH }}>
+            <LabelCard fields={labels[0]} size={cardSize} gradientId="label-print-0" />
           </div>
-        ) : (
+        ) : printMode === "letter" ? (
           <div
             style={{
               width: SHEET_W,
@@ -728,20 +769,47 @@ export default function LabelsPage() {
               gap: "0.6in",
             }}
           >
-            {labels.map((label, index) => (
+            {labels.slice(0, 2).map((label, index) => (
               <div
                 key={index}
                 style={{
-                  width: CARD_W,
-                  height: CARD_H,
+                  width: cardW,
+                  height: cardH,
                   outline: "1px dashed #9a9a9a",
                   outlineOffset: "0.1in",
                 }}
               >
                 <LabelCard
                   fields={label}
+                  size={cardSize}
                   gradientId={`label-print-${index}`}
                 />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div
+            style={{
+              width: SHEET_W,
+              height: SHEET_H,
+              boxSizing: "border-box",
+              padding: SHEET_PAD,
+              display: "grid",
+              gridTemplateColumns: `repeat(${SHEET_COLS}, ${cardW})`,
+              gridAutoRows: cardH,
+            }}
+          >
+            {/* Empty cards are skipped but keep their cell, so a part-used
+                sheet can go back through the printer. */}
+            {labels.slice(0, SHEET_CARDS).map((label, index) => (
+              <div key={index}>
+                {label.name.trim() !== "" && (
+                  <LabelCard
+                    fields={label}
+                    size={cardSize}
+                    gradientId={`label-print-${index}`}
+                  />
+                )}
               </div>
             ))}
           </div>

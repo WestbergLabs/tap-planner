@@ -1,4 +1,5 @@
 import LabelArt from "@/components/LabelArt";
+import { CARD_SIZES, type CardSize, viewHeight } from "@/lib/labelSizes";
 import { formatAbv, formatLabelDate, getStyleProfile } from "@/lib/labels";
 
 /**
@@ -28,12 +29,11 @@ export type LabelFields = {
 };
 
 const CARD_WIDTH = 400;
-const CARD_HEIGHT = 600;
 const MARGIN = 34;
 const CONTENT_WIDTH = CARD_WIDTH - MARGIN * 2;
 
-/** Art panel occupies the top ~45% of the card. */
-const ART_BOTTOM = 268;
+/** Art panel occupies the top ~45% of the card (268 of 600 units). */
+const ART_RATIO = 268 / 600;
 
 /**
  * Greedy word wrap for SVG text, which has no automatic line breaking.
@@ -94,11 +94,15 @@ function fitHeading(name: string, maxLines: number) {
 export default function LabelCard({
   fields,
   gradientId,
+  size = CARD_SIZES[0],
 }: {
   fields: LabelFields;
+  size?: CardSize;
   /** Must be unique per rendered card -- SVG gradient ids are document global. */
   gradientId: string;
 }) {
+  const CARD_HEIGHT = viewHeight(size);
+  const ART_BOTTOM = Math.round(CARD_HEIGHT * ART_RATIO);
   const profile = getStyleProfile(fields.style);
   const name = fields.name.trim() === "" ? "Untitled Brew" : fields.name.trim();
 
@@ -148,8 +152,9 @@ export default function LabelCard({
       : 0);
 
   const MIN_TITLE_GAP = 22;
-  const MAX_TITLE_GAP = 92;
-  const META_FLOOR = 564;
+  // Taller cards (2x3.5) get the extra height as more breathing room.
+  const MAX_TITLE_GAP = 92 + (CARD_HEIGHT - 600) / 2;
+  const META_FLOOR = CARD_HEIGHT - 36;
 
   const ruleY = Math.max(
     titleBottom + MIN_TITLE_GAP,
