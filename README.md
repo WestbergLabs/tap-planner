@@ -138,6 +138,12 @@ catalog, runs lint and a production build, and opens a pull request.
 > **Nothing is published silently.** Catalog and image changes are reviewed and
 > merged before they reach the live app.
 
+## Credits
+
+The app icon (tap tower, beer mug, and calendar) was designed by
+[@mshawotr-mikeintyler](https://github.com/mshawotr-mikeintyler), contributed
+in [#29](https://github.com/WestbergLabs/tap-planner/issues/29). Thank you! 🍻
+
 ## Important notice
 
 Tap Planner is an independent community project. It is **not** affiliated with,
