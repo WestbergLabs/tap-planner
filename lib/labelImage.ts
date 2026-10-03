@@ -93,8 +93,9 @@ export async function downloadLabelPng(
   card: SVGSVGElement,
   fileName: string,
   size: CardSize = CARD_SIZES[0],
+  bleedIn = 0,
 ) {
-  const { width: PNG_WIDTH, height: PNG_HEIGHT } = cardPixels(size);
+  const { width: PNG_WIDTH, height: PNG_HEIGHT } = cardPixels(size, bleedIn);
   const markup = await buildStandaloneSvg(card, PNG_WIDTH, PNG_HEIGHT);
   const source = URL.createObjectURL(
     new Blob([markup], { type: "image/svg+xml;charset=utf-8" }),

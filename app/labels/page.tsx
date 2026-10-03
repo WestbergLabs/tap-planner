@@ -13,11 +13,13 @@ import { getBrewPackImage } from "@/lib/brewpackImages";
 import { safeFileName } from "@/lib/calendar";
 import { downloadLabelPng, downloadLabelSvg } from "@/lib/labelImage";
 import {
+  BLEED_IN,
   BUSINESS_CARD,
   CARD_SIZES,
   cardPixels,
   type CardSize,
   isLandscape,
+  SHEET_BLEED_IN,
 } from "@/lib/labelSizes";
 import { getTodayString } from "@/lib/schedule";
 
@@ -144,9 +146,23 @@ export default function LabelsPage() {
     printMode === "sheet"
       ? BUSINESS_CARD
       : (CARD_SIZES.find((s) => s.id === cardSizeId) ?? CARD_SIZES[0]);
+  const [bleedOn, setBleedOn] = useState(false);
+  // Perforated sheets always get a sliver of bleed: with no gutters, any
+  // printer drift would otherwise show as a white edge on every card.
+  const bleedIn = printMode === "sheet" ? SHEET_BLEED_IN : bleedOn ? BLEED_IN : 0;
   const cardW = `${cardSize.widthIn}in`;
   const cardH = `${cardSize.heightIn}in`;
-  const px = cardPixels(cardSize);
+  const fullW = `${cardSize.widthIn + 2 * bleedIn}in`;
+  const fullH = `${cardSize.heightIn + 2 * bleedIn}in`;
+  // The card box including bleed, positioned so the trim edge stays put.
+  const bleedBox = {
+    position: "absolute",
+    left: `-${bleedIn}in`,
+    top: `-${bleedIn}in`,
+    width: fullW,
+    height: fullH,
+  } as const;
+  const px = cardPixels(cardSize, bleedIn);
 
   const slotCount =
     printMode === "card" ? 1 : printMode === "letter" ? 2 : SHEET_CARDS;
@@ -209,7 +225,7 @@ export default function LabelsPage() {
 
     try {
       if (format === "png") {
-        await downloadLabelPng(card, fileName, cardSize);
+        await downloadLabelPng(card, fileName, cardSize, bleedIn);
       } else {
         await downloadLabelSvg(card, fileName);
       }
@@ -226,7 +242,7 @@ export default function LabelsPage() {
   // than set inline.
   const pageRule =
     printMode === "card"
-      ? `@page { size: ${cardW} ${cardH}; margin: 0; }`
+      ? `@page { size: ${fullW} ${fullH}; margin: 0; }`
       : `@page { size: ${PAGE_SIZE}; margin: 0; }`;
 
   const fieldClass =
@@ -496,8 +512,10 @@ export default function LabelsPage() {
                       }}
                       onClick={() => setActiveSlot(index)}
                       aria-label={`Edit card ${index + 1}`}
-                      style={{ aspectRatio: `${cardSize.widthIn} / ${cardSize.heightIn}` }}
-                      className={`w-full overflow-hidden border-2 shadow-card transition ${
+                      style={{
+                        aspectRatio: `${cardSize.widthIn + 2 * bleedIn} / ${cardSize.heightIn + 2 * bleedIn}`,
+                      }}
+                      className={`relative w-full overflow-hidden border-2 shadow-card transition ${
                         printMode === "sheet"
                           ? "min-w-[88px] max-w-[calc(20%-0.8rem)] rounded-lg"
                           : isLandscape(cardSize)
@@ -517,7 +535,22 @@ export default function LabelsPage() {
                         <LabelCard
                           fields={label}
                           size={cardSize}
+                          bleedIn={bleedIn}
                           gradientId={`label-preview-${index}`}
+                        />
+                      )}
+                      {/* Where the card will be cut. Overlay only: export
+                          reads the svg, so this never reaches the file. */}
+                      {bleedIn > 0 && !blank && (
+                        <span
+                          aria-hidden="true"
+                          className="pointer-events-none absolute border border-dashed border-white mix-blend-difference"
+                          style={{
+                            left: `${(bleedIn / (cardSize.widthIn + 2 * bleedIn)) * 100}%`,
+                            right: `${(bleedIn / (cardSize.widthIn + 2 * bleedIn)) * 100}%`,
+                            top: `${(bleedIn / (cardSize.heightIn + 2 * bleedIn)) * 100}%`,
+                            bottom: `${(bleedIn / (cardSize.heightIn + 2 * bleedIn)) * 100}%`,
+                          }}
                         />
                       )}
                     </button>
@@ -545,6 +578,24 @@ export default function LabelsPage() {
                     Business-card sheets are always 2&#215;3.5.
                   </span>
                 )}
+              </label>
+
+              <label className="mt-4 flex items-start gap-3 text-sm text-muted">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 accent-accent"
+                  checked={printMode === "sheet" ? true : bleedOn}
+                  disabled={printMode === "sheet"}
+                  onChange={(event) => setBleedOn(event.target.checked)}
+                />
+                <span>
+                  Add 1/8&Prime; bleed
+                  <span className="block text-xs leading-5">
+                    {printMode === "sheet"
+                      ? "Sheets always include 1/16\u2033 so printer drift never leaves a white edge. Cut along the dashed line."
+                      : "For cards cut after printing: colour runs past the trim so a slightly off cut shows no white edge. Cut along the dashed line. Leave off for borderless photo paper."}
+                  </span>
+                </span>
               </label>
 
               <fieldset className="mt-6">
@@ -758,8 +809,13 @@ export default function LabelsPage() {
           browser's "background graphics" option is left off. */}
       <div className="label-sheet hidden">
         {printMode === "card" ? (
-          <div style={{ width: cardW, height: cardH }}>
-            <LabelCard fields={labels[0]} size={cardSize} gradientId="label-print-0" />
+          <div style={{ width: fullW, height: fullH }}>
+            <LabelCard
+              fields={labels[0]}
+              size={cardSize}
+              bleedIn={bleedIn}
+              gradientId="label-print-0"
+            />
           </div>
         ) : printMode === "letter" ? (
           <div
@@ -776,17 +832,21 @@ export default function LabelsPage() {
               <div
                 key={index}
                 style={{
+                  position: "relative",
                   width: cardW,
                   height: cardH,
                   outline: "1px dashed #9a9a9a",
-                  outlineOffset: "0.1in",
+                  outlineOffset: `${0.1 + bleedIn}in`,
                 }}
               >
-                <LabelCard
-                  fields={label}
-                  size={cardSize}
-                  gradientId={`label-print-${index}`}
-                />
+                <div style={bleedBox}>
+                  <LabelCard
+                    fields={label}
+                    size={cardSize}
+                    bleedIn={bleedIn}
+                    gradientId={`label-print-${index}`}
+                  />
+                </div>
               </div>
             ))}
           </div>
@@ -805,13 +865,21 @@ export default function LabelsPage() {
             {/* Empty cards are skipped but keep their cell, so a part-used
                 sheet can go back through the printer. */}
             {labels.slice(0, SHEET_CARDS).map((label, index) => (
-              <div key={index}>
+              // Earlier cards stack on top: a lower row's bleed would otherwise
+              // paint over the foot bar of the card above it.
+              <div
+                key={index}
+                style={{ position: "relative", zIndex: SHEET_CARDS - index }}
+              >
                 {label.name.trim() !== "" && (
-                  <LabelCard
-                    fields={label}
-                    size={cardSize}
-                    gradientId={`label-print-${index}`}
-                  />
+                  <div style={bleedBox}>
+                    <LabelCard
+                      fields={label}
+                      size={cardSize}
+                      bleedIn={bleedIn}
+                      gradientId={`label-print-${index}`}
+                    />
+                  </div>
                 )}
               </div>
             ))}

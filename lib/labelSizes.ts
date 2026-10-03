@@ -23,7 +23,16 @@ export function isLandscape(size: CardSize) {
   return size.widthIn > size.heightIn;
 }
 
-/** Export resolution: 300dpi at the card's physical size. */
-export function cardPixels(size: CardSize) {
-  return { width: size.widthIn * 300, height: size.heightIn * 300 };
+/** Bleed, in inches past the trim on every side. */
+export const BLEED_IN = 0.125;
+
+/** The sheet has no gutters, so its bleed only has to cover registration slop. */
+export const SHEET_BLEED_IN = 0.0625;
+
+/** Export resolution: 300dpi at the card's physical size, bleed included. */
+export function cardPixels(size: CardSize, bleedIn = 0) {
+  return {
+    width: (size.widthIn + 2 * bleedIn) * 300,
+    height: (size.heightIn + 2 * bleedIn) * 300,
+  };
 }

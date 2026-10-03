@@ -98,15 +98,23 @@ export default function LabelCard({
   fields,
   gradientId,
   size = CARD_SIZES[0],
+  bleedIn = 0,
 }: {
   fields: LabelFields;
   size?: CardSize;
+  /**
+   * Inches of background painted past the trim on every side, for stock that
+   * is cut after printing. Only backgrounds extend: text keeps its position,
+   * so it stays inside the safe area.
+   */
+  bleedIn?: number;
   /** Must be unique per rendered card -- SVG gradient ids are document global. */
   gradientId: string;
 }) {
   const CARD_WIDTH = size.viewW;
   const CARD_HEIGHT = size.viewH;
   const landscape = isLandscape(size);
+  const B = (bleedIn * CARD_WIDTH) / size.widthIn;
 
   // Landscape: the art is a full-height panel on the left and the text sits in
   // a column to its right, past the (vertical) foam edge. Portrait: art on top.
@@ -199,14 +207,19 @@ export default function LabelCard({
   // The foam edge: horizontal under the art on portrait cards, vertical beside
   // it on landscape ones. Same scallops, drawn along the other axis.
   const foamPath = landscape
-    ? `M${ART_RIGHT - 26} 0${"c0 34 18 34 18 68s-18 34-18 68 ".repeat(
+    ? `M${ART_RIGHT - 26} ${-B}v${B}${"c0 34 18 34 18 68s-18 34-18 68 ".repeat(
         Math.ceil(CARD_HEIGHT / 136) + 1,
-      )}h40V0Z`
-    : `M0 ${ART_BOTTOM - 26}c34 0 34 18 68 18s34-18 68-18 34 18 68 18 34-18 68-18 34 18 68 18 34-18 60-18v40H0Z`;
+      )}h40V${-B}Z`
+    : `M${-B} ${ART_BOTTOM - 26}h${B}c34 0 34 18 68 18s34-18 68-18 34 18 68 18 34-18 68-18 34 18 68 18 34-18 60-18h${B}v40H${-B}Z`;
+
+  // Backgrounds run to the bleed edge. Landscape art only bleeds on the three
+  // outer sides: its right edge is the foam, not the trim.
+  const artWidth = ART_RIGHT + B + (landscape ? 0 : B);
+  const artHeight = landscape ? CARD_HEIGHT + 2 * B : ART_BOTTOM + B;
 
   return (
     <svg
-      viewBox={`0 0 ${CARD_WIDTH} ${CARD_HEIGHT}`}
+      viewBox={`${-B} ${-B} ${CARD_WIDTH + 2 * B} ${CARD_HEIGHT + 2 * B}`}
       width="100%"
       height="100%"
       xmlns="http://www.w3.org/2000/svg"
@@ -223,10 +236,10 @@ export default function LabelCard({
 
       {/* Card face. Explicitly white rather than transparent so the card still
           prints on a white ground when the sheet behind it is not. */}
-      <rect x="0" y="0" width={CARD_WIDTH} height={CARD_HEIGHT} fill="#ffffff" />
+      <rect x={-B} y={-B} width={CARD_WIDTH + 2 * B} height={CARD_HEIGHT + 2 * B} fill="#ffffff" />
 
       {/* Artwork panel. */}
-      <rect x="0" y="0" width={ART_RIGHT} height={ART_BOTTOM} fill={`url(#${gradientId})`} />
+      <rect x={-B} y={-B} width={artWidth} height={artHeight} fill={`url(#${gradientId})`} />
 
       {fields.image ? (
         // Pack shots are square and the panel is 3:2, so something has to give.
@@ -237,10 +250,10 @@ export default function LabelCard({
         // takes the head off the beer.
         <image
           href={fields.image}
-          x="0"
-          y="0"
-          width={ART_RIGHT}
-          height={ART_BOTTOM}
+          x={-B}
+          y={-B}
+          width={artWidth}
+          height={artHeight}
           preserveAspectRatio="xMidYMin slice"
         />
       ) : (
@@ -346,7 +359,7 @@ export default function LabelCard({
       ))}
 
       {/* Foot: a solid bar reads as intentional even on a mono printer. */}
-      <rect x="0" y={CARD_HEIGHT - 14} width={CARD_WIDTH} height="14" fill="#b75c2b" />
+      <rect x={-B} y={CARD_HEIGHT - 14} width={CARD_WIDTH + 2 * B} height={14 + B} fill="#b75c2b" />
     </svg>
   );
 }

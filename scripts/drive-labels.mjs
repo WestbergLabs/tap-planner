@@ -235,6 +235,11 @@ async function main() {
     const line = await exportPng(id);
     exportedAll.push(`${id}: ${line}${line.includes(size) ? "  OK" : "  FAIL expected " + size}`);
   }
+  // Bleed adds 1/8in on every side: 4x6 -> 4.25x6.25 at 300dpi.
+  await evaluate(ws, `document.querySelector('input[type=checkbox]').click(), 'bleed on'`);
+  await sleep(300);
+  const bled = await exportPng("4x6");
+  exportedAll.push(`4x6 +bleed: ${bled}${bled.includes("1275x1875") ? "  OK" : "  FAIL expected 1275x1875"}`);
   const exported = exportedAll.join("\n              ");
 
   const shot = await send(ws, "Page.captureScreenshot", {
