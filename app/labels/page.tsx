@@ -14,8 +14,9 @@ import { safeFileName } from "@/lib/calendar";
 import {
   downloadLabelPng,
   downloadLabelSvg,
-  PNG_HEIGHT,
-  PNG_WIDTH,
+  PNG_SIZES,
+  type PngSize,
+  pngPixels,
 } from "@/lib/labelImage";
 import { getTodayString } from "@/lib/schedule";
 
@@ -119,6 +120,7 @@ export default function LabelsPage() {
   // it, so the file can never disagree with what is on screen.
   const previews = useRef<(HTMLElement | null)[]>([]);
   const [exportError, setExportError] = useState("");
+  const [pngSize, setPngSize] = useState<PngSize>(PNG_SIZES[0]);
 
   const slotCount = printMode === "card" ? 1 : 2;
   const slot = Math.min(activeSlot, slotCount - 1);
@@ -180,7 +182,7 @@ export default function LabelsPage() {
 
     try {
       if (format === "png") {
-        await downloadLabelPng(card, fileName);
+        await downloadLabelPng(card, fileName, pngSize);
       } else {
         await downloadLabelSvg(card, fileName);
       }
@@ -413,14 +415,14 @@ export default function LabelsPage() {
 
               <div>
                 <label className={labelClass} htmlFor="label-batch">
-                  Batch
+                  ID (batch, tap #, color…)
                 </label>
                 <input
                   id="label-batch"
                   className={`${fieldClass} mt-2`}
                   value={fields.batch}
                   maxLength={20}
-                  placeholder="#3"
+                  placeholder="Tap 3"
                   onChange={(event) => update("batch", event.target.value)}
                 />
               </div>
@@ -531,6 +533,30 @@ export default function LabelsPage() {
                   {slotCount > 1 && ` — card ${slot + 1}`}
                 </p>
 
+                <label
+                  className="mt-3 flex items-center gap-3 text-sm text-muted"
+                  htmlFor="png-size"
+                >
+                  PNG size
+                  <select
+                    id="png-size"
+                    className={`${fieldClass} flex-1`}
+                    value={pngSize.id}
+                    onChange={(event) =>
+                      setPngSize(
+                        PNG_SIZES.find((s) => s.id === event.target.value) ??
+                          PNG_SIZES[0],
+                      )
+                    }
+                  >
+                    {PNG_SIZES.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <button
                     type="button"
@@ -539,7 +565,7 @@ export default function LabelsPage() {
                   >
                     Download PNG
                     <span className="mt-0.5 block text-xs font-normal text-muted">
-                      {PNG_WIDTH}&#215;{PNG_HEIGHT} — 300 dpi at 4&#215;6
+                      {pngPixels(pngSize).width}&#215;{pngPixels(pngSize).height} — 300 dpi
                     </span>
                   </button>
 

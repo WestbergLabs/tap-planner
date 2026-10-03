@@ -15,14 +15,24 @@ const CARD_WIDTH = 400;
 const CARD_HEIGHT = 600;
 
 /**
- * PNG export size: 3x the card, i.e. 300dpi at 4x6. Enough headroom to print
- * the same file at 5x7 or 6x9 without it going soft. The `.svg` download is
- * there for anyone who wants to go bigger still.
+ * PNG export sizes, all 2:3 like the card and all 300dpi. The `.svg` download
+ * is there for anyone who wants to go bigger still. A landscape size cannot be
+ * a preset: scaling never changes the ratio (see issue #18).
  */
-const PNG_SCALE = 3;
+export const PNG_SIZES = [
+  { id: "4x6", label: "4×6 in", widthIn: 4 },
+  { id: "3x4.5", label: "3×4.5 in", widthIn: 3 },
+  { id: "2x3", label: "2×3 in (fits 2×3.5 card stock)", widthIn: 2 },
+] as const;
 
-export const PNG_WIDTH = CARD_WIDTH * PNG_SCALE;
-export const PNG_HEIGHT = CARD_HEIGHT * PNG_SCALE;
+export type PngSize = (typeof PNG_SIZES)[number];
+
+const DPI = 300;
+
+export function pngPixels(size: PngSize) {
+  const width = size.widthIn * DPI;
+  return { width, height: (width * CARD_HEIGHT) / CARD_WIDTH };
+}
 
 /** Read a same-origin asset back as a `data:` URI. */
 async function toDataUri(url: string): Promise<string> {
@@ -100,7 +110,12 @@ export async function downloadLabelSvg(card: SVGSVGElement, fileName: string) {
   );
 }
 
-export async function downloadLabelPng(card: SVGSVGElement, fileName: string) {
+export async function downloadLabelPng(
+  card: SVGSVGElement,
+  fileName: string,
+  size: PngSize = PNG_SIZES[0],
+) {
+  const { width: PNG_WIDTH, height: PNG_HEIGHT } = pngPixels(size);
   const markup = await buildStandaloneSvg(card, PNG_WIDTH, PNG_HEIGHT);
   const source = URL.createObjectURL(
     new Blob([markup], { type: "image/svg+xml;charset=utf-8" }),

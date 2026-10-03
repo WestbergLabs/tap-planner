@@ -108,10 +108,12 @@ export default function LabelCard({
   const subtitle = [style, abv].filter((part) => part !== "").join("  ·  ");
 
   const rows = [
-    { label: "Brewed", value: formatLabelDate(fields.brewedDate) },
-    { label: "Tapped", value: formatLabelDate(fields.tappedDate) },
-    { label: "Batch", value: fields.batch.trim() },
-  ].filter((row) => row.value !== "");
+    // Dates always print their field name; a blank one gets a write-in line,
+    // so a card can be printed first and filled in by hand after brewing.
+    { label: "Brewed", value: formatLabelDate(fields.brewedDate), always: true },
+    { label: "Tapped", value: formatLabelDate(fields.tappedDate), always: true },
+    { label: "ID", value: fields.batch.trim(), always: false },
+  ].filter((row) => row.always || row.value !== "");
 
   const notes = wrapText(fields.notes.trim(), 13, CONTENT_WIDTH, 0.52).slice(0, 3);
 
@@ -275,6 +277,16 @@ export default function LabelCard({
           >
             {row.value}
           </text>
+          {row.value === "" && (
+            <line
+              x1={MARGIN + 90}
+              x2={CARD_WIDTH - MARGIN}
+              y1={rowsTop + ROW_GAP * index + 3}
+              y2={rowsTop + ROW_GAP * index + 3}
+              stroke="#b9b3a8"
+              strokeWidth="1"
+            />
+          )}
         </g>
       ))}
 

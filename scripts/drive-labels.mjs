@@ -172,9 +172,15 @@ async function main() {
   //    checks the part that cannot fail quietly: the pack shot has to be
   //    inlined as a data URI before rasterising, or the photo silently drops
   //    out of the export and the card comes back as a bare gradient.
-  const exported = await evaluate(
+  const exportPng = (sizeId) => evaluate(
     ws,
     `(async () => {
+      const select = document.getElementById('png-size');
+      if (!select) return 'no size select';
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')
+        .set.call(select, ${JSON.stringify(sizeId)});
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise((r) => setTimeout(r, 200));
       let captured = null;
       const click = HTMLAnchorElement.prototype.click;
       HTMLAnchorElement.prototype.click = function () {
@@ -222,6 +228,14 @@ async function main() {
       ].join('  ');
     })()`,
   );
+
+  // Every preset must come out at its own pixel size, not just the default.
+  const exportedAll = [];
+  for (const [id, size] of [["4x6", "1200x1800"], ["3x4.5", "900x1350"], ["2x3", "600x900"]]) {
+    const line = await exportPng(id);
+    exportedAll.push(`${id}: ${line}${line.includes(size) ? "  OK" : "  FAIL expected " + size}`);
+  }
+  const exported = exportedAll.join("\n              ");
 
   const shot = await send(ws, "Page.captureScreenshot", {
     format: "png",
