@@ -400,7 +400,7 @@ export const brewPacks: BrewPack[] = [
     minimumConditioningDays: 3,
     abv: 7,
     yeast: "Spark",
-    hopperIncluded: true,
+    hopperIncluded: false,
   },
   {
     id: "sport-beer",
