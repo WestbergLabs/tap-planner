@@ -110,6 +110,7 @@ jobs:
             gh pr create \
               --base main \
               --head "$branch" \
+              --assignee 4thehalibit \
               --title "chore: sync BrewPack pack shots" \
               --body-file pr-body.md
           fi
