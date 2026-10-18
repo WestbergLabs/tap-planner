@@ -182,6 +182,10 @@ export default function LabelsPage() {
   const slotCount =
     printMode === "card" ? 1 : printMode === "letter" ? grid.count : SHEET_CARDS;
   const slot = Math.min(activeSlot, slotCount - 1);
+  // Blank cards are skipped in print, so with none filled there is nothing to print.
+  const hasContent = labels
+    .slice(0, slotCount)
+    .some((label) => label.name.trim() !== "");
   const fields = labels[slot];
 
   const sortedBrewPacks = useMemo(
@@ -725,10 +729,18 @@ export default function LabelsPage() {
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="mt-6 w-full rounded-xl bg-accent px-5 py-3.5 text-base font-semibold text-white transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent/40 focus:ring-offset-2"
+                disabled={!hasContent}
+                className="mt-6 w-full rounded-xl bg-accent px-5 py-3.5 text-base font-semibold text-white transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent/40 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Print label
               </button>
+
+              {!hasContent && (
+                <p className="mt-2 text-center text-xs text-muted">
+                  Pick a BrewPack or type a beer name first. Blank cards
+                  aren&rsquo;t printed.
+                </p>
+              )}
 
               <p className="mt-3 text-center text-xs leading-5 text-muted">
                 In the print dialog set scale to <strong>100%</strong>{" "}

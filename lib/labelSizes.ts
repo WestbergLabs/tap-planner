@@ -16,7 +16,8 @@ export const CARD_SIZES = [
 export type CardSize = (typeof CARD_SIZES)[number];
 
 /** The perforated business-card sheet is always portrait 2x3.5. */
-export const BUSINESS_CARD: CardSize = CARD_SIZES[0];
+export const BUSINESS_CARD: CardSize =
+  CARD_SIZES.find((size) => size.id === "2x3.5") ?? CARD_SIZES[0];
 
 export function isLandscape(size: CardSize) {
   return size.widthIn > size.heightIn;

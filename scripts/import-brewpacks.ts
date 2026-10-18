@@ -371,6 +371,8 @@ export type CatalogResult = {
   pending: PendingProduct[];
   fromShop: number;
   retainedFromSupport: string[];
+  /** Packs from MANUAL_PACKS that no feed or support page supplied. */
+  manual: string[];
 };
 
 // Resolve one shop product into a complete BrewPack, or into a pending record
@@ -558,10 +560,12 @@ export async function buildCatalog(
     }
   }
 
+  const manual: string[] = [];
+
   for (const pack of MANUAL_PACKS) {
     if (!catalog.has(pack.id)) {
       catalog.set(pack.id, pack);
-      retainedFromSupport.push(pack.name);
+      manual.push(pack.name);
     }
   }
 
@@ -577,7 +581,7 @@ export async function buildCatalog(
     return 0;
   });
 
-  return { packs, pending, fromShop, retainedFromSupport };
+  return { packs, pending, fromShop, retainedFromSupport, manual };
 }
 
 // ---------------------------------------------------------------------------
@@ -674,7 +678,8 @@ async function main(): Promise<void> {
   console.log(`  Primary (shop): ${SHOP_COLLECTION_URL}`);
   console.log(`  Backup (support): ${SUPPORT_URL}\n`);
 
-  const { packs, pending, fromShop, retainedFromSupport } = await buildCatalog();
+  const { packs, pending, fromShop, retainedFromSupport, manual } =
+    await buildCatalog();
 
   assertCatalogSafe(packs);
 
@@ -696,6 +701,10 @@ async function main(): Promise<void> {
     console.log(
       `Retained (not currently on sale): ${retainedFromSupport.join(", ")}`,
     );
+  }
+
+  if (manual.length > 0) {
+    console.log(`Added from the manual list: ${manual.join(", ")}`);
   }
 
   console.log(`Generated:\n${OUTPUT_FILE}\n`);
