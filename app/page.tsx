@@ -56,7 +56,7 @@ export default function Home() {
 
   const sortedBrewPacks = useMemo(
     () =>
-      brewPacks
+      [...brewPacks]
         .sort((a, b) => a.name.localeCompare(b.name)),
     [],
   );

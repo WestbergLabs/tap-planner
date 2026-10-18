@@ -9,7 +9,6 @@ import {
 } from "react";
 
 import type { BrewPack } from "@/data/brewpacks.generated";
-import { useShowDiscontinued } from "@/lib/showDiscontinued";
 
 type BrewPackPickerProps = {
   /** All BrewPacks (including discontinued), already sorted for display. */
@@ -63,7 +62,7 @@ export default function BrewPackPicker({
     }
   }
 
-  const [showDiscontinued, setShowDiscontinued] = useShowDiscontinued();
+  const [showDiscontinued, setShowDiscontinued] = useState(false);
 
   const filteredBrewPacks = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -216,7 +215,7 @@ export default function BrewPackPicker({
           onChange={(event) => setShowDiscontinued(event.target.checked)}
           className="h-4 w-4 accent-accent"
         />
-        Also show discontinued packs <span className="opacity-70">(applies to every page)</span>
+        Also show discontinued packs
       </label>
 
       {hint && (

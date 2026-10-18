@@ -70,7 +70,6 @@ number, tasting notes.
 
 Save the card instead — **PNG** at 300dpi or **SVG**, which stays sharp at any
 size. Both are built in the browser from the card on screen.
-Both are built in the browser from the card on screen.
 
 <details>
 <summary><strong>Which paper survives a fridge?</strong></summary>

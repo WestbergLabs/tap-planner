@@ -212,9 +212,10 @@ export default function ReleasesPage() {
 
   const [query, setQuery] = useState("");
 
+  const allAvailable = useMemo(() => availableReleases(releases), []);
   const available = useMemo(
-    () => availableReleases(releases).filter((r) => matchesQuery(r, query)),
-    [query],
+    () => allAvailable.filter((r) => matchesQuery(r, query)),
+    [allAvailable, query],
   );
   const years = useMemo(() => groupByYear(releases), []);
   const undated = useMemo(
@@ -260,8 +261,14 @@ export default function ReleasesPage() {
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
 
-    if (selectedYear !== null && year !== selectedYear) {
-      setSelectedYear(null);
+    // A year filter or search can be hiding the card: clear whichever is,
+    // then scroll once it has rendered.
+    const hiddenByYear = selectedYear !== null && year !== selectedYear;
+    const hiddenBySearch = !matchesQuery(release, query);
+
+    if (hiddenByYear || hiddenBySearch) {
+      if (hiddenByYear) setSelectedYear(null);
+      if (hiddenBySearch) setQuery("");
       requestAnimationFrame(scrollToCard);
       return;
     }
@@ -306,7 +313,7 @@ export default function ReleasesPage() {
             Release Timeline
           </h1>
           <p className="mt-3 text-base leading-7 text-muted">
-            {availableReleases(releases).length} packs on sale right now, {releases.length} known
+            {allAvailable.length} packs on sale right now, {releases.length} known
             in total, and {reissued.length} that have come back around at least
             once.
           </p>

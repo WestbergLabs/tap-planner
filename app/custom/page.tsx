@@ -71,7 +71,7 @@ function CustomPlanner() {
 
   const sortedBrewPacks = useMemo(
     () =>
-      brewPacks
+      [...brewPacks]
         .sort((a, b) => a.name.localeCompare(b.name)),
     [],
   );

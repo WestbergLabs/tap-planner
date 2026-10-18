@@ -188,7 +188,7 @@ export default function LabelsPage() {
 
   const sortedBrewPacks = useMemo(
     () =>
-      brewPacks
+      [...brewPacks]
         .sort((a, b) => a.name.localeCompare(b.name)),
     [],
   );
@@ -556,28 +556,28 @@ export default function LabelsPage() {
                               outlineOffset: cq(GUIDE_GAP_IN / 2 + bleedIn),
                             }}
                           >
-                            {blank ? (
-                              <span className="flex h-full items-center justify-center text-xs text-muted">
-                                {index + 1}
-                              </span>
-                            ) : (
-                              <div
-                                style={{
-                                  position: "absolute",
-                                  left: cq(-bleedIn),
-                                  top: cq(-bleedIn),
-                                  width: cq(cardSize.widthIn + 2 * bleedIn),
-                                  height: cq(cardSize.heightIn + 2 * bleedIn),
-                                }}
-                              >
-                                <LabelCard
-                                  fields={label}
-                                  size={cardSize}
-                                  bleedIn={bleedIn}
-                                  gradientId={`label-preview-${index}`}
-                                />
-                              </div>
-                            )}
+                            {/* Always rendered, even when blank, so export can
+                                read its svg. Blank cards are dimmed here and
+                                skipped in print. The bleed box ignores
+                                pointer events so it never steals a
+                                neighbour's click. */}
+                            <span
+                              className={`pointer-events-none block ${blank ? "opacity-40" : ""}`}
+                              style={{
+                                position: "absolute",
+                                left: cq(-bleedIn),
+                                top: cq(-bleedIn),
+                                width: cq(cardSize.widthIn + 2 * bleedIn),
+                                height: cq(cardSize.heightIn + 2 * bleedIn),
+                              }}
+                            >
+                              <LabelCard
+                                fields={label}
+                                size={cardSize}
+                                bleedIn={bleedIn}
+                                gradientId={`label-preview-${index}`}
+                              />
+                            </span>
                           </button>
                         );
                       })}
