@@ -25,6 +25,7 @@ import {
   formatReissueDate,
   formatReleaseLabel,
   groupByYear,
+  matchesQuery,
   releaseYear,
   reissuedReleases,
   statusLabel,
@@ -209,9 +210,17 @@ export default function ReleasesPage() {
   // Shared between the strip and the cards, so hovering either highlights both.
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  const available = useMemo(() => availableReleases(releases), []);
+  const [query, setQuery] = useState("");
+
+  const available = useMemo(
+    () => availableReleases(releases).filter((r) => matchesQuery(r, query)),
+    [query],
+  );
   const years = useMemo(() => groupByYear(releases), []);
-  const undated = useMemo(() => undatedReleases(releases), []);
+  const undated = useMemo(
+    () => undatedReleases(releases).filter((r) => matchesQuery(r, query)),
+    [query],
+  );
   const reissued = useMemo(() => reissuedReleases(releases), []);
 
   // Ascending for the strip and the button row; the card list stays
@@ -230,10 +239,14 @@ export default function ReleasesPage() {
 
   const visibleYears = useMemo(
     () =>
-      selectedYear === null
-        ? years
-        : years.filter((entry) => entry.year === selectedYear),
-    [years, selectedYear],
+      years
+        .filter((entry) => selectedYear === null || entry.year === selectedYear)
+        .map((entry) => ({
+          ...entry,
+          releases: entry.releases.filter((r) => matchesQuery(r, query)),
+        }))
+        .filter((entry) => entry.releases.length > 0),
+    [years, selectedYear, query],
   );
 
   // Clicking a tick jumps to that pack's card. If a year filter is hiding it,
@@ -293,7 +306,7 @@ export default function ReleasesPage() {
             Release Timeline
           </h1>
           <p className="mt-3 text-base leading-7 text-muted">
-            {available.length} packs on sale right now, {releases.length} known
+            {availableReleases(releases).length} packs on sale right now, {releases.length} known
             in total, and {reissued.length} that have come back around at least
             once.
           </p>
@@ -340,6 +353,15 @@ export default function ReleasesPage() {
             </p>
           </div>
         </section>
+
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search packs, styles, flavors, years"
+          aria-label="Search packs"
+          className="mb-4 w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm text-foreground placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+        />
 
         <div
           role="tablist"
@@ -389,6 +411,10 @@ export default function ReleasesPage() {
               or are between seasons.
             </p>
 
+            {available.length === 0 && (
+              <p className="text-sm text-muted">No packs match &ldquo;{query}&rdquo;.</p>
+            )}
+
             <ul className="space-y-3">
               {available.map((release) => (
                 <ReleaseCard
@@ -415,6 +441,14 @@ export default function ReleasesPage() {
               onHover={setHoveredId}
               onPick={handlePickRelease}
             />
+
+            {query.trim() !== "" &&
+              visibleYears.length === 0 &&
+              undated.length === 0 && (
+                <p className="mb-8 text-sm text-muted">
+                  No packs match &ldquo;{query}&rdquo;.
+                </p>
+              )}
 
             {visibleYears.map(({ year, releases: yearReleases }) => (
               <section
