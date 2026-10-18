@@ -26,15 +26,19 @@ import { getTodayString } from "@/lib/schedule";
 type PrintMode = "card" | "letter" | "sheet";
 
 /**
- * Physical sizes, in one place. A 4x6 card is the fixed unit; the multi-card
- * sheet just has to be big enough to hold two of them side by side (8in wide)
- * plus cut guides.
+ * Physical sizes, in one place. The multi-card page tiles whatever size is
+ * picked, as many as fit on Letter with cut guides.
  *
  * Landscape Letter is the default because it leaves 1.5in of slack per side.
  * Portrait Letter also fits two cards, but only with 0.25in to spare, which is
  * most printers' unprintable margin -- the guides would be clipped. Swap
  * SHEET_W/SHEET_H and PAGE_SIZE together if you print on a different stock.
  */
+/** Letter page geometry for the "page of labels" mode, in inches. */
+const PAGE_W_IN = 11;
+const PAGE_H_IN = 8.5;
+const PAGE_MARGIN_IN = 0.5;
+const GUIDE_GAP_IN = 0.2;
 const SHEET_W = "11in";
 const SHEET_H = "8.5in";
 const PAGE_SIZE = "letter landscape";
@@ -47,6 +51,18 @@ const PAGE_SIZE = "letter landscape";
  */
 const SHEET_COLS = 5;
 const SHEET_CARDS = 10;
+
+/** Inches -> container-width units, for the to-scale page preview. */
+const cq = (inches: number) => `${(inches * 100) / PAGE_W_IN}cqw`;
+
+/** How many cards of this size (plus bleed) tile a landscape Letter page. */
+function pageGrid(size: CardSize, bleedIn: number) {
+  const fit = (avail: number, card: number) =>
+    Math.max(1, Math.floor((avail + GUIDE_GAP_IN) / (card + 2 * bleedIn + GUIDE_GAP_IN)));
+  const cols = fit(PAGE_W_IN - 2 * PAGE_MARGIN_IN, size.widthIn);
+  const rows = fit(PAGE_H_IN - 2 * PAGE_MARGIN_IN, size.heightIn);
+  return { cols, rows, count: Math.min(cols * rows, SHEET_CARDS) };
+}
 const SHEET_PAD = "0.75in 0.5in";
 
 const EMPTY_FIELDS: LabelFields = {
@@ -104,15 +120,15 @@ const VERDICT_STYLES: Record<(typeof PAPER_OPTIONS)[number]["tone"], string> = {
 const PRINT_MODES: { value: PrintMode; title: string; blurb: string }[] = [
   {
     value: "card",
-    title: "4×6 index card",
+    title: "One label",
     blurb:
-      "One label. For photo trays, 4×6 sticker sheets, and thermal label printers.",
+      "One label at your chosen size, for photo trays, sticker sheets, and thermal label printers.",
   },
   {
     value: "letter",
-    title: "Letter paper — 2 labels",
+    title: "Letter paper — several labels",
     blurb:
-      "Standard 8.5×11 paper, printed sideways. Two labels with cut guides, and they can be different beers.",
+      "Standard 8.5×11 paper, printed sideways. As many labels of your chosen size as fit, with cut guides, and they can be different beers.",
   },
   {
     value: "sheet",
@@ -132,7 +148,7 @@ export default function LabelsPage() {
     Array.from({ length: SHEET_CARDS }, () => ""),
   );
   const [activeSlot, setActiveSlot] = useState(0);
-  const [printMode, setPrintMode] = useState<PrintMode>("card");
+  const [printMode, setPrintMode] = useState<PrintMode>("letter");
 
   // Export reads the card straight out of the preview rather than re-rendering
   // it, so the file can never disagree with what is on screen.
@@ -164,8 +180,9 @@ export default function LabelsPage() {
   } as const;
   const px = cardPixels(cardSize, bleedIn);
 
+  const grid = pageGrid(cardSize, bleedIn);
   const slotCount =
-    printMode === "card" ? 1 : printMode === "letter" ? 2 : SHEET_CARDS;
+    printMode === "card" ? 1 : printMode === "letter" ? grid.count : SHEET_CARDS;
   const slot = Math.min(activeSlot, slotCount - 1);
   const fields = labels[slot];
 
@@ -298,8 +315,7 @@ export default function LabelsPage() {
 
             <p className="mt-4 max-w-xl text-base leading-7 text-muted">
               Pick a BrewPack, add your dates, and print a card on whatever
-              paper you have &mdash; index cards, business cards, or a full
-              sheet.
+              paper you have &mdash; business cards, or a full sheet.
             </p>
           </header>
 
@@ -318,7 +334,7 @@ export default function LabelsPage() {
                     aria-label="Which card to edit"
                     className="flex flex-wrap gap-2"
                   >
-                    {labels.map((label, index) => (
+                    {labels.slice(0, slotCount).map((label, index) => (
                       <button
                         key={index}
                         type="button"
@@ -498,6 +514,83 @@ export default function LabelsPage() {
             </div>
 
             <div className="px-5 py-6 sm:px-6">
+              {printMode === "letter" ? (
+                // The page as it will print, to scale: everything is sized in
+                // container-width units so 1in is the same fraction of the
+                // page at any screen width.
+                <div className="mx-auto max-w-3xl">
+                  <div
+                    className="relative w-full rounded-md border border-border-strong bg-white shadow-card"
+                    style={{
+                      aspectRatio: `${PAGE_W_IN} / ${PAGE_H_IN}`,
+                      containerType: "inline-size",
+                    }}
+                  >
+                    <div
+                      className="absolute inset-0 grid"
+                      style={{
+                        gridTemplateColumns: `repeat(${grid.cols}, ${cq(cardSize.widthIn)})`,
+                        gridAutoRows: cq(cardSize.heightIn),
+                        gap: cq(GUIDE_GAP_IN + 2 * bleedIn),
+                        placeContent: "center",
+                      }}
+                    >
+                      {labels.slice(0, slotCount).map((label, index) => {
+                        const blank = label.name.trim() === "";
+
+                        return (
+                          <button
+                            key={index}
+                            type="button"
+                            ref={(node) => {
+                              previews.current[index] = node;
+                            }}
+                            onClick={() => setActiveSlot(index)}
+                            aria-label={`Edit card ${index + 1}`}
+                            className={`relative ${
+                              slot === index ? "outline-accent" : "outline-border-strong"
+                            } ${blank ? "bg-field" : ""}`}
+                            style={{
+                              outlineStyle: "dashed",
+                              outlineWidth: slot === index ? 2 : 1,
+                              outlineOffset: cq(GUIDE_GAP_IN / 2 + bleedIn),
+                            }}
+                          >
+                            {blank ? (
+                              <span className="flex h-full items-center justify-center text-xs text-muted">
+                                {index + 1}
+                              </span>
+                            ) : (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  left: cq(-bleedIn),
+                                  top: cq(-bleedIn),
+                                  width: cq(cardSize.widthIn + 2 * bleedIn),
+                                  height: cq(cardSize.heightIn + 2 * bleedIn),
+                                }}
+                              >
+                                <LabelCard
+                                  fields={label}
+                                  size={cardSize}
+                                  bleedIn={bleedIn}
+                                  gradientId={`label-preview-${index}`}
+                                />
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <p className="mt-3 text-center text-xs leading-5 text-muted">
+                    Letter page, printed sideways &mdash; {grid.count}{" "}
+                    {cardSize.widthIn}&#215;{cardSize.heightIn} in labels fit.
+                    Drawn to scale; tap a card to edit it.
+                  </p>
+                </div>
+              ) : (
               <div className="flex flex-wrap items-start justify-center gap-4">
                 {labels.slice(0, slotCount).map((label, index) => {
                   const blank = printMode === "sheet" && label.name.trim() === "";
@@ -556,6 +649,7 @@ export default function LabelsPage() {
                   );
                 })}
               </div>
+              )}
 
               <label className="mt-7 block" htmlFor="card-size">
                 <span className={labelClass}>Card size</span>
@@ -642,7 +736,7 @@ export default function LabelsPage() {
                 a true {cardSize.widthIn}&#215;{cardSize.heightIn}.
               </p>
 
-              {/* Saving the card as a file is the way out of 4x6: any photo
+              {/* Saving the card as a file is the way out of fixed sizes: any photo
                   app or print shop can scale an image to whatever size the
                   fridge, keg, or bottle actually needs. */}
               <div className="mt-6 border-t border-border pt-5">
@@ -821,31 +915,34 @@ export default function LabelsPage() {
             style={{
               width: SHEET_W,
               height: SHEET_H,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.6in",
+              display: "grid",
+              gridTemplateColumns: `repeat(${grid.cols}, ${cardW})`,
+              gridAutoRows: cardH,
+              gap: `${GUIDE_GAP_IN + 2 * bleedIn}in`,
+              placeContent: "center",
             }}
           >
-            {labels.slice(0, 2).map((label, index) => (
+            {/* Blank cards are skipped but keep their cell, like the sheet. */}
+            {labels.slice(0, slotCount).map((label, index) => (
               <div
                 key={index}
                 style={{
                   position: "relative",
-                  width: cardW,
-                  height: cardH,
-                  outline: "1px dashed #9a9a9a",
-                  outlineOffset: `${0.1 + bleedIn}in`,
+                  outline:
+                    label.name.trim() !== "" ? "1px dashed #9a9a9a" : "none",
+                  outlineOffset: `${GUIDE_GAP_IN / 2 + bleedIn}in`,
                 }}
               >
-                <div style={bleedBox}>
-                  <LabelCard
-                    fields={label}
-                    size={cardSize}
-                    bleedIn={bleedIn}
-                    gradientId={`label-print-${index}`}
-                  />
-                </div>
+                {label.name.trim() !== "" && (
+                  <div style={bleedBox}>
+                    <LabelCard
+                      fields={label}
+                      size={cardSize}
+                      bleedIn={bleedIn}
+                      gradientId={`label-print-${index}`}
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -61,7 +61,7 @@ const LINKS: NavLink[] = [
     href: "/labels",
     short: "Labels",
     label: "Brew labels",
-    description: "Print a 4×6 fridge card",
+    description: "Print a fridge card",
   },
 ];
 

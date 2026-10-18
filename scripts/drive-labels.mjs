@@ -231,15 +231,15 @@ async function main() {
 
   // Every preset must come out at its own pixel size, not just the default.
   const exportedAll = [];
-  for (const [id, size] of [["4x6", "1200x1800"], ["3x4.5", "900x1350"], ["2x3.5", "600x1050"], ["2x3", "600x900"], ["3.5x2", "1050x600"], ["3x2.5", "900x750"]]) {
+  for (const [id, size] of [["3x4.5", "900x1350"], ["2x3.5", "600x1050"], ["2x3", "600x900"], ["3.5x2", "1050x600"], ["3x2.5", "900x750"]]) {
     const line = await exportPng(id);
     exportedAll.push(`${id}: ${line}${line.includes(size) ? "  OK" : "  FAIL expected " + size}`);
   }
-  // Bleed adds 1/8in on every side: 4x6 -> 4.25x6.25 at 300dpi.
+  // Bleed adds 1/8in on every side: 2x3.5 -> 2.25x3.75 at 300dpi.
   await evaluate(ws, `document.querySelector('input[type=checkbox]').click(), 'bleed on'`);
   await sleep(300);
-  const bled = await exportPng("4x6");
-  exportedAll.push(`4x6 +bleed: ${bled}${bled.includes("1275x1875") ? "  OK" : "  FAIL expected 1275x1875"}`);
+  const bled = await exportPng("2x3.5");
+  exportedAll.push(`2x3.5 +bleed: ${bled}${bled.includes("675x1125") ? "  OK" : "  FAIL expected 675x1125"}`);
   const exported = exportedAll.join("\n              ");
 
   const shot = await send(ws, "Page.captureScreenshot", {

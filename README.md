@@ -56,20 +56,20 @@ Tap Planner never asks for calendar access and adds nothing automatically.
 ## Brew labels
 
 <div align="center">
-<img src="docs/images/label-sheet.png" alt="Two 4x6 brew labels laid out on a Letter sheet with dashed cut guides" width="540">
+<img src="docs/images/label-sheet.png" alt="Brew labels laid out on a Letter sheet with dashed cut guides" width="540">
 </div>
 
-Print a 4×6 card for each brew — name, style, ABV, brew and tap dates, batch
+Print a business-card-size label for each brew — name, style, ABV, brew and tap dates, batch
 number, tasting notes.
 
-- **4×6 index card** — one label, for photo trays, 4×6 sticker sheets, and
-  thermal label printers.
-- **US Letter** — two labels side by side with cut guides, and they can be two
-  different beers. Printed landscape, because two 4×6 cards are 8in wide and
-  portrait leaves less margin than most printers can manage.
+- **US Letter** (default) — as many labels of the chosen size as fit, with cut
+  guides, and they can be different beers. Printed landscape. The page preview
+  is drawn to scale.
+- **One label** — a single label at the chosen size.
+- **Business cards** — ten per perforated 2×3.5 sheet.
 
-Not printing at 4×6? Save the card instead — **PNG** at 1200×1800 (300dpi at
-4×6, with headroom to go bigger) or **SVG**, which stays sharp at any size.
+Save the card instead — **PNG** at 300dpi or **SVG**, which stays sharp at any
+size. Both are built in the browser from the card on screen.
 Both are built in the browser from the card on screen.
 
 <details>
