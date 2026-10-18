@@ -3,10 +3,10 @@ import { CARD_SIZES, type CardSize, isLandscape } from "@/lib/labelSizes";
 import { formatAbv, formatLabelDate, getStyleProfile } from "@/lib/labels";
 
 /**
- * A printable 4x6 BrewPack label, drawn entirely as one SVG.
+ * A printable BrewPack label, drawn entirely as one SVG.
  *
  * Everything -- artwork, headings, data rows -- lives in a single 400x600
- * viewBox (4x6 inches at 100 units per inch). That keeps the on-screen preview
+ * viewBox (inches times 100 or 200 units per inch, see lib/labelSizes.ts). That keeps the on-screen preview
  * and the printed card pixel-identical at any scale, and it sidesteps the
  * browser inconsistencies you hit trying to lay out a physical-size card in
  * CSS inches.

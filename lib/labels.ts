@@ -1,7 +1,7 @@
 /**
  * Style-driven artwork profiles for printable BrewPack labels (`/labels`).
  *
- * Every BrewPack becomes a 4x6 card whose artwork is generated from its style
+ * Every BrewPack becomes a printable card whose artwork is generated from its style
  * string rather than loaded from an image, so custom recipes and future packs
  * get artwork for free and nothing has to be hosted or downloaded.
  *

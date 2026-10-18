@@ -255,6 +255,11 @@ export default function ReleasesPage() {
   function handlePickRelease(release: BrewPackRelease) {
     const year = releaseYear(release);
 
+    // Two frames: the first lets React commit the cleared filter, the second
+    // lets the card lay out before scrolling to it.
+    const afterRender = (fn: () => void) =>
+      requestAnimationFrame(() => requestAnimationFrame(fn));
+
     function scrollToCard() {
       document
         .getElementById(`release-${release.id}`)
@@ -269,7 +274,7 @@ export default function ReleasesPage() {
     if (hiddenByYear || hiddenBySearch) {
       if (hiddenByYear) setSelectedYear(null);
       if (hiddenBySearch) setQuery("");
-      requestAnimationFrame(scrollToCard);
+      afterRender(scrollToCard);
       return;
     }
 
@@ -419,7 +424,11 @@ export default function ReleasesPage() {
             </p>
 
             {available.length === 0 && (
-              <p className="text-sm text-muted">No packs match &ldquo;{query}&rdquo;.</p>
+              <p className="text-sm text-muted">
+                {query.trim()
+                  ? <>No packs on sale match &ldquo;{query}&rdquo;.</>
+                  : "Nothing is on sale right now."}
+              </p>
             )}
 
             <ul className="space-y-3">
@@ -453,7 +462,10 @@ export default function ReleasesPage() {
               visibleYears.length === 0 &&
               undated.length === 0 && (
                 <p className="mb-8 text-sm text-muted">
-                  No packs match &ldquo;{query}&rdquo;.
+                  No packs match &ldquo;{query}&rdquo;
+                  {selectedYear !== null &&
+                    ` in ${selectedYear}. Tap the year again to search every year`}
+                  .
                 </p>
               )}
 

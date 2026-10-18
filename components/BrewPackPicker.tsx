@@ -23,6 +23,12 @@ type BrewPackPickerProps = {
   onEdit?: () => void;
   /** Helper text shown under the field. */
   hint?: string;
+  /**
+   * Optional controlled "show discontinued" state, for a parent that remounts
+   * the picker (e.g. the labels page keys it by slot). Uncontrolled otherwise.
+   */
+  showDiscontinued?: boolean;
+  onShowDiscontinuedChange?: (value: boolean) => void;
 };
 
 /**
@@ -37,6 +43,8 @@ export default function BrewPackPicker({
   onClear,
   onEdit,
   hint,
+  showDiscontinued: controlledShow,
+  onShowDiscontinuedChange,
 }: BrewPackPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -62,7 +70,9 @@ export default function BrewPackPicker({
     }
   }
 
-  const [showDiscontinued, setShowDiscontinued] = useState(false);
+  const [ownShow, setOwnShow] = useState(false);
+  const showDiscontinued = controlledShow ?? ownShow;
+  const setShowDiscontinued = onShowDiscontinuedChange ?? setOwnShow;
 
   const filteredBrewPacks = useMemo(() => {
     const query = search.trim().toLowerCase();

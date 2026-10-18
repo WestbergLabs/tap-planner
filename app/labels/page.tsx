@@ -26,22 +26,18 @@ import { getTodayString } from "@/lib/schedule";
 type PrintMode = "card" | "letter" | "sheet";
 
 /**
- * Physical sizes, in one place. The multi-card page tiles whatever size is
- * picked, as many as fit on Letter with cut guides.
- *
- * Landscape Letter is the default because it leaves 1.5in of slack per side.
- * Portrait Letter also fits two cards, but only with 0.25in to spare, which is
- * most printers' unprintable margin -- the guides would be clipped. Swap
- * SHEET_W/SHEET_H and PAGE_SIZE together if you print on a different stock.
+ * Page geometry, in one place. Printed landscape Letter: portrait leaves too
+ * little margin for the cut guides on most printers. The multi-card page tiles
+ * whatever card size is picked, as many as fit inside the margins. To print on
+ * another stock, change PAGE_W_IN/PAGE_H_IN and PAGE_SIZE together.
  */
-/** Letter page geometry for the "page of labels" mode, in inches. */
 const PAGE_W_IN = 11;
 const PAGE_H_IN = 8.5;
 const PAGE_MARGIN_IN = 0.5;
 const GUIDE_GAP_IN = 0.2;
-const SHEET_W = "11in";
-const SHEET_H = "8.5in";
 const PAGE_SIZE = "letter landscape";
+const SHEET_W = `${PAGE_W_IN}in`;
+const SHEET_H = `${PAGE_H_IN}in`;
 
 /**
  * Business-card stock (Avery 5371 style: ten 3.5x2 blanks per Letter sheet),
@@ -82,7 +78,7 @@ const PAPER_OPTIONS = [
     verdict: "Best",
     tone: "best" as const,
     body:
-      "Shrugs off condensation completely — it will not pulp, curl, or wrinkle even sitting against a cold, sweating keg. Sold pre-cut at 4x6 and in full sheets.",
+      "Shrugs off condensation completely — it will not pulp, curl, or wrinkle even sitting against a cold, sweating keg. Sold pre-cut and in full sheets.",
   },
   {
     name: "Matte photo paper",
@@ -90,7 +86,7 @@ const PAPER_OPTIONS = [
     verdict: "Great",
     tone: "great" as const,
     body:
-      "The resin coating keeps moisture out of the fibres, and matte means you can still write on it with a pen. Sold in 4x6 packs for photo trays, with or without adhesive backing.",
+      "The resin coating keeps moisture out of the fibres, and matte means you can still write on it with a pen. Sold in photo-tray packs, with or without adhesive backing.",
   },
   {
     name: "Cardstock",
@@ -148,6 +144,8 @@ export default function LabelsPage() {
     Array.from({ length: SHEET_CARDS }, () => ""),
   );
   const [activeSlot, setActiveSlot] = useState(0);
+  // Held here, not in the picker, because the picker remounts on slot change.
+  const [showDiscontinued, setShowDiscontinued] = useState(false);
   const [printMode, setPrintMode] = useState<PrintMode>("letter");
 
   // Export reads the card straight out of the preview rather than re-rendering
@@ -374,6 +372,8 @@ export default function LabelsPage() {
                 <div>
                   <BrewPackPicker
                     key={slot}
+                    showDiscontinued={showDiscontinued}
+                    onShowDiscontinuedChange={setShowDiscontinued}
                     brewPacks={sortedBrewPacks}
                     selectedId={selectedIds[slot]}
                     onSelect={handleSelect}
