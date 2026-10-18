@@ -202,7 +202,9 @@ export function buildRelease(
   // case: published_at is a later return, so the original launch is only known
   // to be somewhere around created_at.
   const releaseDate = reissued ? created : (published ?? created);
-  const reissuedOn = reissued ? published : null;
+  // A discontinued pack cannot be bought, so "came back" would mislead. The
+  // month-only precision above still reflects the unreliable store date.
+  const reissuedOn = reissued && !pack.discontinued ? published : null;
 
   const bulkCreated = created !== null && bulkCreationDays.has(created);
 
