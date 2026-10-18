@@ -505,6 +505,26 @@ export async function resolveShopPacks(
   return { packs: [...bySlug.values()], pending };
 }
 
+// Packs that were delisted before the scanner ever saw them: in no shop feed and
+// not on the support page, so nothing can retain them automatically. Specs come
+// from the product page (pinter.com/products/<id>); catalog entries win over
+// these if a feed ever lists the same id.
+const MANUAL_PACKS: BrewPack[] = [
+  {
+    id: "sycamore-brewing",
+    name: "Sycamore Brewing",
+    style: "American Wheat",
+    recommendedBrewDays: 8,
+    recommendedConditioningDays: 5,
+    minimumBrewDays: 6,
+    minimumConditioningDays: 3,
+    abv: 5,
+    yeast: "Spark",
+    hopperIncluded: false,
+    discontinued: true,
+  },
+];
+
 export async function buildCatalog(
   options: { shopProducts?: ShopifyProduct[] } = {},
 ): Promise<CatalogResult> {
@@ -532,6 +552,13 @@ export async function buildCatalog(
   const retainedFromSupport: string[] = [];
 
   for (const pack of supportPacks) {
+    if (!catalog.has(pack.id)) {
+      catalog.set(pack.id, pack);
+      retainedFromSupport.push(pack.name);
+    }
+  }
+
+  for (const pack of MANUAL_PACKS) {
     if (!catalog.has(pack.id)) {
       catalog.set(pack.id, pack);
       retainedFromSupport.push(pack.name);
