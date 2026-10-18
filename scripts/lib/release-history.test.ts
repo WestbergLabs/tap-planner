@@ -156,6 +156,19 @@ test("a discontinued catalog pack keeps that status even when still listed", () 
   assert.equal(release.status, "discontinued");
 });
 
+test("a discontinued pack is never shown as re-released", () => {
+  const release = buildRelease(
+    pack({ discontinued: true }),
+    product({
+      created_at: "2025-08-05T00:00:00-04:00",
+      published_at: "2026-02-19T00:00:00-05:00",
+    }),
+  );
+
+  assert.equal(release.reissuedOn, null);
+  assert.equal(release.precision, "month");
+});
+
 test("status reflects variant availability", () => {
   assert.equal(
     buildRelease(pack(), product({ variants: [{ available: false }] })).status,

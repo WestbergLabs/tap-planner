@@ -55,7 +55,7 @@ Five pages. The first three share one calculation engine:
 | **Custom planner** | `/custom` | You're brewing your own recipe, or want to override a BrewPack's default timing |
 | **Rotation planner** | `/rotation` | You run several Pinters and want them staggered so you never run dry |
 | **Release timeline** | `/releases` | You want to know when a pack appeared, or when a seasonal might return |
-| **Brew labels** | `/labels` | You want a printed 4x6 card saying what is in the fridge |
+| **Brew labels** | `/labels` | You want a printed label saying what is in the fridge |
 
 `SiteNav` is shared by all five and rendered over each page's hero.
 
@@ -131,7 +131,7 @@ app/
     layout.tsx                # Metadata for /releases (the page is a client component)
     page.tsx                  # Estimated BrewPack release timeline  →  /releases
   labels/
-    page.tsx                  # Printable 4x6 brew labels  →  /labels
+    page.tsx                  # Printable brew labels  →  /labels
   globals.css                 # Global design, responsive layout, mobile fixes
   layout.tsx                  # App metadata and root layout
   page.tsx                    # Official BrewPack planner  →  /
@@ -141,7 +141,7 @@ components/
   BeerPicker.tsx               # Compact searchable beer combobox for the rotation lineup
   SiteNav.tsx                  # Shared nav: pill bar from sm up, menu below
   BackToTop.tsx                # "Top up" scroll-to-top, mounted in the root layout
-  LabelCard.tsx                # One printable 4x6 label, drawn entirely as SVG
+  LabelCard.tsx                # One printable label, drawn entirely as SVG
   LabelArt.tsx                 # Generated motifs used when a pack has no photo
 
 data/
@@ -352,24 +352,24 @@ Reviewing those PRs: a pack moving from a day-precision date to a month-precisio
 
 ## Brew labels
 
-`/labels` prints a 4x6 card per brew: name, style, ABV, brew and tap dates,
+`/labels` prints a label per brew: name, style, ABV, brew and tap dates,
 batch number, and up to three lines of tasting notes.
 
-### Two paper sizes
+### Paper modes
 
 | Mode | `@page` | Cards |
 |---|---|---|
-| 4x6 index card | `4in 6in` | One |
-| US Letter | `letter landscape` | Two, side by side, with dashed cut guides |
+| US Letter (default) | `letter landscape` | As many of the chosen size as fit (`pageGrid`), with dashed cut guides |
+| One label | card size | One |
+| Business cards | `letter landscape` | Ten 2x3.5 per perforated sheet |
 
-Landscape Letter, not portrait: two 4x6 cards are 8in wide, so portrait leaves
-0.25in per side — most printers' unprintable margin, which would clip the cut
-guides. Landscape leaves 1.5in. The two cards are independent, so a brewer with
-two Pinters going can print both on one sheet; **Make both the same** copies
-one slot to the other.
+Landscape Letter, not portrait: portrait leaves too little margin for cut
+guides. The page grid keeps 0.5in margins and a 0.2in guide gap, and the
+preview is drawn to scale from the same numbers. Cards are independent, so each
+slot can be a different beer; **Make all the same** copies one slot to the rest.
 
 Physical sizes live in one place at the top of `app/labels/page.tsx`
-(`CARD_W`, `CARD_H`, `SHEET_W`, `SHEET_H`, `PAGE_SIZE`).
+(`PAGE_*_IN`, `GUIDE_GAP_IN`, `SHEET_*`); card sizes are in `lib/labelSizes.ts`.
 
 ### Why the card is SVG, not CSS
 

@@ -371,6 +371,8 @@ export type CatalogResult = {
   pending: PendingProduct[];
   fromShop: number;
   retainedFromSupport: string[];
+  /** Packs from MANUAL_PACKS that no feed or support page supplied. */
+  manual: string[];
 };
 
 // Resolve one shop product into a complete BrewPack, or into a pending record
@@ -505,6 +507,26 @@ export async function resolveShopPacks(
   return { packs: [...bySlug.values()], pending };
 }
 
+// Packs that were delisted before the scanner ever saw them: in no shop feed and
+// not on the support page, so nothing can retain them automatically. Specs come
+// from the product page (pinter.com/products/<id>); catalog entries win over
+// these if a feed ever lists the same id.
+const MANUAL_PACKS: BrewPack[] = [
+  {
+    id: "sycamore-brewing",
+    name: "Sycamore Brewing",
+    style: "American Wheat",
+    recommendedBrewDays: 8,
+    recommendedConditioningDays: 5,
+    minimumBrewDays: 6,
+    minimumConditioningDays: 3,
+    abv: 5,
+    yeast: "Spark",
+    hopperIncluded: false,
+    discontinued: true,
+  },
+];
+
 export async function buildCatalog(
   options: { shopProducts?: ShopifyProduct[] } = {},
 ): Promise<CatalogResult> {
@@ -538,6 +560,15 @@ export async function buildCatalog(
     }
   }
 
+  const manual: string[] = [];
+
+  for (const pack of MANUAL_PACKS) {
+    if (!catalog.has(pack.id)) {
+      catalog.set(pack.id, pack);
+      manual.push(pack.name);
+    }
+  }
+
   const packs = [...catalog.values()].sort((a, b) => {
     if (a.name < b.name) {
       return -1;
@@ -550,7 +581,7 @@ export async function buildCatalog(
     return 0;
   });
 
-  return { packs, pending, fromShop, retainedFromSupport };
+  return { packs, pending, fromShop, retainedFromSupport, manual };
 }
 
 // ---------------------------------------------------------------------------
@@ -647,7 +678,8 @@ async function main(): Promise<void> {
   console.log(`  Primary (shop): ${SHOP_COLLECTION_URL}`);
   console.log(`  Backup (support): ${SUPPORT_URL}\n`);
 
-  const { packs, pending, fromShop, retainedFromSupport } = await buildCatalog();
+  const { packs, pending, fromShop, retainedFromSupport, manual } =
+    await buildCatalog();
 
   assertCatalogSafe(packs);
 
@@ -669,6 +701,10 @@ async function main(): Promise<void> {
     console.log(
       `Retained (not currently on sale): ${retainedFromSupport.join(", ")}`,
     );
+  }
+
+  if (manual.length > 0) {
+    console.log(`Added from the manual list: ${manual.join(", ")}`);
   }
 
   console.log(`Generated:\n${OUTPUT_FILE}\n`);

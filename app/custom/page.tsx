@@ -69,10 +69,9 @@ function CustomPlanner() {
   const wasPrefilled = searchParams.get("prefill") === "brewpack";
   const prefilledName = searchParams.get("name") ?? "";
 
-  const activeBrewPacks = useMemo(
+  const sortedBrewPacks = useMemo(
     () =>
-      brewPacks
-        .filter((pack) => !pack.discontinued)
+      [...brewPacks]
         .sort((a, b) => a.name.localeCompare(b.name)),
     [],
   );
@@ -492,7 +491,7 @@ function CustomPlanner() {
 
             {startMode === "brewpack" && (
               <BrewPackPicker
-                brewPacks={activeBrewPacks}
+                brewPacks={sortedBrewPacks}
                 selectedId={selectedBrewPackId}
                 onSelect={handleSelectBrewPack}
                 onClear={handleClearBrewPack}

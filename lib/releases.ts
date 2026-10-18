@@ -131,3 +131,25 @@ export function statusLabel(release: BrewPackRelease): string {
       return "Not currently listed";
   }
 }
+
+/**
+ * True when every word of the query appears in the pack's name, style, flavors,
+ * badges, status, or release year. An empty query matches everything.
+ */
+export function matchesQuery(release: BrewPackRelease, query: string): boolean {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return true;
+
+  const haystack = [
+    release.name,
+    release.style,
+    release.status,
+    ...release.flavors,
+    ...release.badges,
+    release.releaseDate?.slice(0, 4) ?? "",
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return words.every((word) => haystack.includes(word));
+}

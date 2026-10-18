@@ -11,7 +11,7 @@ import {
 import type { BrewPack } from "@/data/brewpacks.generated";
 
 type BrewPackPickerProps = {
-  /** Active BrewPacks to search, already sorted for display. */
+  /** All BrewPacks (including discontinued), already sorted for display. */
   brewPacks: BrewPack[];
   /** Currently selected BrewPack id, or "" when none is selected. */
   selectedId: string;
@@ -23,6 +23,12 @@ type BrewPackPickerProps = {
   onEdit?: () => void;
   /** Helper text shown under the field. */
   hint?: string;
+  /**
+   * Optional controlled "show discontinued" state, for a parent that remounts
+   * the picker (e.g. the labels page keys it by slot). Uncontrolled otherwise.
+   */
+  showDiscontinued?: boolean;
+  onShowDiscontinuedChange?: (value: boolean) => void;
 };
 
 /**
@@ -37,6 +43,8 @@ export default function BrewPackPicker({
   onClear,
   onEdit,
   hint,
+  showDiscontinued: controlledShow,
+  onShowDiscontinuedChange,
 }: BrewPackPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -62,19 +70,26 @@ export default function BrewPackPicker({
     }
   }
 
+  const [ownShow, setOwnShow] = useState(false);
+  const showDiscontinued = controlledShow ?? ownShow;
+  const setShowDiscontinued = onShowDiscontinuedChange ?? setOwnShow;
+
   const filteredBrewPacks = useMemo(() => {
     const query = search.trim().toLowerCase();
+    const packs = showDiscontinued
+      ? brewPacks
+      : brewPacks.filter((pack) => !pack.discontinued);
 
     if (!query) {
-      return brewPacks.slice(0, 8);
+      return packs.slice(0, 8);
     }
 
-    return brewPacks
+    return packs
       .filter((pack) =>
         `${pack.name} ${pack.style}`.toLowerCase().includes(query),
       )
       .slice(0, 10);
-  }, [brewPacks, search]);
+  }, [brewPacks, search, showDiscontinued]);
 
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
@@ -203,6 +218,16 @@ export default function BrewPackPicker({
         )}
       </div>
 
+      <label className="mt-2 flex items-center gap-2 text-xs text-muted">
+        <input
+          type="checkbox"
+          checked={showDiscontinued}
+          onChange={(event) => setShowDiscontinued(event.target.checked)}
+          className="h-4 w-4 accent-accent"
+        />
+        Also show discontinued packs
+      </label>
+
       {hint && (
         <p className="mt-2 text-xs leading-5 text-muted">{hint}</p>
       )}
@@ -231,7 +256,14 @@ export default function BrewPackPicker({
                 }`}
               >
                 <span>
-                  <span className="block font-medium">{pack.name}</span>
+                  <span className="block font-medium">
+                    {pack.name}
+                    {pack.discontinued && (
+                      <span className="ml-2 rounded-full border border-border px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-muted">
+                        Discontinued
+                      </span>
+                    )}
+                  </span>
 
                   <span className="mt-1 block text-sm text-muted">
                     {pack.style}
@@ -245,7 +277,7 @@ export default function BrewPackPicker({
             ))
           ) : (
             <p className="px-4 py-4 text-sm text-muted">
-              No active BrewPacks match your search.
+              No BrewPacks match your search.
             </p>
           )}
         </div>

@@ -54,10 +54,9 @@ type CalculationResult = {
 export default function Home() {
   const resultRef = useRef<HTMLElement>(null);
 
-  const activeBrewPacks = useMemo(
+  const sortedBrewPacks = useMemo(
     () =>
-      brewPacks
-        .filter((pack) => !pack.discontinued)
+      [...brewPacks]
         .sort((a, b) => a.name.localeCompare(b.name)),
     [],
   );
@@ -82,10 +81,10 @@ export default function Home() {
 
   const selectedPack = useMemo(
     () =>
-      activeBrewPacks.find(
+      sortedBrewPacks.find(
         (pack) => pack.id === brewPackId,
       ) ?? null,
-    [activeBrewPacks, brewPackId],
+    [sortedBrewPacks, brewPackId],
   );
 
   // Feasibility of both official timing modes for the current tap date, pack,
@@ -192,7 +191,7 @@ export default function Home() {
     );
   }
 
-  function handleSelectBrewPack(pack: (typeof activeBrewPacks)[number]) {
+  function handleSelectBrewPack(pack: (typeof sortedBrewPacks)[number]) {
     setBrewPackId(pack.id);
     clearResult();
   }
@@ -402,7 +401,7 @@ export default function Home() {
             </div>
 
             <BrewPackPicker
-              brewPacks={activeBrewPacks}
+              brewPacks={sortedBrewPacks}
               selectedId={brewPackId}
               onSelect={handleSelectBrewPack}
               onClear={clearBrewPack}
