@@ -9,9 +9,10 @@ import {
 } from "react";
 
 import type { BrewPack } from "@/data/brewpacks.generated";
+import { useShowDiscontinued } from "@/lib/showDiscontinued";
 
 type BrewPackPickerProps = {
-  /** Active BrewPacks to search, already sorted for display. */
+  /** All BrewPacks (including discontinued), already sorted for display. */
   brewPacks: BrewPack[];
   /** Currently selected BrewPack id, or "" when none is selected. */
   selectedId: string;
@@ -62,19 +63,24 @@ export default function BrewPackPicker({
     }
   }
 
+  const [showDiscontinued, setShowDiscontinued] = useShowDiscontinued();
+
   const filteredBrewPacks = useMemo(() => {
     const query = search.trim().toLowerCase();
+    const packs = showDiscontinued
+      ? brewPacks
+      : brewPacks.filter((pack) => !pack.discontinued);
 
     if (!query) {
-      return brewPacks.slice(0, 8);
+      return packs.slice(0, 8);
     }
 
-    return brewPacks
+    return packs
       .filter((pack) =>
         `${pack.name} ${pack.style}`.toLowerCase().includes(query),
       )
       .slice(0, 10);
-  }, [brewPacks, search]);
+  }, [brewPacks, search, showDiscontinued]);
 
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
@@ -203,6 +209,16 @@ export default function BrewPackPicker({
         )}
       </div>
 
+      <label className="mt-2 flex items-center gap-2 text-xs text-muted">
+        <input
+          type="checkbox"
+          checked={showDiscontinued}
+          onChange={(event) => setShowDiscontinued(event.target.checked)}
+          className="h-4 w-4 accent-accent"
+        />
+        Also show discontinued packs <span className="opacity-70">(applies to every page)</span>
+      </label>
+
       {hint && (
         <p className="mt-2 text-xs leading-5 text-muted">{hint}</p>
       )}
@@ -231,7 +247,14 @@ export default function BrewPackPicker({
                 }`}
               >
                 <span>
-                  <span className="block font-medium">{pack.name}</span>
+                  <span className="block font-medium">
+                    {pack.name}
+                    {pack.discontinued && (
+                      <span className="ml-2 rounded-full border border-border px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide text-muted">
+                        Discontinued
+                      </span>
+                    )}
+                  </span>
 
                   <span className="mt-1 block text-sm text-muted">
                     {pack.style}
@@ -245,7 +268,7 @@ export default function BrewPackPicker({
             ))
           ) : (
             <p className="px-4 py-4 text-sm text-muted">
-              No active BrewPacks match your search.
+              No BrewPacks match your search.
             </p>
           )}
         </div>

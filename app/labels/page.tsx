@@ -169,10 +169,9 @@ export default function LabelsPage() {
   const slot = Math.min(activeSlot, slotCount - 1);
   const fields = labels[slot];
 
-  const activeBrewPacks = useMemo(
+  const sortedBrewPacks = useMemo(
     () =>
       brewPacks
-        .filter((pack) => !pack.discontinued)
         .sort((a, b) => a.name.localeCompare(b.name)),
     [],
   );
@@ -359,7 +358,7 @@ export default function LabelsPage() {
                 <div>
                   <BrewPackPicker
                     key={slot}
-                    brewPacks={activeBrewPacks}
+                    brewPacks={sortedBrewPacks}
                     selectedId={selectedIds[slot]}
                     onSelect={handleSelect}
                     onClear={() =>
