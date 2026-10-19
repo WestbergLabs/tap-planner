@@ -331,18 +331,6 @@ export const brewPacks: BrewPack[] = [
     hopperIncluded: false,
   },
   {
-    id: "prostmeister-with-stein",
-    name: "Prostmeister with Stein",
-    style: "Oktoberfest Lager",
-    recommendedBrewDays: 8,
-    recommendedConditioningDays: 10,
-    minimumBrewDays: 6,
-    minimumConditioningDays: 5,
-    abv: 6.5,
-    yeast: "Spark",
-    hopperIncluded: false,
-  },
-  {
     id: "razz-session",
     name: "Razz Session",
     style: "Sour Ale",

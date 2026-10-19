@@ -134,18 +134,6 @@ export const releases: BrewPackRelease[] = [
     badges: ["Vegan", "Contains Gluten"],
   },
   {
-    id: "prostmeister-with-stein",
-    name: "Prostmeister with Stein",
-    style: "Oktoberfest Lager",
-    abv: 6.5,
-    releaseDate: "2025-09-19",
-    precision: "month",
-    reissuedOn: "2026-09-03",
-    status: "unavailable",
-    flavors: ["caramel", "clean", "crisp"],
-    badges: ["Vegan", "Contains Gluten"],
-  },
-  {
     id: "after-midnight",
     name: "After Midnight",
     style: "Belgian Dark Ale",
