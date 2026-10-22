@@ -353,6 +353,10 @@ The same step regenerates the brewing schedule PDF and CSV in `data/schedule/` (
 
 Both are marked `continue-on-error` so a store-feed hiccup reports a warning instead of discarding the catalog work in the same run, and both let timeline changes ride along in the existing automated pull request.
 
+### Auto-merge
+
+Each automation workflow ends with `scripts/automerge.sh <branch>`. It holds the PR for a human (comment mentioning the owner, PR left open) if it touches anything outside `data/` and `public/brewpacks/`, removes a file, drops more than 3 packs from the catalog, or changes more than 400 lines of generated `data/*.ts`. Otherwise it dispatches `ci.yml` on the branch (PRs opened with the workflow token do not trigger it, and `Lint and build` is required on `main`) and enables GitHub auto-merge with branch deletion. It needs the repo setting **Allow auto-merge** and the `actions: write` workflow permission; if setup fails it comments, mentions the owner and fails the run. Thresholds are the `MAX_REMOVED` and `MAX_DATA_LINES` variables at the top of the script, and `DRY_RUN=1 scripts/automerge.sh <pr-number>` prints a PR's verdict without acting.
+
 Between them the timeline cannot drift: new packs land within hours, and availability or re-release changes land within a week.
 
 Reviewing those PRs: a pack moving from a day-precision date to a month-precision one means it was re-released. That is the rules working, not a regression.
