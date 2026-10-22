@@ -151,6 +151,18 @@ export const brewPacks: BrewPack[] = [
     hopperIncluded: false,
   },
   {
+    id: "christmas-ale",
+    name: "Christmas Ale",
+    style: "Spiced Ale",
+    recommendedBrewDays: 8,
+    recommendedConditioningDays: 5,
+    minimumBrewDays: 7,
+    minimumConditioningDays: 3,
+    abv: 6.3,
+    yeast: "Spark",
+    hopperIncluded: false,
+  },
+  {
     id: "dark-matter",
     name: "Dark Matter",
     style: "Classic Stout",
