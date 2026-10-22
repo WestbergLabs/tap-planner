@@ -12,7 +12,7 @@
     "import:brewpacks": "tsx scripts/import-brewpacks.ts",
     "scan:quick": "tsx scripts/brewpack-scan.ts",
     "scan:full": "tsx scripts/brewpack-scan.ts --full",
-    "scan:releases": "tsx scripts/release-scan.ts",
+    "scan:releases": "tsx scripts/release-scan.ts && tsx scripts/export-schedule.ts",
     "preview:labels": "tsx scripts/label-preview.tsx",
     "sync:images": "tsx scripts/sync-brewpack-images.ts",
     "recover:images": "tsx scripts/recover-missing-images.ts"
@@ -28,10 +28,12 @@
     "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pdfkit": "^0.17.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
+    "pdfkit": "^0.20.2",
     "tailwindcss": "^4",
     "tsx": "^4.23.1",
     "typescript": "^5"

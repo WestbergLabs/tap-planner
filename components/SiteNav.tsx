@@ -58,6 +58,12 @@ const LINKS: NavLink[] = [
     description: "When each pack appeared",
   },
   {
+    href: "/schedule",
+    short: "Schedule",
+    label: "Brewing schedule",
+    description: "Every pack's timing, printable",
+  },
+  {
     href: "/labels",
     short: "Labels",
     label: "Brew labels",
