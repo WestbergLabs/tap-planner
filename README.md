@@ -61,8 +61,7 @@ bookmark panel lists the sections, every page is numbered, and the text is
 searchable.
 
 The links never change. When the catalog updates, the same addresses serve the
-new file, so share them freely. On the web page, **Print this view** saves a PDF
-of just the packs you have filtered.
+new file, so share them freely.
 
 The schedule catalogue was Jack Paul's idea, and it grew from the original
 schedule document he created.
