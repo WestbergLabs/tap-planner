@@ -98,6 +98,15 @@
       "productId": 8961621000473,
       "name": "Brewgooder Hazy IPA Remixed"
     },
+    "christmas-ale": {
+      "file": "christmas-ale.png",
+      "thumb": "christmas-ale.thumb.png",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/ChristmasAle_GenGlass.png?v=1792659381",
+      "sha256": "d6735127685e3f91e424b0809b065cf0acef9847514847170128034b8bacc87d",
+      "productId": 15454739792153,
+      "name": "Christmas Ale",
+      "capturedAt": "2026-10-22"
+    },
     "dark-matter": {
       "file": "dark-matter.jpg",
       "thumb": "dark-matter.thumb.jpg",
