@@ -64,8 +64,8 @@ The links never change. When the catalog updates, the same addresses serve the
 new file, so share them freely. On the web page, **Print this view** saves a PDF
 of just the packs you have filtered.
 
-The idea for the schedule, and the original document it grew from, came from
-Jack Paul.
+The schedule catalogue was Jack Paul's idea, and it grew from the original
+schedule document he created.
 
 ## How the schedule works
 
@@ -175,8 +175,8 @@ CSV, run lint and a production build, and open a pull request.
 
 ## Credits
 
-- **Brewing schedule:** the idea, and the original schedule document it grew
-  from, came from Jack Paul.
+- **Jack Paul:** the idea for printing brew labels and for the brewing schedule
+  catalogue, and the author of the original schedule document it grew from.
 - **App icon** (tap tower, beer mug, and calendar): designed by
   [@mshawotr-mikeintyler](https://github.com/mshawotr-mikeintyler), contributed
   in [#29](https://github.com/WestbergLabs/tap-planner/issues/29). Thank you! 🍻
