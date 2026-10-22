@@ -1,11 +1,12 @@
-// Writes the brewing schedule as a catalogue-style PDF and a CSV into
-// data/schedule/, so the workflows' existing `git add data/` carries them into
+// Writes the brewing schedule as a book-style catalogue PDF (cover and contents,
+// a one-page quick reference, then one section per beer family, discontinued
+// last) and a CSV into data/schedule/, so the workflows' existing `git add data/` carries them into
 // the catalog PR. The app serves them at /schedule/pdf and /schedule/csv.
 //
 // Run by `pnpm scan:releases` (both scan workflows call it after a catalog
 // rebuild, and it needs the rebuilt release statuses). Nothing is written when
 // the CSV is unchanged, so the PDF's date only moves when the data does.
-// ponytail: fixed 2x4 card grid on US Letter; add layout options only if someone asks for another paper size.
+// ponytail: US Letter portrait, 3x3 cards per page, and an "unchanged CSV means skip" shortcut, so a layout change needs the old PDF deleted first. Add a layout version to the skip check if that bites.
 
 import { createWriteStream, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -35,94 +36,178 @@ if (existsSync(CSV) && readFileSync(CSV, "utf8") === csv && existsSync(PDF)) {
   process.exit(0);
 }
 
+// ---- Families -----------------------------------------------------------
+// First match wins, so "Belgian Dark Ale" lands in Stouts and Dark Beers, not Belgian.
+const FAMILIES: { name: string; test: RegExp }[] = [
+  { name: "Ciders and Seltzers", test: /cider|perry|seltzer/i },
+  { name: "Stouts and Dark Beers", test: /stout|dark ale|winter ale/i },
+  { name: "IPAs and Pale Ales", test: /ipa|pale ale|bitter|british/i },
+  { name: "Lagers and Pilsners", test: /lager|pilsner|dunkel/i },
+  { name: "Wheat, Belgian and Sour", test: /wheat|wit\b|sour|belgian/i },
+];
+const SECTION_ORDER = ["IPAs and Pale Ales", "Lagers and Pilsners", "Stouts and Dark Beers", "Wheat, Belgian and Sour", "Ciders and Seltzers"];
+const familyOf = (r: ScheduleRow) => {
+  const f = FAMILIES.find((x) => x.test.test(r.style));
+  if (!f) throw new Error(`No beer family for style "${r.style}" (${r.name}); add it to FAMILIES in scripts/export-schedule.ts`);
+  return f.name;
+};
+
+type Section = { title: string; rows: ScheduleRow[] };
+const sections: Section[] = SECTION_ORDER.map((title) => ({ title, rows: onSale.filter((r) => familyOf(r) === title) })).filter((s) => s.rows.length);
+if (gone.length) sections.push({ title: "Discontinued and Unavailable", rows: gone });
+
 // ---- PDF ----------------------------------------------------------------
-const W = 612, H = 792, M = 36, GAP = 12;
-const CW = (W - 2 * M - GAP) / 2; // card width
-const CH = 140; // card height
-const IMG = 120; // photo width inside the card
-const BREW = "#167f91", COND = "#b97800", INK = "#1f2933", MUTED = "#6b7280", LINE = "#d7dce0";
+const W = 612, H = 792, M = 36, GAP = 10;
+const COLS = 3, PER_PAGE = 9;
+const CW = (W - 2 * M - GAP * (COLS - 1)) / COLS; // card width
+const CH = 212, IMGH = 100;
+const BREW = "#167f91", COND = "#b97800", INK = "#1f2933", MUTED = "#6b7280", LINE = "#d7dce0", RED = "#cf3f48";
 const updated = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/Chicago" });
 
-const doc = new PDFDocument({ size: "LETTER", margin: M, bufferPages: true, info: { Title: "Pinter BrewPack Brewing Schedule" } });
+// Plan the pages first: contents and the quick reference need to know them.
+type PagePlan = { section: Section; rows: ScheduleRow[]; first: boolean };
+const plan: PagePlan[] = [];
+for (const section of sections) {
+  for (let i = 0; i < section.rows.length; i += PER_PAGE) plan.push({ section, rows: section.rows.slice(i, i + PER_PAGE), first: i === 0 });
+}
+const FIRST_CARD_PAGE = 3; // 1 cover, 2 quick reference
+const pageOf = new Map<string, number>();
+const sectionPage = new Map<string, number>();
+plan.forEach((p, i) => {
+  if (p.first) sectionPage.set(p.section.title, FIRST_CARD_PAGE + i);
+  p.rows.forEach((r) => pageOf.set(r.id, FIRST_CARD_PAGE + i));
+});
+const totalPages = FIRST_CARD_PAGE - 1 + plan.length;
+const anchor = (title: string) => `sec-${title.replace(/\W+/g, "-").toLowerCase()}`;
+
+const doc = new PDFDocument({
+  size: "LETTER",
+  margin: M,
+  bufferPages: true,
+  info: { Title: "Pinter BrewPack Brewing Schedule", Subject: "BrewPack brewing and conditioning times", Keywords: "Pinter, BrewPack, brewing schedule" },
+});
 mkdirSync(OUT, { recursive: true });
 doc.pipe(createWriteStream(PDF));
 
-let col = 0;
-let y = M;
+const label = (t: string, x: number, yy: number, w: number, size: number, color: string, bold = false, align: "left" | "right" | "center" = "left") =>
+  doc.fillColor(color).font(bold ? "Helvetica-Bold" : "Helvetica").fontSize(size).text(t, x, yy, { width: w, align, lineBreak: false });
 
+function rowHead(title: string) {
+  label(title, M, M, W - 2 * M, 16, INK, true);
+  doc.moveTo(M, M + 24).lineTo(W - M, M + 24).lineWidth(0.8).strokeColor(LINE).stroke();
+}
+
+// Page 1: cover and contents
+label("Pinter BrewPack", M, 90, W - 2 * M, 14, MUTED, true);
+label("Brewing Schedule", M, 108, W - 2 * M, 34, INK, true);
+doc.fillColor(MUTED).font("Helvetica").fontSize(9.5).text(
+  `Updated ${updated}. Unofficial and approximate: check Pinter for current guidance.\n\n` +
+  "Total days is recommended brewing plus conditioning. The optional 1-day cold crash counts toward conditioning and adds no time. " +
+  "Condition at 35 to 40 F; going longer than recommended often improves carbonation and flavor. " +
+  "Minimum is the shortest brewing and conditioning time Pinter lists.",
+  M, 160, { width: W - 2 * M - 80 },
+);
+const ly = doc.y + 16;
+doc.rect(M, ly, 16, 6).fill(BREW);
+label("Brewing", M + 22, ly - 1, 60, 8.5, INK);
+doc.rect(M + 80, ly, 16, 6).fill(COND);
+label("Conditioning", M + 102, ly - 1, 80, 8.5, INK);
+
+let cy = 330;
+label("Contents", M, cy, 200, 13, INK, true);
+cy += 24;
+const contents: { title: string; page: number; target: string; note?: string }[] = [
+  { title: "Quick reference, every pack on one page", page: 2, target: "quick" },
+  ...sections.map((s) => ({ title: s.title, page: sectionPage.get(s.title)!, target: anchor(s.title), note: `${s.rows.length} packs` })),
+];
+for (const c of contents) {
+  label(c.title, M, cy, 300, 11, INK);
+  if (c.note) label(c.note, 330, cy + 1, 100, 9, MUTED);
+  label(`Page ${c.page}`, W - M - 60, cy, 60, 11, INK, false, "right");
+  doc.goTo(M, cy - 2, W - 2 * M, 18, c.target);
+  doc.moveTo(M, cy + 15).lineTo(W - M, cy + 15).lineWidth(0.4).strokeColor(LINE).stroke();
+  cy += 24;
+}
+doc.outline.addItem("Cover and contents");
+
+// Page 2: quick reference
+doc.addPage();
+doc.addNamedDestination("quick");
+doc.outline.addItem("Quick reference");
+rowHead("Quick reference");
+const QCOLS = [
+  { h: "Beer", x: M + 4, w: 170 }, { h: "Style", x: M + 178, w: 118 }, { h: "ABV", x: 352, w: 34 },
+  { h: "Brew", x: 392, w: 34 }, { h: "Cond.", x: 432, w: 34 }, { h: "Total", x: 472, w: 34 }, { h: "Min.", x: 508, w: 40 }, { h: "Pg", x: W - M - 18, w: 18 },
+];
+let qy = M + 34;
+doc.rect(M, qy - 3, W - 2 * M, 15).fill("#2b3a42");
+QCOLS.forEach((c) => label(c.h, c.x, qy + 1, c.w, 8, "#ffffff", true));
+qy += 17;
+[...onSale, ...gone].forEach((r, i) => {
+  if (i % 2) doc.rect(M, qy - 3, W - 2 * M, 14.5).fill("#f3f5f6");
+  const name = r.status === "available" ? r.name : `${r.name} (${r.status})`;
+  const cells = [name, r.style, `${r.abv.toFixed(1)}%`, `${r.recommendedBrewDays}d`, `${r.recommendedConditioningDays}d`, `${r.totalDays}d`, `${r.minimumBrewDays}/${r.minimumConditioningDays}`, `${pageOf.get(r.id)}`];
+  cells.forEach((c, k) => {
+    doc.fillColor(k === 5 ? INK : INK).font(k === 5 ? "Helvetica-Bold" : "Helvetica").fontSize(7.8).text(c, QCOLS[k].x, qy, { width: QCOLS[k].w, lineBreak: false, ellipsis: true });
+  });
+  doc.goTo(M, qy - 3, W - 2 * M, 14.5, `pack-${r.id}`);
+  qy += 14.5;
+});
+
+// Catalogue pages
 function card(r: ScheduleRow, x: number, top: number) {
+  doc.addNamedDestination(`pack-${r.id}`);
   doc.save().lineWidth(0.6).strokeColor(LINE).rect(x, top, CW, CH).stroke().restore();
 
   const thumb = getBrewPackThumb(r.id);
   const file = thumb ? path.join(process.cwd(), "public", thumb) : null;
-  doc.save().rect(x, top, IMG, CH).clip();
+  doc.save().rect(x, top, CW, IMGH).clip();
   try {
     if (!file || !existsSync(file)) throw new Error("no photo");
-    // Cover-crop the square shot into the tall photo box.
-    doc.image(file, x - (CH - IMG) / 2, top, { width: CH, height: CH });
+    // Cover-crop the square shot into the wide photo box.
+    doc.image(file, x, top - (CW - IMGH) / 2, { width: CW, height: CW });
   } catch {
     // ponytail: pdfkit reads only JPEG/PNG, and a few captured shots are WebP under a .jpg name (winters-slumber); they get the placeholder. Convert at capture time if that matters.
-    doc.rect(x, top, IMG, CH).fill("#eceff1");
-    doc.fillColor(MUTED).font("Helvetica").fontSize(8).text("No photo", x, top + CH / 2 - 4, { width: IMG, align: "center" });
+    doc.rect(x, top, CW, IMGH).fill("#eceff1");
+    label("No photo", x, top + IMGH / 2 - 4, CW, 8, MUTED, false, "center");
   }
   doc.restore();
 
-  const tx = x + IMG + 10, tw = CW - IMG - 18;
-  doc.fillColor(INK).font("Helvetica-Bold").fontSize(10.5).text(r.name, tx, top + 9, { width: tw, height: 28, ellipsis: true });
-  const nameBottom = Math.min(top + 9 + doc.heightOfString(r.name, { width: tw }), top + 37);
-  doc.fillColor(MUTED).font("Helvetica").fontSize(8).text(`${r.style}  |  ${r.abv.toFixed(1)}% ABV`, tx, nameBottom + 2, { width: tw, lineBreak: false });
-  if (r.status !== "available") {
-    doc.fillColor("#cf3f48").font("Helvetica-Bold").fontSize(7.5).text(r.status.toUpperCase(), tx, nameBottom + 14, { width: tw, lineBreak: false });
-  }
+  const tx = x + 8, tw = CW - 16;
+  doc.fillColor(INK).font("Helvetica-Bold").fontSize(10).text(r.name, tx, top + 108, { width: tw, height: 25, ellipsis: true });
+  label(`${r.style}  |  ${r.abv.toFixed(1)}% ABV`, tx, top + 136, tw, 7.5, MUTED);
+  if (r.status !== "available") label(r.status.toUpperCase(), tx, top + 146, tw, 7.5, RED, true);
 
-  doc.fillColor(INK).font("Helvetica-Bold").fontSize(20).text(`${r.totalDays}`, tx, top + 66, { continued: true, lineBreak: false });
-  doc.fillColor(MUTED).font("Helvetica").fontSize(9).text("  days total", { lineBreak: false });
+  doc.fillColor(INK).font("Helvetica-Bold").fontSize(18).text(`${r.totalDays}`, tx, top + 157, { continued: true, lineBreak: false });
+  doc.fillColor(MUTED).font("Helvetica").fontSize(8.5).text("  days total", { lineBreak: false });
 
   // Brewing and conditioning bar, proportional to their days.
-  const by = top + 100, bw = tw, bh = 7;
-  const brewW = (bw * r.recommendedBrewDays) / r.totalDays;
+  const by = top + 181, bh = 6;
+  const brewW = (tw * r.recommendedBrewDays) / r.totalDays;
   doc.rect(tx, by, brewW, bh).fill(BREW);
-  doc.rect(tx + brewW, by, bw - brewW, bh).fill(COND);
-  doc.font("Helvetica").fontSize(7.5).fillColor(BREW).text(`Brew ${r.recommendedBrewDays}d`, tx, by + 10, { width: tw / 2, lineBreak: false });
-  doc.fillColor(COND).text(`Condition ${r.recommendedConditioningDays}d`, tx + tw / 2, by + 10, { width: tw / 2, align: "right", lineBreak: false });
-  doc.fillColor(MUTED).text(`Minimum ${r.minimumBrewDays} / ${r.minimumConditioningDays} days`, tx, by + 22, { width: tw, lineBreak: false });
+  doc.rect(tx + brewW, by, tw - brewW, bh).fill(COND);
+  label(`Brew ${r.recommendedBrewDays}d`, tx, by + 9, tw / 2, 7.5, BREW);
+  label(`Condition ${r.recommendedConditioningDays}d`, tx + tw / 2, by + 9, tw / 2, 7.5, COND, false, "right");
+  label(`Minimum ${r.minimumBrewDays} / ${r.minimumConditioningDays} days`, tx, by + 19, tw, 7.5, MUTED);
 }
 
-function place(r: ScheduleRow) {
-  if (y + CH > H - M - 14) { doc.addPage(); y = M; col = 0; }
-  card(r, M + col * (CW + GAP), y);
-  if (col === 1) { y += CH + GAP; col = 0; } else col = 1;
-}
-
-function section(title: string, rows: ScheduleRow[]) {
-  if (col === 1) { y += CH + GAP; col = 0; }
-  if (y + 24 + CH > H - M - 14) { doc.addPage(); y = M; }
-  doc.fillColor(INK).font("Helvetica-Bold").fontSize(12).text(`${title} (${rows.length})`, M, y, { lineBreak: false });
-  y += 20;
-  rows.forEach(place);
-  if (col === 1) { y += CH + GAP; col = 0; }
-  y += 4;
-}
-
-doc.fillColor(INK).font("Helvetica-Bold").fontSize(22).text("Pinter BrewPack Brewing Schedule", M, y, { lineBreak: false });
-y += 30;
-doc.fillColor(MUTED).font("Helvetica").fontSize(8.5).text(
-  `Updated ${updated}. Unofficial and approximate: check Pinter for current guidance. Total days is recommended brewing plus conditioning. ` +
-  "The optional 1-day cold crash counts toward conditioning and adds no time. Condition at 35 to 40 F; going longer often improves carbonation and flavor. " +
-  "Minimum is the shortest brewing and conditioning time Pinter lists.",
-  M, y, { width: W - 2 * M },
-);
-y = doc.y + 12;
-
-section("On sale", onSale);
-if (gone.length) section("Discontinued or unavailable", gone);
+plan.forEach((p) => {
+  doc.addPage();
+  if (p.first) {
+    doc.addNamedDestination(anchor(p.section.title));
+    doc.outline.addItem(p.section.title);
+  }
+  rowHead(p.first ? `${p.section.title}  (${p.section.rows.length})` : `${p.section.title}, continued`);
+  p.rows.forEach((r, i) => card(r, M + (i % COLS) * (CW + GAP), M + 34 + Math.floor(i / COLS) * (CH + GAP)));
+});
 
 const range = doc.bufferedPageRange();
+if (range.count !== totalPages) throw new Error(`Planned ${totalPages} pages but wrote ${range.count}`);
 for (let i = 0; i < range.count; i++) {
   doc.switchToPage(i);
   doc.page.margins.bottom = 0; // otherwise text this low would add a page
-  doc.fillColor(MUTED).font("Helvetica").fontSize(7.5).text("Generated from the tap-planner catalog", M, H - 26, { lineBreak: false });
-  doc.text(`Page ${i + 1} of ${range.count}`, W - M - 60, H - 26, { width: 60, align: "right", lineBreak: false });
+  label("Generated from the tap-planner catalog", M, H - 26, 300, 7.5, MUTED);
+  label(`Page ${i + 1} of ${range.count}`, W - M - 80, H - 26, 80, 7.5, MUTED, false, "right");
 }
 doc.end();
 writeFileSync(CSV, csv);
