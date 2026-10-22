@@ -271,6 +271,14 @@
       "publishedAt": "2026-08-06T13:14:11-04:00",
       "available": true,
       "fingerprint": "58f26877ddd2430c"
+    },
+    {
+      "id": 15454739792153,
+      "handle": "christmas-ale",
+      "title": "Christmas Ale",
+      "publishedAt": "2026-10-22T12:33:51-04:00",
+      "available": true,
+      "fingerprint": "0f0bc46b146b8979"
     }
   ]
 }

@@ -26,6 +26,18 @@ export type BrewPackRelease = {
 
 export const releases: BrewPackRelease[] = [
   {
+    id: "christmas-ale",
+    name: "Christmas Ale",
+    style: "Spiced Ale",
+    abv: 6.3,
+    releaseDate: "2026-10-22",
+    precision: "day",
+    reissuedOn: null,
+    status: "available",
+    flavors: ["amber", "mid low bitterness", "spice"],
+    badges: ["Vegan", "Contains Gluten"],
+  },
+  {
     id: "sport-beer",
     name: "Sport Beer",
     style: "Dunkel",
