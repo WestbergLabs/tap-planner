@@ -97,7 +97,7 @@ Then open [http://localhost:3000](http://localhost:3000).
 | `pnpm import:brewpacks` | Fetch and regenerate the full BrewPack catalog |
 | `pnpm scan:quick` | Quick discovery scan (regenerates only on a relevant change) |
 | `pnpm scan:full` | Full verification scan (rebuild catalog + discovery state) |
-| `pnpm scan:releases` | Rebuild the estimated release timeline behind `/releases` |
+| `pnpm scan:releases` | Rebuild the estimated release timeline behind `/releases`, then the schedule PDF and CSV (`scripts/export-schedule.ts`) |
 | `pnpm sync:images` | Capture Pinter pack shots (never deletes) |
 | `pnpm recover:images` | Recover shots for delisted packs via archived filenames |
 | `pnpm preview:labels` | Render label cards to `scripts/out/` and check the trim |
@@ -127,6 +127,10 @@ app/
     page.tsx                  # Custom recipe planner  →  /custom
   rotation/
     page.tsx                  # Multi-Pinter rotation planner  →  /rotation
+  schedule/
+    page.tsx                  # Brewing schedule catalogue  →  /schedule
+    pdf/route.ts              # Serves the generated schedule PDF  →  /schedule/pdf
+    csv/route.ts              # Serves the generated schedule CSV  →  /schedule/csv
   releases/
     layout.tsx                # Metadata for /releases (the page is a client component)
     page.tsx                  # Estimated BrewPack release timeline  →  /releases
@@ -148,12 +152,14 @@ data/
   brewpacks.generated.ts       # Generated BrewPack catalog used by the app
   pinter-product-state.json    # Discovery state (Shopify id/handle/fingerprint per product)
   releases.generated.ts        # Generated release timeline (estimated dates + copy/imagery)
+  schedule/                    # Generated brewing schedule: Pinter_Brewing_Schedule.pdf and .csv
   brewpack-images.json         # Retained pack-shot manifest (append/update only, never pruned)
 
 lib/
   calendar.ts                  # Browser-only .ics calendar generation, shared by both planners
   schedule.ts                  # Date + schedule-calculation utilities, shared by both planners
   releases.ts                  # Formatting + grouping for the release timeline
+  scheduleRows.ts              # One row per BrewPack (status, total days) for the schedule page and files
   labels.ts                    # Beer style -> generated artwork profile
   brewpackImages.ts            # Pack id -> captured pack shot, or null
 
@@ -165,6 +171,7 @@ scripts/
   import-brewpacks.ts          # Full catalog build: resolve + validate + write
   brewpack-scan.ts             # Two-level discovery scanner (quick / full)
   release-scan.ts              # Whole-store scraper for the release timeline
+  export-schedule.ts           # Writes the schedule PDF + CSV into data/schedule/ (runs after release-scan)
   sync-brewpack-images.ts      # Capture pack shots into public/brewpacks/
   recover-missing-images.ts    # Recover delisted packs' shots (manual, re-runnable)
   label-preview.tsx            # Render labels to PNG + assert nothing overflows the trim
@@ -341,6 +348,8 @@ Cards are mobile-first and stack rather than using fixed-width columns: a label 
 |---|---|---|
 | **Quick Scan** (~6-hourly) | Only when `data/brewpacks.generated.ts` changed | A newly discovered pack hits the catalog immediately. Without this the pack would be plannable but missing from `/releases` until the following Monday. |
 | **Full Verification** (weekly) | Every run | Catches timeline-only changes that leave the catalog untouched: a pack selling out, or a seasonal returning and rewriting its `published_at`. |
+
+The same step regenerates the brewing schedule PDF and CSV in `data/schedule/` (`scripts/export-schedule.ts`), skipping the write when the table is unchanged, so they ride along in the same pull request. The app serves them at `/schedule/pdf` and `/schedule/csv`. Beer families for the PDF's sections are matched by style keyword in that script; a new style it can't place fails the run loudly instead of landing in the wrong section.
 
 Both are marked `continue-on-error` so a store-feed hiccup reports a warning instead of discarding the catalog work in the same run, and both let timeline changes ride along in the existing automated pull request.
 
