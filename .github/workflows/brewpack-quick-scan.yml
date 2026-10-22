@@ -12,6 +12,7 @@ on:
     - cron: "0 */6 * * *"
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
 
@@ -120,7 +121,7 @@ jobs:
             cat > pr-body.md <<'EOF'
           The BrewPack quick scan detected a new or relevantly changed product in Pinter's Fresh Beer collection and regenerated the catalog.
 
-          This pull request was generated automatically. Please review the catalog diff before merging — the workflow validated it with the discovery tests, lint, and a production build.
+          This pull request was generated automatically. It validated with the discovery tests, lint, and a production build, and merges automatically once the required check passes, unless a guard rail holds it for review.
           EOF
 
             gh pr create \
@@ -130,3 +131,9 @@ jobs:
               --title "chore: update BrewPack catalog" \
               --body-file pr-body.md
           fi
+
+      - name: Auto-merge when safe
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/automerge.sh "automation/brewpack-catalog-update"

@@ -13,6 +13,7 @@ on:
     - cron: "30 7 * * 1"
 
 permissions:
+  actions: write
   contents: write
   pull-requests: write
 
@@ -108,7 +109,7 @@ jobs:
 
           Release-timeline dates are estimates derived from Shopify timestamps. A pack moving from a day-precision date to a month-precision one means it was re-released, which is expected rather than a bug.
 
-          This pull request was generated automatically. Please review the catalog diff before merging — the workflow validated it with the discovery tests, lint, and a production build.
+          This pull request was generated automatically. It validated with the discovery tests, lint, and a production build, and merges automatically once the required check passes, unless a guard rail holds it for review.
           EOF
 
             gh pr create \
@@ -118,3 +119,9 @@ jobs:
               --title "chore: update BrewPack catalog" \
               --body-file pr-body.md
           fi
+
+      - name: Auto-merge when safe
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/automerge.sh "automation/brewpack-catalog-update"

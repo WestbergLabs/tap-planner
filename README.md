@@ -168,9 +168,11 @@ Scheduled workflows check Pinter's public BrewPack listing, validate the
 catalog, rebuild the release timeline, regenerate the brewing schedule PDF and
 CSV, run lint and a production build, and open a pull request.
 
-> **Nothing is published silently.** Catalog, image and schedule changes are
-> reviewed and merged before they reach the live app, and the schedule links
-> above then serve the new files.
+> **Changes merge themselves, with guard rails.** After a workflow validates a
+> change, the pull request merges automatically once the required check passes.
+> Anything that touches files outside the catalog data and pack shots, removes a
+> file, drops more than three packs, or rewrites a large amount of data is held
+> open instead, and the owner is notified.
 
 ## Credits
 
