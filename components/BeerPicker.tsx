@@ -29,7 +29,7 @@ type BeerPickerProps = {
 type Option = { value: string; label: string; sub: string };
 
 /**
- * A compact searchable beer combobox for the rotation lineup. Unlike the shared
+ * A compact searchable beer combobox for the multi-Pinter planner. Unlike the shared
  * `BrewPackPicker`, it takes an `instanceId` (so many can live on one page) and
  * offers a "Custom recipe" option alongside the BrewPacks.
  */
