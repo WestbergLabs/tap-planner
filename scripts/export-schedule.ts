@@ -40,7 +40,7 @@ if (existsSync(CSV) && readFileSync(CSV, "utf8") === csv && existsSync(PDF)) {
 // First match wins, so "Belgian Dark Ale" lands in Stouts and Dark Beers, not Belgian.
 const FAMILIES: { name: string; test: RegExp }[] = [
   { name: "Ciders and Seltzers", test: /cider|perry|seltzer/i },
-  { name: "Stouts and Dark Beers", test: /stout|dark ale|winter ale/i },
+  { name: "Stouts and Dark Beers", test: /stout|dark ale|winter ale|spiced ale/i },
   { name: "IPAs and Pale Ales", test: /ipa|pale ale|bitter|british/i },
   { name: "Lagers and Pilsners", test: /lager|pilsner|dunkel/i },
   { name: "Wheat, Belgian and Sour", test: /wheat|wit\b|sour|belgian/i },
