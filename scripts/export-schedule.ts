@@ -58,9 +58,9 @@ if (gone.length) sections.push({ title: "Discontinued and Unavailable", rows: go
 
 // ---- PDF ----------------------------------------------------------------
 const W = 612, H = 792, M = 36, GAP = 10;
-const COLS = 3, PER_PAGE = 9;
+const COLS = 4, PER_PAGE = 16; // 4 across, 4 down
 const CW = (W - 2 * M - GAP * (COLS - 1)) / COLS; // card width
-const CH = 212, IMGH = 100;
+const CH = 162, IMGH = 64;
 const BREW = "#167f91", COND = "#b97800", INK = "#1f2933", MUTED = "#6b7280", LINE = "#d7dce0", RED = "#cf3f48";
 const updated = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/Chicago" });
 
@@ -174,21 +174,21 @@ function card(r: ScheduleRow, x: number, top: number) {
   doc.restore();
 
   const tx = x + 8, tw = CW - 16;
-  doc.fillColor(INK).font("Helvetica-Bold").fontSize(10).text(r.name, tx, top + 108, { width: tw, height: 25, ellipsis: true });
-  label(`${r.style}  |  ${r.abv.toFixed(1)}% ABV`, tx, top + 136, tw, 7.5, MUTED);
-  if (r.status !== "available") label(r.status.toUpperCase(), tx, top + 146, tw, 7.5, RED, true);
+  doc.fillColor(INK).font("Helvetica-Bold").fontSize(9).text(r.name, tx, top + 68, { width: tw, height: 22, ellipsis: true });
+  label(`${r.style}  |  ${r.abv.toFixed(1)}% ABV`, tx, top + 92, tw, 7, MUTED);
+  if (r.status !== "available") label(r.status.toUpperCase(), tx, top + 101, tw, 7, RED, true);
 
-  doc.fillColor(INK).font("Helvetica-Bold").fontSize(18).text(`${r.totalDays}`, tx, top + 157, { continued: true, lineBreak: false });
-  doc.fillColor(MUTED).font("Helvetica").fontSize(8.5).text("  days total", { lineBreak: false });
+  doc.fillColor(INK).font("Helvetica-Bold").fontSize(15).text(`${r.totalDays}`, tx, top + 110, { continued: true, lineBreak: false });
+  doc.fillColor(MUTED).font("Helvetica").fontSize(8).text("  days total", { lineBreak: false });
 
   // Brewing and conditioning bar, proportional to their days.
-  const by = top + 181, bh = 6;
+  const by = top + 132, bh = 5;
   const brewW = (tw * r.recommendedBrewDays) / r.totalDays;
   doc.rect(tx, by, brewW, bh).fill(BREW);
   doc.rect(tx + brewW, by, tw - brewW, bh).fill(COND);
-  label(`Brew ${r.recommendedBrewDays}d`, tx, by + 9, tw / 2, 7.5, BREW);
-  label(`Condition ${r.recommendedConditioningDays}d`, tx + tw / 2, by + 9, tw / 2, 7.5, COND, false, "right");
-  label(`Minimum ${r.minimumBrewDays} / ${r.minimumConditioningDays} days`, tx, by + 19, tw, 7.5, MUTED);
+  label(`Brew ${r.recommendedBrewDays}d`, tx, by + 8, tw / 2, 7, BREW);
+  label(`Condition ${r.recommendedConditioningDays}d`, tx + tw / 2, by + 8, tw / 2, 7, COND, false, "right");
+  label(`Minimum ${r.minimumBrewDays} / ${r.minimumConditioningDays} days`, tx, by + 17, tw, 7, MUTED);
 }
 
 plan.forEach((p) => {
