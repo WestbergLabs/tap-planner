@@ -58,24 +58,44 @@ if (gone.length) sections.push({ title: "Discontinued and Unavailable", rows: go
 
 // ---- PDF ----------------------------------------------------------------
 const W = 612, H = 792, M = 36, GAP = 10;
-const COLS = 4, PER_PAGE = 16; // 4 across, 4 down
+const COLS = 4; // cards across; sections flow down the page and share pages
 const CW = (W - 2 * M - GAP * (COLS - 1)) / COLS; // card width
 const CH = 162, IMGH = 64;
 const BREW = "#167f91", COND = "#b97800", INK = "#1f2933", MUTED = "#6b7280", LINE = "#d7dce0", RED = "#cf3f48";
 const updated = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/Chicago" });
 
 // Plan the pages first: contents and the quick reference need to know them.
-type PagePlan = { section: Section; rows: ScheduleRow[]; first: boolean };
-const plan: PagePlan[] = [];
+// Sections flow one after another, so a short section shares a page with the
+// next instead of leaving the rest of its page blank.
+const HEAD_H = 34, BOTTOM = H - 44;
+type Item = { kind: "head"; section: Section; first: boolean; y: number } | { kind: "card"; row: ScheduleRow; x: number; y: number };
+const plan: Item[][] = [[]];
+let py = M;
+const turn = () => { plan.push([]); py = M; };
 for (const section of sections) {
-  for (let i = 0; i < section.rows.length; i += PER_PAGE) plan.push({ section, rows: section.rows.slice(i, i + PER_PAGE), first: i === 0 });
+  if (py + HEAD_H + CH > BOTTOM) turn(); // a heading never sits alone at the foot of a page
+  plan[plan.length - 1].push({ kind: "head", section, first: true, y: py });
+  py += HEAD_H;
+  section.rows.forEach((r, i) => {
+    const col = i % COLS;
+    if (col === 0 && i > 0) py += CH + GAP;
+    if (col === 0 && py + CH > BOTTOM) {
+      turn();
+      plan[plan.length - 1].push({ kind: "head", section, first: false, y: py });
+      py += HEAD_H;
+    }
+    plan[plan.length - 1].push({ kind: "card", row: r, x: M + col * (CW + GAP), y: py });
+  });
+  py += CH + GAP + 6;
 }
 const FIRST_CARD_PAGE = 3; // 1 cover, 2 quick reference
 const pageOf = new Map<string, number>();
 const sectionPage = new Map<string, number>();
-plan.forEach((p, i) => {
-  if (p.first) sectionPage.set(p.section.title, FIRST_CARD_PAGE + i);
-  p.rows.forEach((r) => pageOf.set(r.id, FIRST_CARD_PAGE + i));
+plan.forEach((items, i) => {
+  for (const it of items) {
+    if (it.kind === "head" && it.first) sectionPage.set(it.section.title, FIRST_CARD_PAGE + i);
+    if (it.kind === "card") pageOf.set(it.row.id, FIRST_CARD_PAGE + i);
+  }
 });
 const totalPages = FIRST_CARD_PAGE - 1 + plan.length;
 const anchor = (title: string) => `sec-${title.replace(/\W+/g, "-").toLowerCase()}`;
@@ -92,9 +112,9 @@ doc.pipe(createWriteStream(PDF));
 const label = (t: string, x: number, yy: number, w: number, size: number, color: string, bold = false, align: "left" | "right" | "center" = "left") =>
   doc.fillColor(color).font(bold ? "Helvetica-Bold" : "Helvetica").fontSize(size).text(t, x, yy, { width: w, align, lineBreak: false });
 
-function rowHead(title: string) {
-  label(title, M, M, W - 2 * M, 16, INK, true);
-  doc.moveTo(M, M + 24).lineTo(W - M, M + 24).lineWidth(0.8).strokeColor(LINE).stroke();
+function rowHead(title: string, y = M) {
+  label(title, M, y, W - 2 * M, 16, INK, true);
+  doc.moveTo(M, y + 24).lineTo(W - M, y + 24).lineWidth(0.8).strokeColor(LINE).stroke();
 }
 
 // Page 1: cover and contents
@@ -198,14 +218,19 @@ function card(r: ScheduleRow, x: number, top: number) {
   label(`Minimum ${r.minimumBrewDays} / ${r.minimumConditioningDays} days`, tx, by + 17, tw, 7, MUTED);
 }
 
-plan.forEach((p) => {
+plan.forEach((items) => {
   doc.addPage();
-  if (p.first) {
-    doc.addNamedDestination(anchor(p.section.title));
-    doc.outline.addItem(p.section.title);
+  for (const it of items) {
+    if (it.kind === "card") {
+      card(it.row, it.x, it.y);
+    } else {
+      if (it.first) {
+        doc.addNamedDestination(anchor(it.section.title));
+        doc.outline.addItem(it.section.title);
+      }
+      rowHead(it.first ? `${it.section.title}  (${it.section.rows.length})` : `${it.section.title}, continued`, it.y);
+    }
   }
-  rowHead(p.first ? `${p.section.title}  (${p.section.rows.length})` : `${p.section.title}, continued`);
-  p.rows.forEach((r, i) => card(r, M + (i % COLS) * (CW + GAP), M + 34 + Math.floor(i / COLS) * (CH + GAP)));
 });
 
 const range = doc.bufferedPageRange();
