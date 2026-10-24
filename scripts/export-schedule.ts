@@ -150,6 +150,25 @@ for (const c of contents) {
   doc.moveTo(M, cy + 15).lineTo(W - M, cy + 15).lineWidth(0.4).strokeColor(LINE).stroke();
   cy += 24;
 }
+// Links only: Pinter's articles are theirs, so we point to them rather than copy them.
+const HELP: { title: string; url: string }[] = [
+  { title: "Tips and Tricks", url: "https://pinter.com/pages/tips-tricks" },
+  { title: "First Brew Guide", url: "https://support.pinter.com/en-US/articles/first-brew-guide-437567" },
+  { title: "Brewing and Conditioning 101", url: "https://support.pinter.com/en-US/brewing-and-conditioning---101-4840043" },
+  { title: "What temperature should I brew at?", url: "https://support.pinter.com/en-US/what-temperature-should-i-brew-at-1346472" },
+  { title: "Cold crashing", url: "https://support.pinter.com/en-US/cold-crashing-1346458" },
+  { title: "My brew is too frothy or fizzy", url: "https://support.pinter.com/en-US/my-brew-is-too-frothy-fizzy-1346466" },
+  { title: "Pinter Help Center", url: "https://support.pinter.com/en-US" },
+];
+cy += 18;
+label("Brewing help from Pinter", M, cy, 300, 13, INK, true);
+cy += 24;
+for (const h of HELP) {
+  label(h.title, M, cy, 260, 10.5, BREW);
+  label(h.url.replace("https://", ""), 300, cy + 1, W - M - 300, 7.5, MUTED);
+  doc.link(M, cy - 2, W - 2 * M, 16, h.url);
+  cy += 20;
+}
 doc.outline.addItem("Cover and contents");
 
 // Page 2: quick reference
