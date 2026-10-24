@@ -45,12 +45,10 @@ const FAMILIES: { name: string; test: RegExp }[] = [
   { name: "Lagers and Pilsners", test: /lager|pilsner|dunkel/i },
   { name: "Wheat, Belgian and Sour", test: /wheat|wit\b|sour|belgian/i },
 ];
-const SECTION_ORDER = ["IPAs and Pale Ales", "Lagers and Pilsners", "Stouts and Dark Beers", "Wheat, Belgian and Sour", "Ciders and Seltzers"];
-const familyOf = (r: ScheduleRow) => {
-  const f = FAMILIES.find((x) => x.test.test(r.style));
-  if (!f) throw new Error(`No beer family for style "${r.style}" (${r.name}); add it to FAMILIES in scripts/export-schedule.ts`);
-  return f.name;
-};
+const OTHER = "Other";
+const SECTION_ORDER = ["IPAs and Pale Ales", "Lagers and Pilsners", "Stouts and Dark Beers", "Wheat, Belgian and Sour", "Ciders and Seltzers", OTHER];
+// A style no family matches lands in "Other" instead of failing the whole export.
+const familyOf = (r: ScheduleRow) => FAMILIES.find((x) => x.test.test(r.style))?.name ?? OTHER;
 
 type Section = { title: string; rows: ScheduleRow[] };
 const sections: Section[] = SECTION_ORDER.map((title) => ({ title, rows: onSale.filter((r) => familyOf(r) === title) })).filter((s) => s.rows.length);
