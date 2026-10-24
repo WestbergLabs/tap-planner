@@ -144,7 +144,14 @@ doc.rect(M, qy - 3, W - 2 * M, 15).fill("#2b3a42");
 QCOLS.forEach((c) => label(c.h, c.x, qy + 1, c.w, 8, "#ffffff", true));
 qy += 17;
 [...onSale, ...gone].forEach((r, i) => {
-  if (i % 2) doc.rect(M, qy - 3, W - 2 * M, 14.5).fill("#f3f5f6");
+  // A band splits the retired packs from the ones on sale.
+  if (i === onSale.length && gone.length) {
+    qy += 4;
+    doc.rect(M, qy - 3, W - 2 * M, 14.5).fill("#dfe4e7");
+    label("Discontinued and unavailable", M + 4, qy + 1, 300, 8, INK, true);
+    qy += 14.5;
+  }
+  if ((i - (i >= onSale.length ? onSale.length : 0)) % 2) doc.rect(M, qy - 3, W - 2 * M, 14.5).fill("#f3f5f6");
   const name = r.status === "available" ? r.name : `${r.name} (${r.status})`;
   const cells = [name, r.style, `${r.abv.toFixed(1)}%`, `${r.recommendedBrewDays}d`, `${r.recommendedConditioningDays}d`, `${r.totalDays}d`, `${r.minimumBrewDays}/${r.minimumConditioningDays}`, `${pageOf.get(r.id)}`];
   cells.forEach((c, k) => {
