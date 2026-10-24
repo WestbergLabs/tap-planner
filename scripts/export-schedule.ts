@@ -37,21 +37,23 @@ if (existsSync(CSV) && readFileSync(CSV, "utf8") === csv && existsSync(PDF)) {
 }
 
 // ---- Families -----------------------------------------------------------
-// First match wins, so "Belgian Dark Ale" lands in Stouts and Dark Beers, not Belgian.
+// Broad on purpose. First match wins, so "Belgian Dark Ale" lands in Stouts and
+// Dark Beers. Anything that matches nothing is an ale, so a brand-new style can
+// never break the export.
 const FAMILIES: { name: string; test: RegExp }[] = [
   { name: "Ciders and Seltzers", test: /cider|perry|seltzer/i },
-  { name: "Stouts and Dark Beers", test: /stout|dark ale|winter ale|spiced ale/i },
-  { name: "IPAs and Pale Ales", test: /ipa|pale ale|bitter|british/i },
-  { name: "Lagers and Pilsners", test: /lager|pilsner|dunkel/i },
-  { name: "Wheat, Belgian and Sour", test: /wheat|wit\b|sour|belgian/i },
+  { name: "Stouts and Dark Beers", test: /stout|dark ale|winter ale/i },
+  { name: "Lagers", test: /lager|pilsner|dunkel/i },
 ];
-const OTHER = "Other";
-const SECTION_ORDER = ["IPAs and Pale Ales", "Lagers and Pilsners", "Stouts and Dark Beers", "Wheat, Belgian and Sour", "Ciders and Seltzers", OTHER];
-// A style no family matches lands in "Other" instead of failing the whole export.
-const familyOf = (r: ScheduleRow) => FAMILIES.find((x) => x.test.test(r.style))?.name ?? OTHER;
+const ALES = "Ales";
+const SECTION_ORDER = [ALES, "Stouts and Dark Beers", "Lagers", "Ciders and Seltzers"];
+const familyOf = (r: ScheduleRow) => FAMILIES.find((x) => x.test.test(r.style))?.name ?? ALES;
+
+// Within a section, group like styles together (all the IPAs, all the wheats).
+const byStyleThenName = (a: ScheduleRow, b: ScheduleRow) => a.style.localeCompare(b.style) || a.name.localeCompare(b.name);
 
 type Section = { title: string; rows: ScheduleRow[] };
-const sections: Section[] = SECTION_ORDER.map((title) => ({ title, rows: onSale.filter((r) => familyOf(r) === title) })).filter((s) => s.rows.length);
+const sections: Section[] = SECTION_ORDER.map((title) => ({ title, rows: onSale.filter((r) => familyOf(r) === title).sort(byStyleThenName) })).filter((s) => s.rows.length);
 if (gone.length) sections.push({ title: "Discontinued and Unavailable", rows: gone });
 
 // ---- PDF ----------------------------------------------------------------
