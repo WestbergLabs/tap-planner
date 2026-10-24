@@ -62,7 +62,9 @@ const COLS = 4; // cards across; sections flow down the page and share pages
 const CW = (W - 2 * M - GAP * (COLS - 1)) / COLS; // card width
 const CH = 162, IMGH = 64;
 const BREW = "#167f91", COND = "#b97800", INK = "#1f2933", MUTED = "#6b7280", LINE = "#d7dce0", RED = "#cf3f48";
-const updated = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "America/Chicago" });
+// Date and time, Central. The export skips unchanged schedules, so this is when the data last changed.
+const updated = new Date().toLocaleString("en-US", { month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago", timeZoneName: "short" }).replace(" at ", ", ");
+const updatedShort = new Date().toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago", timeZoneName: "short" }).replace(" at ", ", ");
 
 // Plan the pages first: contents and the quick reference need to know them.
 // Sections flow one after another, so a short section shares a page with the
@@ -238,7 +240,7 @@ if (range.count !== totalPages) throw new Error(`Planned ${totalPages} pages but
 for (let i = 0; i < range.count; i++) {
   doc.switchToPage(i);
   doc.page.margins.bottom = 0; // otherwise text this low would add a page
-  label("Generated from the tap-planner catalog", M, H - 26, 300, 7.5, MUTED);
+  label(`Generated from the tap-planner catalog  |  Last updated ${updatedShort}`, M, H - 26, 400, 7.5, MUTED);
   label(`Page ${i + 1} of ${range.count}`, W - M - 80, H - 26, 80, 7.5, MUTED, false, "right");
 }
 doc.end();
