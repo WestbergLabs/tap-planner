@@ -29,7 +29,7 @@ type BeerPickerProps = {
 type Option = { value: string; label: string; sub: string };
 
 /**
- * A compact searchable beer combobox for the rotation lineup. Unlike the shared
+ * A compact searchable beer combobox for the multi-Pinter planner. Unlike the shared
  * `BrewPackPicker`, it takes an `instanceId` (so many can live on one page) and
  * offers a "Custom recipe" option alongside the BrewPacks.
  */
@@ -72,7 +72,11 @@ export default function BeerPicker({
 
     const list: Option[] = matches
       .slice(0, 8)
-      .map((pack) => ({ value: pack.id, label: pack.name, sub: pack.style }));
+      .map((pack) => ({
+        value: pack.id,
+        label: pack.name,
+        sub: pack.discontinued ? `${pack.style} · Discontinued` : pack.style,
+      }));
 
     if (!trimmed || "custom recipe".includes(trimmed)) {
       list.push({

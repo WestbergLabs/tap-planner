@@ -31,7 +31,7 @@ browser.
 |---|---|---|
 | 🍺 | **[BrewPack planner](https://tap-planner.vercel.app/)** at `/` | You're brewing an official pack and want its recommended or minimum timing |
 | 🧪 | **[Custom planner](https://tap-planner.vercel.app/custom)** at `/custom` | You're brewing your own recipe, or overriding a pack's timing |
-| 🔄 | **[Rotation planner](https://tap-planner.vercel.app/rotation)** at `/rotation` | You run several Pinters and want them staggered so you never run dry |
+| 🔄 | **[Multi-Pinter planner](https://tap-planner.vercel.app/rotation)** at `/rotation` | You run several Pinters and want a beer and ready date for each, then one calendar file |
 | 📅 | **[Release timeline](https://tap-planner.vercel.app/releases)** at `/releases` | You want to know when a pack appeared, or when a seasonal might return |
 | 🏷️ | **[Brew labels](https://tap-planner.vercel.app/labels)** at `/labels` | You want to know what's actually in the fridge |
 | 📖 | **[Brewing schedule](https://tap-planner.vercel.app/schedule)** at `/schedule` | You want every pack's timing at a glance, or a PDF to hand to someone |

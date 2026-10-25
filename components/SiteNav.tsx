@@ -47,9 +47,9 @@ const LINKS: NavLink[] = [
   },
   {
     href: "/rotation",
-    short: "Rotation",
-    label: "Rotation planner",
-    description: "Stagger several Pinters",
+    short: "Multi-Pinter",
+    label: "Multi-Pinter planner",
+    description: "Plan several Pinters at once",
   },
   {
     href: "/releases",
