@@ -72,7 +72,11 @@ export default function BeerPicker({
 
     const list: Option[] = matches
       .slice(0, 8)
-      .map((pack) => ({ value: pack.id, label: pack.name, sub: pack.style }));
+      .map((pack) => ({
+        value: pack.id,
+        label: pack.name,
+        sub: pack.discontinued ? `${pack.style} · Discontinued` : pack.style,
+      }));
 
     if (!trimmed || "custom recipe".includes(trimmed)) {
       list.push({

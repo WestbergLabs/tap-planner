@@ -22,6 +22,7 @@ import {
   getToday,
   getTodayString,
   parseLocalDate,
+  subtractDays,
   toDateInputValue,
 } from "@/lib/schedule";
 import {
@@ -91,13 +92,20 @@ type ResolvedSlot = {
 export default function RotationPage() {
   const resultRef = useRef<HTMLElement>(null);
 
-  const activeBrewPacks = useMemo(
-    () =>
-      brewPacks
-        .filter((pack) => !pack.discontinued)
-        .sort((a, b) => a.name.localeCompare(b.name)),
+  const sortedBrewPacks = useMemo(
+    () => [...brewPacks].sort((a, b) => a.name.localeCompare(b.name)),
     [],
   );
+  const [showDiscontinued, setShowDiscontinued] = useState(false);
+
+  // A discontinued pack stays listed while a Pinter has it selected, so
+  // unticking the box never blanks a row.
+  function packsFor(slot: Slot) {
+    return sortedBrewPacks.filter(
+      (pack) =>
+        !pack.discontinued || showDiscontinued || pack.id === slot.brewPackId,
+    );
+  }
 
   const [pinterCount, setPinterCount] = useState("4");
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -135,21 +143,20 @@ export default function RotationPage() {
   }
 
   // Soonest day this beer can be ready if brewing starts today: the full
-  // lead time, including a day per cold-crash day. Empty until the beer's
+  // lead time, including a day per cold-crash day. Null until the beer's
   // timing is known.
-  function earliestReady(slot: Slot): string {
+  function earliestReady(slot: Slot) {
     const item = resolveSlot(slot);
     if ("error" in item) {
-      return "";
+      return null;
     }
-    return toDateInputValue(
-      addDays(getToday(), item.brewDays + item.coldCrashDays + item.conditioningDays),
-    );
+    const lead = item.brewDays + item.coldCrashDays + item.conditioningDays;
+    return { item, lead, date: addDays(getToday(), lead) };
   }
 
   // Whenever the beer or its timing changes, refill an auto-filled ready date
-  // with the earliest workable one, and push a picked date that is now too
-  // soon forward.
+  // with the earliest one. A date the user picked is left alone, so a brew
+  // that is already underway can be entered.
   function updateSlot(index: number, patch: Partial<Slot>) {
     setSlots((current) => {
       const next = current.slice();
@@ -161,11 +168,8 @@ export default function RotationPage() {
         merged.tapDateAuto = false;
       } else {
         const earliest = earliestReady(merged);
-        if (
-          earliest &&
-          (merged.tapDateAuto || !merged.tapDate || merged.tapDate < earliest)
-        ) {
-          merged.tapDate = earliest;
+        if (earliest && (merged.tapDateAuto || !merged.tapDate)) {
+          merged.tapDate = toDateInputValue(earliest.date);
         }
       }
       next[index] = merged;
@@ -176,7 +180,7 @@ export default function RotationPage() {
 
   function resolveSlot(slot: Slot): ResolvedSlot | { error: string } {
     if (slot.kind === "brewpack") {
-      const pack = activeBrewPacks.find((candidate) => candidate.id === slot.brewPackId);
+      const pack = sortedBrewPacks.find((candidate) => candidate.id === slot.brewPackId);
       if (!pack) {
         return { error: "Choose a beer for this Pinter." };
       }
@@ -286,8 +290,8 @@ export default function RotationPage() {
   }
 
   const today = getToday();
-  const isBehind = (batch: Batch) => batch.startDate.getTime() < today.getTime();
-  const behind = batches?.filter(isBehind) ?? [];
+  const isUnderway = (batch: Batch) => batch.startDate.getTime() < today.getTime();
+  const underway = batches?.filter(isUnderway) ?? [];
 
   function handleExportCalendar() {
     if (!batches) {
@@ -384,7 +388,8 @@ export default function RotationPage() {
           </div>
 
           <form onSubmit={handleSubmit} noValidate className="space-y-6 p-5 sm:p-6">
-            <div className="sm:w-1/2">
+            <div className="grid items-end gap-5 sm:grid-cols-2">
+              <div>
               <label htmlFor="pinter-count" className={labelClass}>
                 How many Pinters
               </label>
@@ -404,6 +409,17 @@ export default function RotationPage() {
                 className={fieldClass}
               />
               {countError && <p className="mt-2 text-sm text-error">{countError}</p>}
+              </div>
+
+              <label className="flex cursor-pointer items-center gap-3 pb-3">
+                <input
+                  type="checkbox"
+                  checked={showDiscontinued}
+                  onChange={(event) => setShowDiscontinued(event.target.checked)}
+                  className="h-4 w-4 accent-accent"
+                />
+                <span className="text-sm font-medium">Also show discontinued packs</span>
+              </label>
             </div>
 
             <div className="space-y-4">
@@ -426,7 +442,7 @@ export default function RotationPage() {
                             slot.kind === "brewpack" ? slot.brewPackId : null
                           }
                           style={
-                            activeBrewPacks.find(
+                            sortedBrewPacks.find(
                               (pack) =>
                                 slot.kind === "brewpack" &&
                                 pack.id === slot.brewPackId,
@@ -445,7 +461,7 @@ export default function RotationPage() {
                           </label>
                           <BeerPicker
                             instanceId={`beer-${index}`}
-                            brewPacks={activeBrewPacks}
+                            brewPacks={packsFor(slot)}
                             value={
                               slot.kind === "custom"
                                 ? CUSTOM_BEER
@@ -473,7 +489,7 @@ export default function RotationPage() {
                           <input
                             id={`tap-date-${index}`}
                             type="date"
-                            min={earliestReady(slot) || getTodayString()}
+                            min={getTodayString()}
                             value={slot.tapDate}
                             onChange={(event) =>
                               updateSlot(index, { tapDate: event.target.value })
@@ -481,6 +497,22 @@ export default function RotationPage() {
                             className="tap-date-input cursor-pointer rounded-xl border border-border-strong bg-field px-3 py-3 text-base text-foreground outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
                           />
                         </div>
+                        {(() => {
+                          const earliest = earliestReady(slot);
+                          if (!earliest) {
+                            return null;
+                          }
+                          const startOn = slot.tapDate
+                            ? subtractDays(parseLocalDate(slot.tapDate), earliest.lead)
+                            : null;
+                          return (
+                            <p className="mt-2 text-xs leading-5 text-muted">
+                              {startOn && startOn.getTime() < getToday().getTime()
+                                ? `Already underway: started ${formatShortDate(startOn)}.`
+                                : `Earliest: ${formatShortDate(earliest.date)} (${earliest.item.brewDays} brew${earliest.item.coldCrashDays ? ` + ${earliest.item.coldCrashDays} crash` : ""} + ${earliest.item.conditioningDays} conditioning).`}
+                            </p>
+                          );
+                        })()}
                       </div>
                     </div>
 
@@ -621,16 +653,17 @@ export default function RotationPage() {
               </h2>
             </div>
 
-            {behind.length > 0 && (
+            {underway.length > 0 && (
               <div className="border-b border-border px-5 py-4 sm:px-6">
                 <p
                   role="status"
                   className="rounded-xl border border-stage-condition/40 bg-stage-condition-soft px-4 py-3 text-sm leading-6 text-foreground"
                 >
-                  <span className="font-bold">Not enough time.</span>{" "}
-                  Pinter {behind.map((batch) => batch.index).join(", ")} would need
-                  to have started before today. Pick a later ready date or use
-                  minimum timing.
+                  <span className="font-bold">Already underway.</span>{" "}
+                  Pinter {underway.map((batch) => batch.index).join(", ")} would
+                  have started before today, so those start dates are in the
+                  past. That&rsquo;s fine for a brew you&rsquo;ve already begun;
+                  otherwise pick a later ready date or use minimum timing.
                 </p>
               </div>
             )}
@@ -654,7 +687,7 @@ export default function RotationPage() {
                       <td className="px-3 py-3 font-medium">{batch.name}</td>
                       <td
                         className={`px-3 py-3 font-semibold ${
-                          isBehind(batch) ? "text-error" : "text-stage-brew"
+                          isUnderway(batch) ? "text-muted" : "text-stage-brew"
                         }`}
                       >
                         {formatShortDate(batch.startDate)}
