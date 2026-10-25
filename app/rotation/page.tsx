@@ -388,6 +388,22 @@ export default function RotationPage() {
           </div>
 
           <form onSubmit={handleSubmit} noValidate className="space-y-6 p-5 sm:p-6">
+            <ol className="list-decimal space-y-1 rounded-xl border border-border bg-field/40 py-3 pl-9 pr-4 text-sm leading-6 text-muted">
+              <li>Pick how many Pinters you&rsquo;re planning for.</li>
+              <li>
+                Choose a beer for each. The ready date fills in with the
+                earliest possible day; change it to when you want to pour.
+              </li>
+              <li>
+                Already brewing? Set the date it will be ready, and the start
+                date will show as already underway.
+              </li>
+              <li>
+                Calculate, then add every brew to your calendar in one file.
+                Empty Pinters are skipped.
+              </li>
+            </ol>
+
             <div className="grid items-end gap-5 sm:grid-cols-2">
               <div>
               <label htmlFor="pinter-count" className={labelClass}>
