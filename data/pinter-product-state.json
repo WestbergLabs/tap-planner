@@ -6,7 +6,7 @@
       "title": "Dark Matter",
       "publishedAt": "2023-09-18T06:42:27-04:00",
       "available": true,
-      "fingerprint": "d93d0cae27816206"
+      "fingerprint": "8cd57177e9405465"
     },
     {
       "id": 8802186199321,
@@ -14,7 +14,7 @@
       "title": "Whole Nine Yards",
       "publishedAt": "2023-09-18T06:42:30-04:00",
       "available": true,
-      "fingerprint": "4ec0aea74660026f"
+      "fingerprint": "219dac492f000ccd"
     },
     {
       "id": 8802186297625,
@@ -22,7 +22,7 @@
       "title": "Space Hopper West Coast Edition",
       "publishedAt": "2026-08-22T08:21:20-04:00",
       "available": true,
-      "fingerprint": "19f4cd6e479acdb8"
+      "fingerprint": "7c12c093b6a4b768"
     },
     {
       "id": 8802186461465,
@@ -30,7 +30,7 @@
       "title": "Space Hopper",
       "publishedAt": "2023-10-27T10:48:47-04:00",
       "available": true,
-      "fingerprint": "cced9a3175732b56"
+      "fingerprint": "3acaa98bf0e672c6"
     },
     {
       "id": 8802186756377,
@@ -38,7 +38,7 @@
       "title": "Sunlit",
       "publishedAt": "2024-08-16T05:20:08-04:00",
       "available": true,
-      "fingerprint": "7e2535cd0c25fbdb"
+      "fingerprint": "c54e18bac6a8c9cf"
     },
     {
       "id": 8802186920217,
@@ -239,6 +239,14 @@
       "publishedAt": "2026-05-05T05:50:46-04:00",
       "available": true,
       "fingerprint": "260a1e8087693362"
+    },
+    {
+      "id": 10613543272729,
+      "handle": "home-team",
+      "title": "Home Team",
+      "publishedAt": "2026-11-02T04:52:03-05:00",
+      "available": true,
+      "fingerprint": "bfcf559ea378a80b"
     },
     {
       "id": 10620030189849,

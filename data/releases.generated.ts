@@ -86,6 +86,18 @@ export const releases: BrewPackRelease[] = [
     badges: ["Vegan", "Contains Gluten"],
   },
   {
+    id: "home-team",
+    name: "Home Team",
+    style: "Pale Ale",
+    abv: 4,
+    releaseDate: "2026-05-06",
+    precision: "month",
+    reissuedOn: "2026-11-02",
+    status: "available",
+    flavors: ["citrus", "floral", "mid low bitterness", "pale"],
+    badges: ["Vegan", "Contains Gluten"],
+  },
+  {
     id: "sumpin-easy-remixed",
     name: "Sumpin' Easy Remixed",
     style: "American Pale Ale",
