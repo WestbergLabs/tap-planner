@@ -259,6 +259,18 @@ export const brewPacks: BrewPack[] = [
     hopperIncluded: false,
   },
   {
+    id: "home-team",
+    name: "Home Team",
+    style: "Pale Ale",
+    recommendedBrewDays: 7,
+    recommendedConditioningDays: 7,
+    minimumBrewDays: 5,
+    minimumConditioningDays: 3,
+    abv: 4,
+    yeast: "Spark",
+    hopperIncluded: true,
+  },
+  {
     id: "hopewell-west-coast-lager",
     name: "Hopewell West Coast Lager",
     style: "West Coast Lager",
