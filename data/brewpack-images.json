@@ -177,6 +177,15 @@
       "productId": 10620030189849,
       "name": "Great Lakes Burning River Remixed"
     },
+    "home-team": {
+      "file": "home-team.jpg",
+      "thumb": "home-team.thumb.jpg",
+      "src": "https://cdn.shopify.com/s/files/1/0825/9298/9465/files/HomeTeam2.jpg?v=1784215834",
+      "sha256": "57070187bbb61c0a54dabf4bc591d5107e4569c88afc03879b12aec9a97b9675",
+      "productId": 10613543272729,
+      "name": "Home Team",
+      "capturedAt": "2026-11-03"
+    },
     "hopewell-west-coast-lager": {
       "file": "hopewell-west-coast-lager.png",
       "thumb": "hopewell-west-coast-lager.thumb.png",
