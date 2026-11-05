@@ -35,7 +35,7 @@ import {
   exclusiveEndDate,
   type CalendarStage,
 } from "@/lib/calendar";
-import { buildShareHref, parseTapParam } from "@/lib/share";
+import { buildShareHref, parseTapParam, shareOrCopy } from "@/lib/share";
 
 type ScheduleType = "recommended" | "minimum";
 type ColdCrashDays = 0 | 1 | 2 | 3;
@@ -225,22 +225,10 @@ function HomePlanner() {
       tapDate: toDateInputValue(result.tapDate),
     });
 
-    // The phone share sheet where there is one, otherwise the clipboard.
-    try {
-      if (typeof navigator.share === "function") {
-        await navigator.share({ title: `${result.packName} schedule`, url });
-        return;
-      }
+    const message = await shareOrCopy(url, `${result.packName} schedule`);
 
-      await navigator.clipboard.writeText(url);
-      setDownloadMessage("Link copied. Anyone who opens it gets this beer and tap date filled in.");
-    } catch (shareError) {
-      // Closing the share sheet is not a failure.
-      if (shareError instanceof DOMException && shareError.name === "AbortError") {
-        return;
-      }
-
-      setDownloadMessage(`Could not copy automatically. Copy this link: ${url}`);
+    if (message !== null) {
+      setDownloadMessage(message);
     }
   }
 

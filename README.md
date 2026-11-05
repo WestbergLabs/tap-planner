@@ -120,8 +120,10 @@ the evening before you start brewing (6 pm) and the morning of tap day (8 am).
 The other stages are left quiet. Reminders use your calendar app's own alert
 settings, so they appear on every device that syncs that calendar.
 
-**Share this schedule** (official planner) sends a link that opens Tap Planner
-with the same BrewPack, timing, cold crash and tap date filled in. On a phone it
+**Share this schedule** (official and custom planners) sends a link that opens
+Tap Planner with the same choices filled in: the BrewPack, timing, cold crash and
+tap date, or for a custom recipe its name, style, ABV and every duration. That
+makes it work for any brew, including non-Pinter kits. On a phone it
 uses the normal share sheet; elsewhere it copies the link. The link holds only
 those choices in its web address, nothing is stored or sent anywhere, and the
 person who opens it presses Calculate themselves.
