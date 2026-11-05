@@ -505,6 +505,10 @@ Each stage event **spans its full date range** — starting on the stage's start
 
 The first and last stage of each schedule get a `VALARM` (`reminderLines` in `lib/calendar.ts`): `TRIGGER:-PT6H` on the first stage (6 pm the evening before) and `TRIGGER:PT8H` on the last (8 am on tap day). All-day events start at local midnight, so these are offsets from midnight, not clock times, and they follow the viewer's time zone like the dates do. Middle stages (cold crash, conditioning) deliberately have none. Applies to every export path (`buildCalendar`, `buildMultiCalendar`, saved brews) because they all go through `scheduleEventLines`. There is no on/off switch; a calendar app can drop alerts it does not want.
 
+### Share links
+
+`lib/share.ts` builds (`buildShareHref`) and reads back (`parseTapParam`) the official planner's share link: `/?pack=<id>&schedule=<recommended|minimum>&crash=<0-3>&tap=YYYY-MM-DD`. `app/page.tsx` reads `pack`, `schedule`, `crash` and `tap` from the query string on load (Brew again uses the same first three, without `tap`). `tap` is only prefilled when it is a real calendar date and not in the past; anything else is ignored. A link never auto-calculates, matching the rule for the feasibility recovery actions. The **Share this schedule** button uses `navigator.share` when present and falls back to the clipboard, and shows the link in a message if both fail. The custom and multi-Pinter planners have no share link.
+
 ### Shared module — `lib/calendar.ts`
 
 All `.ics` generation lives in one place so the two pages never duplicate it. The module owns:
