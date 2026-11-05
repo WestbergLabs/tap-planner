@@ -14,7 +14,7 @@ import {
   getBackupStatus,
   parseBackup,
   restoreBrews,
-  setWelcomeSeen,
+  setHideWelcome,
   type SavedBrew,
 } from "@/lib/storage";
 import { useBrewStore } from "@/lib/useBrewStore";
@@ -273,15 +273,16 @@ export default function BackupPanel({ today }: { today: string }) {
           <label className="flex cursor-pointer items-start gap-3">
             <input
               type="checkbox"
-              checked={!store.settings.welcomeSeen}
-              onChange={(event) => setWelcomeSeen(!event.target.checked)}
+              checked={!store.settings.hideWelcome}
+              onChange={(event) => setHideWelcome(!event.target.checked)}
               className="mt-1 h-4 w-4 accent-accent"
             />
             <span>
-              Show the welcome note on my next visit
+              Show the welcome note when I visit
               <span className="block text-xs leading-5 text-muted">
-                The pop-up that explains saving and backups. It appears once and
-                stays off after that unless you turn it back on here.
+                The pop-up that explains saving and backups. It appears on each
+                visit until you tick &ldquo;Don&rsquo;t show this again&rdquo; on
+                it. Tick this box to bring it back.
               </span>
             </span>
           </label>

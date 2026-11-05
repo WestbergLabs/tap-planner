@@ -86,7 +86,8 @@ README and the welcome dialog make them to users:
 - Storage is opt-in: a planner never saves unless the person presses Save.
 - Because browser storage is fragile, export must stay obvious. Do not remove the
   welcome dialog, the backup reminder strip, or the Back up button without
-  replacing them with something as clear.
+  replacing them with something as clear. The welcome dialog shows each visit
+  until the person opts out, and must always say where to turn it back on.
 - Anything read back (`localStorage`, a restored file) is untrusted and goes
   through the zod schemas in `lib/storage.ts`. A schema change needs a version
   bump and a migration, or old saved diaries stop loading.

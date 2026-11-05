@@ -50,8 +50,9 @@ nothing is sent anywhere. Because browsers can lose that data (clearing site
 data, a new phone, a private window), the app is deliberately loud about
 backups:
 
-- A one-time welcome pop-up on your first visit explains saving and backing up.
-  It stays off afterwards unless you turn it back on from `/brews`.
+- A welcome pop-up at the start of each visit explains saving and backing up.
+  Tick "Don't show this again" on it to stop it. The pop-up says where to turn
+  it back on: `/brews`, then Back up & restore.
 - **Back up my brews** downloads a small JSON file. **Restore from backup**
   loads one, either adding to what you have or replacing it. A bad or
   unrecognised file is rejected without touching your saved brews.

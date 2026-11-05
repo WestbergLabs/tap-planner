@@ -1,49 +1,87 @@
 "use client";
 
-// First-visit explainer for saved brews.
+// Welcome explainer for saved brews.
 //
 // Saving is the one thing Tap Planner stores, and browser storage is easy to
-// lose, so the first thing a new visitor sees is how it works and how to back
-// it up. It uses the native <dialog> element, which gives a focus trap, Escape
-// to close, and an inert page behind it for free.
+// lose, so the pop-up appears at the start of every visit until the person
+// ticks "Don't show this again" on it. It says where to turn it back on, so
+// opting out is never a dead end.
 //
-// It appears once per browser. Any way of closing it counts as seen, and the
-// "Show welcome note again" switch on /brews turns it back on.
+// "Every visit" means once per browser session, not on every page: the flag
+// lives in sessionStorage, so moving between planners does not re-open it, but
+// coming back later does. It uses the native <dialog> element, which gives a
+// focus trap, Escape to close, and an inert page behind it for free.
 
-import { useEffect, useRef } from "react";
+import { useRef, useState } from "react";
 
 import Link from "next/link";
 
-import { setWelcomeSeen } from "@/lib/storage";
+import { setHideWelcome } from "@/lib/storage";
 import { useBrewStore } from "@/lib/useBrewStore";
+
+const SHOWN_KEY = "tap-planner:welcome-shown";
+
+function shownThisVisit(): boolean {
+  try {
+    return window.sessionStorage.getItem(SHOWN_KEY) === "1";
+  } catch {
+    // No session storage: fall back to the in-memory flag below.
+    return false;
+  }
+}
+
+function markShownThisVisit() {
+  try {
+    window.sessionStorage.setItem(SHOWN_KEY, "1");
+  } catch {
+    // Ignored: the in-memory flag still stops it re-opening on navigation.
+  }
+}
 
 export default function WelcomeDialog() {
   const { loaded, available, store } = useBrewStore();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const optOutRef = useRef<HTMLInputElement>(null);
+  const [dismissed, setDismissed] = useState(false);
 
-  // Wait for localStorage to be read, and stay quiet if the browser will not
-  // let us save anything: there is nothing to explain.
-  const shouldShow = loaded && available && !store.settings.welcomeSeen;
+  // `loaded` is only true on the client after hydration, so reading
+  // sessionStorage here never runs on the server. Stay quiet if the browser
+  // will not let us save anything: there is nothing to explain.
+  const shouldShow =
+    loaded &&
+    available &&
+    !store.settings.hideWelcome &&
+    !dismissed &&
+    !shownThisVisit();
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
+  // A ref callback rather than an effect: open the dialog the moment it mounts
+  // visible. showModal() throws if it is already open, so guard it.
+  function handleRef(dialog: HTMLDialogElement | null) {
+    dialogRef.current = dialog;
 
-    if (!dialog) {
-      return;
-    }
-
-    if (shouldShow && !dialog.open) {
+    if (dialog && shouldShow && !dialog.open) {
       dialog.showModal();
-    } else if (!shouldShow && dialog.open) {
-      dialog.close();
     }
-  }, [shouldShow]);
+  }
+
+  function handleClose() {
+    markShownThisVisit();
+    setDismissed(true);
+
+    if (optOutRef.current?.checked) {
+      setHideWelcome(true);
+    }
+  }
+
+  if (!shouldShow) {
+    return null;
+  }
 
   return (
     <dialog
-      ref={dialogRef}
+      ref={handleRef}
       aria-labelledby="welcome-heading"
-      onClose={() => setWelcomeSeen(true)}
+      onClose={handleClose}
       onClick={(event) => {
         // A click on the backdrop lands on the <dialog> itself, not its content.
         if (event.target === dialogRef.current) {
@@ -85,6 +123,22 @@ export default function WelcomeDialog() {
             device.
           </p>
         </div>
+
+        <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm">
+          <input
+            ref={optOutRef}
+            type="checkbox"
+            className="mt-1 h-4 w-4 accent-accent"
+          />
+          <span>
+            Don&rsquo;t show this again
+            <span className="block text-xs leading-5 text-muted">
+              To see this message again, open <em>My brews</em>, go to{" "}
+              <em>Back up &amp; restore</em>, and tick{" "}
+              <em>Show the welcome note when I visit</em>.
+            </span>
+          </span>
+        </label>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <button

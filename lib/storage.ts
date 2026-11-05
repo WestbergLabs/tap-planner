@@ -72,7 +72,8 @@ export const brewSchema = z.object({
 });
 
 const settingsSchema = z.object({
-  welcomeSeen: z.boolean(),
+  /** True once the person has chosen to stop the welcome pop-up. */
+  hideWelcome: z.boolean(),
   lastExportedAt: z.string().max(40).nullable(),
 });
 
@@ -103,7 +104,7 @@ export type NewBrew = Omit<SavedBrew, "id" | "savedAt" | "note" | "tasting"> & {
 export const EMPTY_STORE: Store = {
   version: 1,
   brews: [],
-  settings: { welcomeSeen: false, lastExportedAt: null },
+  settings: { hideWelcome: false, lastExportedAt: null },
   updatedAt: null,
 };
 
@@ -305,15 +306,15 @@ export function removeBrew(id: string): boolean {
   }));
 }
 
-export function setWelcomeSeen(seen: boolean): boolean {
-  if (getStoreState().store.settings.welcomeSeen === seen) {
+export function setHideWelcome(hide: boolean): boolean {
+  if (getStoreState().store.settings.hideWelcome === hide) {
     return true;
   }
 
   // A settings change is not a change to the diary, so it must not make a
   // fresh backup look stale.
   return commit(
-    (store) => ({ ...store, settings: { ...store.settings, welcomeSeen: seen } }),
+    (store) => ({ ...store, settings: { ...store.settings, hideWelcome: hide } }),
     false,
   );
 }

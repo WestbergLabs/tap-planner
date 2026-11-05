@@ -279,7 +279,7 @@ The cold-crash stage is omitted from the result whenever cold-crash days are `0`
 | `lib/useBrewStore.ts` | `useSyncExternalStore` binding. Server and first client render see an empty store, so hydration matches. |
 | `lib/brews.ts` | Derived facts: a brew's stage and next milestone come from its dates and today and are never stored. Also rebuilds a calendar export from a saved brew. |
 | `components/SaveBrewButton.tsx` | Save button used by the three planners. "Already saved" is derived from the store, not local state. |
-| `components/WelcomeDialog.tsx` | One-time first-visit explainer (native `<dialog>`). Re-enable from the backup panel. |
+| `components/WelcomeDialog.tsx` | Explainer shown once per browser session (flag in `sessionStorage`, so moving between pages does not re-open it) until the person ticks "Don't show this again", which sets `settings.hideWelcome`. The dialog and the backup panel both say where to turn it back on. |
 | `components/BackupReminder.tsx` | Strip on every page (except `/brews`, and never printed) while saved brews have never been exported, or have changed since an export two weeks old. Has a working Back up now button. |
 | `components/BrewCard.tsx`, `BackupPanel.tsx` | The list entries and the export/restore panel on `/brews`. |
 
