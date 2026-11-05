@@ -34,6 +34,7 @@ import {
   exclusiveEndDate,
   type CalendarStage,
 } from "@/lib/calendar";
+import { buildCustomShareHref, parseTapParam, shareOrCopy } from "@/lib/share";
 
 type StartMode = "brewpack" | "scratch";
 
@@ -106,7 +107,9 @@ function CustomPlanner() {
   const [conditioningDays, setConditioningDays] = useState(
     () => searchParams.get("conditioning") ?? "",
   );
-  const [tapDate, setTapDate] = useState(() => searchParams.get("tap") ?? "");
+  const [tapDate, setTapDate] = useState(() =>
+    parseTapParam(searchParams.get("tap"), getTodayString()),
+  );
 
   const [errors, setErrors] = useState<FieldErrors>({});
   const [result, setResult] = useState<CustomResult | null>(null);
@@ -238,6 +241,28 @@ function CustomPlanner() {
     setDownloadMessage(
       "Calendar file downloaded. Open it to add the schedule to your calendar.",
     );
+  }
+
+  async function handleShare() {
+    if (!result) {
+      return;
+    }
+
+    const url = buildCustomShareHref(window.location.origin, {
+      name: result.scheduleName,
+      style: result.style,
+      abv: result.abv,
+      fermentationDays: result.fermentationDays,
+      coldCrashDays: result.coldCrashDays,
+      conditioningDays: result.conditioningDays,
+      tapDate: toDateInputValue(result.tapDate),
+    });
+
+    const message = await shareOrCopy(url, `${result.scheduleName} schedule`);
+
+    if (message !== null) {
+      setDownloadMessage(message);
+    }
   }
 
   // Selecting a BrewPack seeds the form with its official timing. Every field
@@ -997,6 +1022,14 @@ function CustomPlanner() {
                 className="w-full rounded-xl border border-border-strong bg-field px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface sm:w-auto"
               >
                 Add schedule to calendar
+              </button>
+
+              <button
+                type="button"
+                onClick={handleShare}
+                className="mt-3 w-full rounded-xl border border-border-strong bg-field px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface sm:ml-3 sm:mt-0 sm:w-auto"
+              >
+                Share this schedule
               </button>
 
               <p className="mt-3 text-xs leading-5 text-muted">
