@@ -115,6 +115,11 @@ as an all-day event spanning its real date range. It is generated in your
 browser. Tap Planner never asks for calendar access and adds nothing
 automatically.
 
+Two moments carry a reminder, so a calendar alert nudges you at the right time:
+the evening before you start brewing (6 pm) and the morning of tap day (8 am).
+The other stages are left quiet. Reminders use your calendar app's own alert
+settings, so they appear on every device that syncs that calendar.
+
 ## Brew labels
 
 <div align="center">

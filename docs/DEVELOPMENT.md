@@ -501,6 +501,10 @@ Once a schedule is calculated, both planners show an **Add schedule to calendar*
 
 Each stage event **spans its full date range** — starting on the stage's start date and ending (exclusively) on the next stage's start date. Only the tap-day event is a single day. Titles are prefixed with the BrewPack or schedule name (e.g. `Dark Matter: Tap day`, `Dark Matter - Custom: Start fermentation`), and each description includes the schedule name, style/ABV when available, the stage duration, the timing mode (official planner), the total lead time, and the live app URL.
 
+### Reminders
+
+The first and last stage of each schedule get a `VALARM` (`reminderLines` in `lib/calendar.ts`): `TRIGGER:-PT6H` on the first stage (6 pm the evening before) and `TRIGGER:PT8H` on the last (8 am on tap day). All-day events start at local midnight, so these are offsets from midnight, not clock times, and they follow the viewer's time zone like the dates do. Middle stages (cold crash, conditioning) deliberately have none. Applies to every export path (`buildCalendar`, `buildMultiCalendar`, saved brews) because they all go through `scheduleEventLines`. There is no on/off switch; a calendar app can drop alerts it does not want.
+
 ### Shared module — `lib/calendar.ts`
 
 All `.ics` generation lives in one place so the two pages never duplicate it. The module owns:
