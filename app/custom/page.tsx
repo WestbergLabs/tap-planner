@@ -34,6 +34,8 @@ import {
   exclusiveEndDate,
   type CalendarStage,
 } from "@/lib/calendar";
+import { type Recipe } from "@/lib/storage";
+import { useBrewStore } from "@/lib/useBrewStore";
 import { buildCustomShareHref, parseTapParam, shareOrCopy } from "@/lib/share";
 
 type StartMode = "brewpack" | "scratch";
@@ -50,6 +52,8 @@ type CustomResult = {
   coldCrashDays: number;
   conditioningDays: number;
   totalLeadTime: number;
+  /** Only for a brew that is not a Pinter BrewPack. */
+  recipe: Recipe | null;
 };
 
 type FieldErrors = {
@@ -62,6 +66,19 @@ type FieldErrors = {
 };
 
 const ABV_MAX = 30;
+
+const RECIPE_TEXT_MAX = 3000;
+
+/** The recipe to keep, or null when nothing was entered. */
+function buildRecipe(system: string, ingredients: string, method: string): Recipe | null {
+  const recipe = {
+    system: system.trim(),
+    ingredients: ingredients.trim(),
+    method: method.trim(),
+  };
+
+  return recipe.system || recipe.ingredients || recipe.method ? recipe : null;
+}
 
 function CustomPlanner() {
   const searchParams = useSearchParams();
@@ -107,6 +124,31 @@ function CustomPlanner() {
   const [conditioningDays, setConditioningDays] = useState(
     () => searchParams.get("conditioning") ?? "",
   );
+  // For a brew that is not a Pinter BrewPack: which system it is brewed in, and
+  // an optional recipe to keep with the saved brew.
+  const [brewingSystem, setBrewingSystem] = useState(
+    () => searchParams.get("system") ?? "",
+  );
+
+  // Brew again passes ?from=<saved brew id> so a long recipe does not have to
+  // travel in the link; the recipe is read from this browser's saved brews.
+  // Each field is null until the person edits it, and until then shows the
+  // saved recipe. Deriving it this way (rather than copying it into state in an
+  // effect) keeps the first render identical on server and client.
+  const { store } = useBrewStore();
+  const fromId = searchParams.get("from");
+  const savedRecipe =
+    isRepeat && fromId ? store.brews.find((brew) => brew.id === fromId)?.recipe : undefined;
+
+  const [recordEdit, setRecordEdit] = useState<boolean | null>(null);
+  const [ingredientsEdit, setIngredientsEdit] = useState<string | null>(null);
+  const [methodEdit, setMethodEdit] = useState<string | null>(null);
+
+  const ingredients = ingredientsEdit ?? savedRecipe?.ingredients ?? "";
+  const method = methodEdit ?? savedRecipe?.method ?? "";
+  const recordRecipe =
+    recordEdit ?? Boolean(savedRecipe && (savedRecipe.ingredients || savedRecipe.method));
+
   const [tapDate, setTapDate] = useState(() =>
     parseTapParam(searchParams.get("tap"), getTodayString()),
   );
@@ -251,6 +293,7 @@ function CustomPlanner() {
     const url = buildCustomShareHref(window.location.origin, {
       name: result.scheduleName,
       style: result.style,
+      system: result.recipe?.system,
       abv: result.abv,
       fermentationDays: result.fermentationDays,
       coldCrashDays: result.coldCrashDays,
@@ -299,6 +342,10 @@ function CustomPlanner() {
       setFermentationDays("");
       setConditioningDays("");
       setColdCrashDays("0");
+      setBrewingSystem("");
+      setRecordEdit(false);
+      setIngredientsEdit("");
+      setMethodEdit("");
     }
   }
 
@@ -405,6 +452,14 @@ function CustomPlanner() {
       coldCrashDays: crash,
       conditioningDays: conditioning,
       totalLeadTime,
+      recipe:
+        startMode === "scratch"
+          ? buildRecipe(
+              brewingSystem,
+              recordRecipe ? ingredients : "",
+              recordRecipe ? method : "",
+            )
+          : null,
     });
   }
 
@@ -460,7 +515,7 @@ function CustomPlanner() {
           </h1>
 
           <p className="mt-4 max-w-xl text-base leading-7 text-muted">
-            Start from an official BrewPack or enter your own recipe timing.
+            Start from an official Pinter BrewPack, or plan any other brew by entering its timing.
           </p>
         </header>
 
@@ -518,7 +573,7 @@ function CustomPlanner() {
                     className="h-4 w-4 accent-accent"
                   />
                   <span className="text-sm font-medium">
-                    Start from scratch
+                    Something else (another kit, or your own recipe)
                   </span>
                 </label>
               </div>
@@ -533,6 +588,32 @@ function CustomPlanner() {
                 onEdit={clearResult}
                 hint="Search for a BrewPack to start from its official timing."
               />
+            )}
+
+            {startMode === "scratch" && (
+              <div>
+                <label
+                  htmlFor="brewing-system"
+                  className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground"
+                >
+                  Brewing system{" "}
+                  <span className="font-normal text-muted">(optional)</span>
+                </label>
+
+                <input
+                  id="brewing-system"
+                  type="text"
+                  value={brewingSystem}
+                  maxLength={80}
+                  autoComplete="off"
+                  placeholder="Mr. Beer, bucket and carboy, other kit"
+                  onChange={(event) => {
+                    setBrewingSystem(event.target.value);
+                    clearResult();
+                  }}
+                  className="w-full rounded-xl border border-border-strong bg-field px-3 py-3 text-foreground outline-none placeholder:text-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                />
+              </div>
             )}
 
             {showBrewPackNotice && (
@@ -859,6 +940,77 @@ function CustomPlanner() {
                 ))}
             </div>
 
+            {startMode === "scratch" && (
+              <div className="space-y-4 rounded-xl border border-border bg-field px-4 py-4">
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={recordRecipe}
+                    onChange={(event) => {
+                      setRecordEdit(event.target.checked);
+                      clearResult();
+                    }}
+                    className="mt-1 h-4 w-4 accent-accent"
+                  />
+                  <span className="text-sm">
+                    <span className="font-medium">Record the recipe</span>
+                    <span className="block text-xs leading-5 text-muted">
+                      Keep the ingredients and method with this brew when you
+                      save it, so you can repeat it later.
+                    </span>
+                  </span>
+                </label>
+
+                {recordRecipe && (
+                  <>
+                    <div>
+                      <label
+                        htmlFor="recipe-ingredients"
+                        className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground"
+                      >
+                        Ingredients
+                      </label>
+
+                      <textarea
+                        id="recipe-ingredients"
+                        rows={4}
+                        maxLength={RECIPE_TEXT_MAX}
+                        value={ingredients}
+                        placeholder={"One per line, for example:\n1 can West Coast Pale Ale mix\n1 packet yeast"}
+                        onChange={(event) => {
+                          setIngredientsEdit(event.target.value);
+                          clearResult();
+                        }}
+                        className="w-full rounded-xl border border-border-strong bg-surface px-3 py-3 text-base text-foreground outline-none placeholder:text-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="recipe-method"
+                        className="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-foreground"
+                      >
+                        Method and notes
+                      </label>
+
+                      <textarea
+                        id="recipe-method"
+                        rows={4}
+                        maxLength={RECIPE_TEXT_MAX}
+                        value={method}
+                        placeholder="Water, temperatures, additions, anything you would want next time"
+                        onChange={(event) => {
+                          setMethodEdit(event.target.value);
+                          clearResult();
+                        }}
+                        className="w-full rounded-xl border border-border-strong bg-surface px-3 py-3 text-base text-foreground outline-none placeholder:text-muted/60 focus:border-accent focus:ring-2 focus:ring-accent/30"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             <p className="rounded-xl border border-border bg-field px-4 py-3 text-xs leading-5 text-muted">
               Custom recipe details are used only to calculate this schedule and
               are not automatically saved.
@@ -1011,6 +1163,7 @@ function CustomPlanner() {
                       brewDays: result.fermentationDays,
                       coldCrashDays: result.coldCrashDays,
                       conditioningDays: result.conditioningDays,
+                      ...(result.recipe ? { recipe: result.recipe } : {}),
                     },
                   ]}
                 />

@@ -50,6 +50,17 @@ export const tastingSchema = z.object({
   tastedOn: dateString,
 });
 
+/**
+ * A recipe recorded with a brew that is not a Pinter BrewPack (another kit, or
+ * the person's own). All free text. Optional on a brew, so diaries saved
+ * before this existed still load unchanged and no version bump is needed.
+ */
+export const recipeSchema = z.object({
+  system: z.string().max(80),
+  ingredients: z.string().max(3000),
+  method: z.string().max(3000),
+});
+
 export const brewSchema = z.object({
   id: z.string().min(1).max(64),
   name: z.string().min(1).max(120),
@@ -69,6 +80,7 @@ export const brewSchema = z.object({
   note: z.string().max(2000),
   savedAt: z.string().max(40),
   tasting: tastingSchema.optional(),
+  recipe: recipeSchema.optional(),
 });
 
 const settingsSchema = z.object({
@@ -93,6 +105,7 @@ const backupSchema = z.object({
 });
 
 export type Tasting = z.infer<typeof tastingSchema>;
+export type Recipe = z.infer<typeof recipeSchema>;
 export type SavedBrew = z.infer<typeof brewSchema>;
 export type Store = z.infer<typeof storeSchema>;
 

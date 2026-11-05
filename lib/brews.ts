@@ -189,6 +189,16 @@ export function brewAgainHref(brew: SavedBrew): string {
     conditioning: String(brew.conditioningDays),
   });
 
+  if (brew.recipe?.system) {
+    query.set("system", brew.recipe.system);
+  }
+
+  // The recipe text can be long, so the link carries only the brew's id and the
+  // custom planner reads the recipe back from this browser's saved brews.
+  if (brew.recipe && (brew.recipe.ingredients || brew.recipe.method)) {
+    query.set("from", brew.id);
+  }
+
   return `/custom?${query.toString()}`;
 }
 

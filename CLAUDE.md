@@ -1,8 +1,8 @@
 # Tap Planner
 
-Scheduling tool for Pinter home-brew owners. Pick a BrewPack and a tap date, and it
-works backward to tell you when to start. Independent community project — **not**
-affiliated with Pinter.
+Scheduling tool for home brewers, built first for Pinter owners. Pick a BrewPack (or
+enter any other brew's timing) and a tap date, and it works backward to tell you
+when to start. Independent community project — **not** affiliated with Pinter.
 
 ## Commands
 
