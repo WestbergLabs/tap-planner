@@ -45,6 +45,11 @@ device. `/brews` shows every saved batch with where it stands today (planned,
 brewing, cold crash, conditioning, ready, tasted), and lets you log a rating,
 carbonation, tasting notes, and whether you would brew it again.
 
+**Coming up** lists the next two weeks across every saved brew (start brewing,
+cold crash, conditioning, tap day), and **Brew again** on any saved brew reopens
+the right planner with that pack or recipe filled in. The tap date is left empty,
+because a repeat brew is for a new date.
+
 **It is stored only in your browser.** There is no account and no sync, and
 nothing is sent anywhere. Because browsers can lose that data (clearing site
 data, a new phone, a private window), the app is deliberately loud about

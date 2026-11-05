@@ -50,7 +50,8 @@ field label and a missing space that lint, build, and the HTML all passed.
 - `lib/storage.ts` — the only code that touches `localStorage`; `lib/useBrewStore.ts`
   subscribes components; `lib/brews.ts` derives a saved brew's stage from its dates.
 - `components/WelcomeDialog`, `BackupReminder` (both mounted in `app/layout.tsx`),
-  `SaveBrewButton`, `BrewCard`, `BackupPanel` — the saved-brews UI.
+  `SaveBrewButton`, `BrewCard`, `UpcomingPanel`, `BackupPanel` — the saved-brews UI.
+  `lib/brews.ts` also builds Brew again links (`/?pack=…`, `/custom?prefill=repeat…`).
 - `lib/schedule.ts` — all date math. `lib/calendar.ts` — `.ics` generation.
   `lib/labels.ts` — style→artwork mapping. `lib/releases.ts` — timeline
   grouping. `lib/brewpackImages.ts` — pack id → captured shot.

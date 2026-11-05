@@ -3,7 +3,7 @@
 // go stale or disagree with the calendar.
 
 import { exclusiveEndDate, type CalendarSchedule } from "@/lib/calendar";
-import { parseLocalDate, toDateInputValue } from "@/lib/schedule";
+import { addDays, parseLocalDate, toDateInputValue } from "@/lib/schedule";
 import type { SavedBrew } from "@/lib/storage";
 
 export type BrewStage =
@@ -100,6 +100,96 @@ export function sortBrews(brews: SavedBrew[], today: string): SavedBrew[] {
 
     return aDone ? b.tapDate.localeCompare(a.tapDate) : a.tapDate.localeCompare(b.tapDate);
   });
+}
+
+export type MilestoneKind = "brew" | "cold-crash" | "condition" | "tap" | "ready";
+
+export type Milestone = {
+  /** `YYYY-MM-DD` the milestone falls on. */
+  date: string;
+  kind: MilestoneKind;
+  label: string;
+  brew: SavedBrew;
+};
+
+const MILESTONE_LABEL: Record<Exclude<MilestoneKind, "ready">, string> = {
+  brew: "Start brewing",
+  "cold-crash": "Begin cold crash",
+  condition: "Begin conditioning",
+  tap: "Tap day",
+};
+
+/**
+ * Everything coming up in the next `windowDays` days (today included), soonest
+ * first, from brews that are not tasted yet. A brew that has reached its tap
+ * date without tasting notes appears once, today, as "Ready to pour", so it
+ * does not silently drop off the list.
+ */
+export function getUpcomingMilestones(
+  brews: SavedBrew[],
+  today: string,
+  windowDays = 14,
+): Milestone[] {
+  const last = toDateInputValue(addDays(parseLocalDate(today), windowDays));
+  const found: Milestone[] = [];
+
+  for (const brew of brews) {
+    if (brew.tasting) {
+      continue;
+    }
+
+    if (brew.tapDate < today) {
+      found.push({ date: today, kind: "ready", label: "Ready to pour", brew });
+      continue;
+    }
+
+    const dates: [MilestoneKind, string | null][] = [
+      ["brew", brew.brewDate],
+      ["cold-crash", brew.coldCrashDate],
+      ["condition", brew.conditioningDate],
+      ["tap", brew.tapDate],
+    ];
+
+    for (const [kind, date] of dates) {
+      if (date && date >= today && date <= last && kind !== "ready") {
+        found.push({ date, kind, label: MILESTONE_LABEL[kind], brew });
+      }
+    }
+  }
+
+  return found.sort(
+    (a, b) => a.date.localeCompare(b.date) || a.brew.name.localeCompare(b.brew.name),
+  );
+}
+
+/**
+ * Where "Brew again" sends you. Official packs reopen the BrewPack planner with
+ * the same pack, timing mode and cold crash; custom recipes reopen the custom
+ * planner with every duration filled in. The tap date is never carried over,
+ * because a repeat brew is for a new date.
+ */
+export function brewAgainHref(brew: SavedBrew): string {
+  if (brew.source !== "custom" && brew.packId) {
+    const query = new URLSearchParams({
+      pack: brew.packId,
+      schedule: brew.timingMode ?? "recommended",
+      crash: String(brew.coldCrashDays),
+    });
+
+    return `/?${query.toString()}`;
+  }
+
+  const query = new URLSearchParams({
+    prefill: "repeat",
+    name: brew.name,
+    style: brew.style,
+    abv: brew.abv === null ? "" : String(brew.abv),
+    fermentation: String(brew.brewDays),
+    coldCrash: String(brew.coldCrashDays),
+    conditioning: String(brew.conditioningDays),
+  });
+
+  return `/custom?${query.toString()}`;
 }
 
 /** Rebuild the calendar-export shape from a saved brew. */
