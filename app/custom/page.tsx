@@ -34,6 +34,7 @@ import {
   exclusiveEndDate,
   type CalendarStage,
 } from "@/lib/calendar";
+import RecipeCardPanel from "@/components/RecipeCardPanel";
 import { type Recipe } from "@/lib/storage";
 import { useBrewStore } from "@/lib/useBrewStore";
 import { buildCustomShareHref, parseTapParam, shareOrCopy } from "@/lib/share";
@@ -1193,6 +1194,22 @@ function CustomPlanner() {
               <p aria-live="polite" className="mt-3 text-xs leading-5 text-stage-brew">
                 {downloadMessage}
               </p>
+
+              {result.recipe && (result.recipe.ingredients || result.recipe.method) && (
+                <RecipeCardPanel
+                  data={{
+                    name: result.scheduleName,
+                    style: result.style,
+                    abv: result.abv,
+                    system: result.recipe.system,
+                    ingredients: result.recipe.ingredients,
+                    method: result.recipe.method,
+                    fermentationDays: result.fermentationDays,
+                    coldCrashDays: result.coldCrashDays,
+                    conditioningDays: result.conditioningDays,
+                  }}
+                />
+              )}
             </div>
           </section>
         )}

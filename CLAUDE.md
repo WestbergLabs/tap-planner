@@ -53,6 +53,7 @@ field label and a missing space that lint, build, and the HTML all passed.
   `SaveBrewButton`, `BrewCard`, `UpcomingPanel`, `BackupPanel` — the saved-brews UI.
   `lib/brews.ts` also builds Brew again links (`/?pack=…`, `/custom?prefill=repeat…`);
   `lib/share.ts` builds and parses the share links for the official and custom planners (`&tap=`).
+  `RecipeCardPanel` + `RecipeCard` + `lib/recipeCard.ts` make the shareable recipe card (one SVG, exported as PNG).
 - `lib/schedule.ts` — all date math. `lib/calendar.ts` — `.ics` generation.
   `lib/labels.ts` — style→artwork mapping. `lib/releases.ts` — timeline
   grouping. `lib/brewpackImages.ts` — pack id → captured shot.
