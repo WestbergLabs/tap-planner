@@ -130,7 +130,7 @@ export default function BrewCard({ brew, today }: { brew: SavedBrew; today: stri
               {brew.name}
             </h3>
             <p className="mt-1 text-sm text-muted">
-              {[brew.style, brew.abv === null ? "" : `${brew.abv}% ABV`, brew.pinter ? `Pinter ${brew.pinter}` : ""]
+              {[brew.style, brew.abv === null ? "" : `${brew.abv}% ABV`, brew.pinter ? `Pinter ${brew.pinter}` : "", brew.recipe?.system ?? ""]
                 .filter(Boolean)
                 .join(" · ")}
             </p>
@@ -156,6 +156,30 @@ export default function BrewCard({ brew, today }: { brew: SavedBrew; today: stri
         <DateCell label="Condition" date={brew.conditioningDate} tone="text-stage-condition" />
         <DateCell label="Tap" date={brew.tapDate} tone="text-stage-tap" />
       </div>
+
+      {brew.recipe && (brew.recipe.ingredients || brew.recipe.method) && !editing && (
+        <details className="mt-4 rounded-xl border border-border bg-field px-4 py-3 text-sm leading-6">
+          <summary className="cursor-pointer font-semibold">Recipe</summary>
+
+          {brew.recipe.ingredients && (
+            <div className="mt-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                Ingredients
+              </p>
+              <p className="mt-1 whitespace-pre-wrap">{brew.recipe.ingredients}</p>
+            </div>
+          )}
+
+          {brew.recipe.method && (
+            <div className="mt-3">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                Method and notes
+              </p>
+              <p className="mt-1 whitespace-pre-wrap">{brew.recipe.method}</p>
+            </div>
+          )}
+        </details>
+      )}
 
       {brew.note && !editing && (
         <p className="mt-4 whitespace-pre-wrap rounded-xl bg-field px-4 py-3 text-sm leading-6">
@@ -325,7 +349,9 @@ export default function BrewCard({ brew, today }: { brew: SavedBrew; today: stri
             Calendar file
           </button>
 
-          <Link href={brewAgainHref(brew)} className={secondaryButton}>
+          {/* globals.css gives every <button> `font: inherit`, which beats the size and
+          weight in secondaryButton, so a link needs them forced to look the same. */}
+          <Link href={brewAgainHref(brew)} className={`${secondaryButton} text-base! font-normal!`}>
             Brew again
           </Link>
 

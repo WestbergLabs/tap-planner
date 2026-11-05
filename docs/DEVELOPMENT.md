@@ -271,6 +271,8 @@ The cold-crash stage is omitted from the result whenever cold-crash days are `0`
 
 ## Saved brews
 
+**Recipes.** `brewSchema` has an optional `recipe` object (`recipeSchema` in `lib/storage.ts`). It is optional so diaries and backups made before it existed still parse unchanged, which is why `version` stays 1 and there is no migration; zod strips unknown keys, so an older copy of the app reading a newer backup drops the recipe rather than failing. A *Brew again* link for a recipe brew carries only `system` and `from=<brew id>`; the custom planner reads the recipe back from the saved brews (derived during render, not copied in an effect) so the link stays short. If the brew is not in this browser the recipe fields are simply empty.
+
 `/brews` is the only place anything persists, and only because a person pressed **Save to My brews** under a planner result.
 
 | File | Role |
@@ -467,6 +469,8 @@ Rather than leaving the user to guess a workable date, both non-ideal states off
 Both actions reuse the shared `getOfficialTimingAvailability` dates, keep the BrewPack and cold-crash selection, clear any stale result (so calendar export disappears until the user recalculates), and behave exactly like a manual tap-date change — feasibility re-runs and the input visibly updates. They never auto-calculate the final schedule.
 
 ### Custom planner
+
+The **Starting point** choice is *Start from an official BrewPack* or *Something else (another kit, or your own recipe)*. The second shows a **Brewing system** field (free text, optional) and a **Record the recipe** checkbox that reveals **Ingredients** and **Method and notes** textareas (3000 characters each). On save they travel as `recipe: { system, ingredients, method }` on the brew. Nothing is required, and a BrewPack-based schedule never carries a recipe.
 
 The tap date is moved above the recipe timing fields. Once the three duration fields are valid and a tap date is present, a live `aria-live` advisory reports the calculated start date:
 

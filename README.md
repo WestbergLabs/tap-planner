@@ -17,10 +17,12 @@
 
 ---
 
-Pinter tells you how long a BrewPack takes. It doesn't tell you when to start
-if you want it ready for a particular day. Tap Planner does that arithmetic
-(fermentation, an optional cold crash, and conditioning, counted backward from
-your tap date) and then gets out of the way.
+Tap Planner started as a scheduler for Pinter home brewers. Pinter tells you how
+long a BrewPack takes. It doesn't tell you when to start if you want it ready for
+a particular day. Tap Planner does that arithmetic (fermentation, an optional
+cold crash, and conditioning, counted backward from your tap date) and then gets
+out of the way. It works the same for any other brew you give it timings for,
+such as a Mr. Beer kit or your own recipe.
 
 No accounts, no database, no server storage. Every calculation happens in your
 browser. If you choose to save a brew, it is kept in your own browser on your own
@@ -49,6 +51,12 @@ carbonation, tasting notes, and whether you would brew it again.
 cold crash, conditioning, tap day), and **Brew again** on any saved brew reopens
 the right planner with that pack or recipe filled in. The tap date is left empty,
 because a repeat brew is for a new date.
+
+**Brewing something that isn't a Pinter BrewPack?** On the custom planner choose
+"Something else", add the brewing system (Mr. Beer, bucket and carboy, any kit)
+and, if you like, tick **Record the recipe** to keep the ingredients and method
+with the brew. They are saved with it in My brews, included in your backup file,
+and come back when you press **Brew again**.
 
 **It is stored only in your browser.** There is no account and no sync, and
 nothing is sent anywhere. Because browsers can lose that data (clearing site

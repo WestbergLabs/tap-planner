@@ -45,6 +45,8 @@ export function parseTapParam(value: string | null, today: string): string {
 export type CustomShareChoices = {
   name: string;
   style: string;
+  /** Brewing system (Mr. Beer, bucket, ...). Empty when none was given. */
+  system?: string;
   /** Empty string when no ABV was entered. */
   abv: string;
   fermentationDays: number;
@@ -71,6 +73,10 @@ export function buildCustomShareHref(origin: string, choices: CustomShareChoices
     conditioning: String(choices.conditioningDays),
     tap: choices.tapDate,
   });
+
+  if (choices.system) {
+    query.set("system", choices.system);
+  }
 
   return `${origin}/custom?${query.toString()}`;
 }
