@@ -45,7 +45,9 @@ device and nowhere else (see [My brews](#my-brews)).
 Under any planner's result, **Save to My brews** keeps that schedule on your
 device. `/brews` shows every saved batch with where it stands today (planned,
 brewing, cold crash, conditioning, ready, tasted), and lets you log a rating,
-carbonation, tasting notes, and whether you would brew it again.
+carbonation, tasting notes, and whether you would brew it again. The three
+counts at the top (In progress, Ready to pour, Tasted) are links that jump to
+that group in the list.
 
 **Coming up** lists the next two weeks across every saved brew (start brewing,
 cold crash, conditioning, tap day), and **Brew again** on any saved brew reopens
