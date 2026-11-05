@@ -222,6 +222,18 @@ roasted beans for the stouts.
 Images are stored locally and served from this app. Nothing is hotlinked, and
 nothing is fetched from Pinter at runtime.
 
+## Ideas for later
+
+Not built yet, roughly in the order they would be done:
+
+- Sort and filter on My brews (by tap date, style, or "would brew again").
+- Brew stats: brews logged, average rating, most-brewed style, best-rated recipe.
+- Fermenter and keg tracking, so you can see when a vessel is busy until.
+- A backup offer right after logging a tasting.
+- An optional calendar reminder to log a tasting note a few days after tap day.
+- Import a recipe by pasting its text.
+- Look into the `2x3.5 +bleed` check in `scripts/drive-labels.mjs`, which already fails on main.
+
 ## Staying current
 
 Scheduled workflows check Pinter's public BrewPack listing, validate the
