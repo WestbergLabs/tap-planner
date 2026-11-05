@@ -7,6 +7,7 @@ import Link from "next/link";
 
 import BackupPanel from "@/components/BackupPanel";
 import BrewCard from "@/components/BrewCard";
+import PinterClashPanel from "@/components/PinterClashPanel";
 import PinterNotice from "@/components/PinterNotice";
 import SiteNav from "@/components/SiteNav";
 import UpcomingPanel from "@/components/UpcomingPanel";
@@ -123,6 +124,8 @@ export default function BrewsPage() {
             </div>
           ))}
         </section>
+
+        {loaded && <PinterClashPanel brews={store.brews} />}
 
         {loaded && store.brews.length > 0 && (
           <UpcomingPanel brews={store.brews} today={today} />

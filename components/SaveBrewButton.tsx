@@ -12,6 +12,7 @@ import { useState } from "react";
 
 import Link from "next/link";
 
+import { findClashesWith } from "@/lib/brews";
 import { addBrew, findDuplicate, getBackupStatus, type NewBrew } from "@/lib/storage";
 import { useBrewStore } from "@/lib/useBrewStore";
 
@@ -20,6 +21,12 @@ export default function SaveBrewButton({ brews }: { brews: NewBrew[] }) {
   const [failed, setFailed] = useState(false);
 
   const unsaved = brews.filter((brew) => !findDuplicate(store.brews, brew));
+
+  // Heads-up only: saving is never blocked, because the person may be about to
+  // move the other brew.
+  const clashNames = Array.from(
+    new Set(unsaved.flatMap((brew) => findClashesWith(brew, store.brews).map((other) => other.name))),
+  );
 
   if (loaded && !available) {
     return (
@@ -87,6 +94,13 @@ export default function SaveBrewButton({ brews }: { brews: NewBrew[] }) {
       >
         {label}
       </button>
+
+      {clashNames.length > 0 && (
+        <p role="status" className="mt-3 text-xs leading-5 text-error">
+          Heads up: this uses a Pinter that is already booked by{" "}
+          {clashNames.join(", ")} on overlapping dates. You can still save it.
+        </p>
+      )}
 
       {failed && (
         <p role="alert" className="mt-3 text-xs leading-5 text-error">

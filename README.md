@@ -50,6 +50,10 @@ cold crash, conditioning, tap day), and **Brew again** on any saved brew reopens
 the right planner with that pack or recipe filled in. The tap date is left empty,
 because a repeat brew is for a new date.
 
+**Pinter clash warning:** if two saved brews from the multi-Pinter planner need
+the same Pinter at the same time (brew day to tap day), `/brews` flags the pair,
+and the planner warns before you save the second one. Saving is never blocked.
+
 **It is stored only in your browser.** There is no account and no sync, and
 nothing is sent anywhere. Because browsers can lose that data (clearing site
 data, a new phone, a private window), the app is deliberately loud about

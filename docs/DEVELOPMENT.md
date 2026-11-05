@@ -284,6 +284,8 @@ The cold-crash stage is omitted from the result whenever cold-crash days are `0`
 | `components/BrewCard.tsx`, `BackupPanel.tsx` | The list entries and the export/restore panel on `/brews`. |
 | `components/UpcomingPanel.tsx` | "Coming up" on `/brews`: next 14 days of milestones, derived on every render, never stored. A brew past its tap date with no tasting shows once, today, as Ready to pour. |
 
+| `components/PinterClashPanel.tsx` | Alert on `/brews` listing saved brews that share a Pinter number over overlapping brew-to-tap windows (`findPinterClashes`). Same-day handoffs are not flagged, tasted brews are ignored, brews with no Pinter number are never compared. `SaveBrewButton` uses `findClashesWith` for a non-blocking heads-up. |
+
 **Brew again.** Official packs link to `/?pack=<id>&schedule=<recommended|minimum>&crash=<0-3>`; custom recipes link to `/custom?prefill=repeat&name&style&abv&fermentation&coldCrash&conditioning`. Both planners read these params on load (the home planner validates `pack` against the catalog) and never prefill the tap date.
 
 **Promises to keep** (the README and welcome dialog state them): nothing leaves the browser; saving is opt-in; export stays obvious.
