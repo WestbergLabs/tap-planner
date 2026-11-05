@@ -9,6 +9,7 @@ import BackupPanel from "@/components/BackupPanel";
 import BrewCard from "@/components/BrewCard";
 import PinterNotice from "@/components/PinterNotice";
 import SiteNav from "@/components/SiteNav";
+import UpcomingPanel from "@/components/UpcomingPanel";
 import { getBrewStage, sortBrews } from "@/lib/brews";
 import { getTodayString } from "@/lib/schedule";
 import { useBrewStore } from "@/lib/useBrewStore";
@@ -122,6 +123,10 @@ export default function BrewsPage() {
             </div>
           ))}
         </section>
+
+        {loaded && store.brews.length > 0 && (
+          <UpcomingPanel brews={store.brews} today={today} />
+        )}
 
         <section aria-labelledby="brews-heading" className="mt-6">
           <h2

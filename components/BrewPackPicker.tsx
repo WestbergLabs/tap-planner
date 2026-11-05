@@ -48,7 +48,12 @@ export default function BrewPackPicker({
 }: BrewPackPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const [search, setSearch] = useState("");
+  // Start with the selected pack's name when one is already chosen at mount
+  // (a prefilled link, or Brew again from My brews), so the box is not blank
+  // beside a selected pack.
+  const [search, setSearch] = useState(
+    () => brewPacks.find((pack) => pack.id === selectedId)?.name ?? "",
+  );
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [lastSelectedId, setLastSelectedId] = useState(selectedId);

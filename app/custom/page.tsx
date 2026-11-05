@@ -78,13 +78,22 @@ function CustomPlanner() {
   );
 
   // Default to starting from an official BrewPack.
-  const [startMode, setStartMode] = useState<StartMode>("brewpack");
+  // "Brew again" from My brews arrives with prefill=repeat: the exact name, and
+  // scratch mode when the saved brew was a custom recipe with no pack behind it.
+  const isRepeat = searchParams.get("prefill") === "repeat";
+  const [startMode, setStartMode] = useState<StartMode>(() =>
+    isRepeat && !searchParams.get("id") ? "scratch" : "brewpack",
+  );
   const [selectedBrewPackId, setSelectedBrewPackId] = useState(
     () => searchParams.get("id") ?? "",
   );
 
   const [scheduleName, setScheduleName] = useState(() =>
-    wasPrefilled && prefilledName ? `${prefilledName} - Custom` : "",
+    wasPrefilled && prefilledName
+      ? `${prefilledName} - Custom`
+      : isRepeat
+        ? prefilledName
+        : "",
   );
   const [style, setStyle] = useState(() => searchParams.get("style") ?? "");
   const [abv, setAbv] = useState(() => searchParams.get("abv") ?? "");

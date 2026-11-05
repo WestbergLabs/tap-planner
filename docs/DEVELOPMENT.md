@@ -277,11 +277,14 @@ The cold-crash stage is omitted from the result whenever cold-crash days are `0`
 |---|---|
 | `lib/storage.ts` | The only code that touches `localStorage` (key `tap-planner:v1`). zod schemas, add/update/remove, backup build and parse, restore, and the backup-reminder rule. No React. |
 | `lib/useBrewStore.ts` | `useSyncExternalStore` binding. Server and first client render see an empty store, so hydration matches. |
-| `lib/brews.ts` | Derived facts: a brew's stage and next milestone come from its dates and today and are never stored. Also rebuilds a calendar export from a saved brew. |
+| `lib/brews.ts` | Derived facts: a brew's stage and next milestone come from its dates and today and are never stored. Also rebuilds a calendar export from a saved brew, lists upcoming milestones (`getUpcomingMilestones`), and builds the Brew again link (`brewAgainHref`). |
 | `components/SaveBrewButton.tsx` | Save button used by the three planners. "Already saved" is derived from the store, not local state. |
 | `components/WelcomeDialog.tsx` | Explainer shown once per browser session (flag in `sessionStorage`, so moving between pages does not re-open it) until the person ticks "Don't show this again", which sets `settings.hideWelcome`. The dialog and the backup panel both say where to turn it back on. |
 | `components/BackupReminder.tsx` | Strip on every page (except `/brews`, and never printed) while saved brews have never been exported, or have changed since an export two weeks old. Has a working Back up now button. |
 | `components/BrewCard.tsx`, `BackupPanel.tsx` | The list entries and the export/restore panel on `/brews`. |
+| `components/UpcomingPanel.tsx` | "Coming up" on `/brews`: next 14 days of milestones, derived on every render, never stored. A brew past its tap date with no tasting shows once, today, as Ready to pour. |
+
+**Brew again.** Official packs link to `/?pack=<id>&schedule=<recommended|minimum>&crash=<0-3>`; custom recipes link to `/custom?prefill=repeat&name&style&abv&fermentation&coldCrash&conditioning`. Both planners read these params on load (the home planner validates `pack` against the catalog) and never prefill the tap date.
 
 **Promises to keep** (the README and welcome dialog state them): nothing leaves the browser; saving is opt-in; export stays obvious.
 

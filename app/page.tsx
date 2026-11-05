@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Suspense,
   useEffect,
   useMemo,
   useRef,
@@ -9,6 +10,7 @@ import {
 } from "react";
 
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 
 import BrewPackPicker from "@/components/BrewPackPicker";
 import PackThumb from "@/components/PackThumb";
@@ -53,8 +55,12 @@ type CalculationResult = {
   schedule: ScheduleType;
 };
 
-export default function Home() {
+function HomePlanner() {
   const resultRef = useRef<HTMLElement>(null);
+
+  // "Brew again" from My brews links here with ?pack=<id>&schedule=<mode>&crash=<days>.
+  // Only the beer and timing are prefilled; the tap date is always a new choice.
+  const searchParams = useSearchParams();
 
   const sortedBrewPacks = useMemo(
     () =>
@@ -63,14 +69,24 @@ export default function Home() {
     [],
   );
 
-  const [brewPackId, setBrewPackId] = useState("");
+  const [brewPackId, setBrewPackId] = useState(() => {
+    const requested = searchParams.get("pack");
+
+    return requested && brewPacks.some((pack) => pack.id === requested)
+      ? requested
+      : "";
+  });
   const [tapDate, setTapDate] = useState("");
 
-  const [schedule, setSchedule] =
-    useState<ScheduleType>("recommended");
+  const [schedule, setSchedule] = useState<ScheduleType>(() =>
+    searchParams.get("schedule") === "minimum" ? "minimum" : "recommended",
+  );
 
-  const [coldCrashDays, setColdCrashDays] =
-    useState<ColdCrashDays>(0);
+  const [coldCrashDays, setColdCrashDays] = useState<ColdCrashDays>(() => {
+    const requested = Number(searchParams.get("crash"));
+
+    return requested === 1 || requested === 2 || requested === 3 ? requested : 0;
+  });
 
   const [result, setResult] =
     useState<CalculationResult | null>(null);
@@ -814,5 +830,13 @@ export default function Home() {
         </footer>
       </div>
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <HomePlanner />
+    </Suspense>
   );
 }

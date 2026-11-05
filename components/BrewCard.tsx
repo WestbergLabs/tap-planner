@@ -8,9 +8,12 @@
 
 import { useState, type FormEvent } from "react";
 
+import Link from "next/link";
+
 import PackThumb from "@/components/PackThumb";
 import { downloadSchedule } from "@/lib/calendar";
 import {
+  brewAgainHref,
   getBrewStage,
   nextMilestone,
   STAGE_LABEL,
@@ -321,6 +324,10 @@ export default function BrewCard({ brew, today }: { brew: SavedBrew; today: stri
           >
             Calendar file
           </button>
+
+          <Link href={brewAgainHref(brew)} className={secondaryButton}>
+            Brew again
+          </Link>
 
           {confirmingDelete ? (
             <span className="ml-auto flex items-center gap-3 text-xs">
