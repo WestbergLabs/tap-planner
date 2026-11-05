@@ -27,6 +27,7 @@ Work backward from tap day. Tap Planner turns a target date into a brew schedule
 - [Official planner](#official-planner)
 - [Custom recipe planner](#custom-recipe-planner)
 - [Multi-Pinter planner](#multi-pinter-planner)
+- [Saved brews](#saved-brews)
 - [Release timeline](#release-timeline)
 - [Brew labels](#brew-labels)
 - [Feasibility checks](#feasibility-checks)
@@ -59,7 +60,7 @@ Five pages. The first three share one calculation engine:
 
 `SiteNav` is shared by all five and rendered over each page's hero.
 
-No accounts, no database, nothing stored server-side. Everything lives in the URL and the browser for the length of one calculation.
+No accounts, no database, nothing stored server-side. A calculation lives in the URL and the browser. The one thing that persists is a brew the person explicitly saves, which goes to this browser's `localStorage` only (see [Saved brews](#saved-brews)).
 
 ---
 
@@ -246,7 +247,7 @@ Validation is strict — negative values are rejected, inline messages are tied 
 
 The **Customize timing** action on the official planner passes the selected pack's id, name, style, ABV, brew (interpreted as fermentation) days, cold-crash days, conditioning days, and tap date (if entered) as **URL query parameters only**. The `id` preselects the pack in the picker, and every prefilled field remains fully editable with a notice indicating it was prefilled.
 
-No `localStorage`, `sessionStorage`, `IndexedDB`, cookies, database, or accounts are involved — a refresh on `/custom` simply re-reads the query parameters.
+Prefilling itself uses no `localStorage`, `sessionStorage`, `IndexedDB`, cookies, database, or accounts — a refresh on `/custom` simply re-reads the query parameters. (Saving the finished result is a separate, opt-in action; see [Saved brews](#saved-brews).)
 
 ### Calculation
 
@@ -256,7 +257,7 @@ fermentation days + cold-crash days + conditioning days = total lead time
 
 The cold-crash stage is omitted from the result whenever cold-crash days are `0`.
 
-> **Nothing is stored.** Custom recipe details exist only in the browser for the current calculation and are discarded when the page is left.
+> **Nothing is stored unless the person presses Save to My brews.** Otherwise custom recipe details exist only in the browser for the current calculation and are discarded when the page is left.
 
 ---
 
@@ -264,7 +265,29 @@ The cold-crash stage is omitted from the result whenever cold-crash days are `0`
 
 `app/rotation/page.tsx` (`/rotation`) is the official planner for several Pinters at once. Each Pinter row has a beer (any BrewPack with optional minimum timing and cold crash, *or* a custom recipe via `BeerPicker`) and its own **ready on** date. Rows are independent: each start date is the ready date minus that beer's own lead time (`calculateSchedule` in `lib/schedule`). Empty rows are skipped. A start date before today is flagged as not enough time (advisory, never blocked).
 
-**Add brews to calendar** exports every brew in a single `.ics` via `downloadSchedules` in `lib/calendar.ts`, with events titled `{name} (Pinter N): {stage}`. Nothing is stored.
+**Add brews to calendar** exports every brew in a single `.ics` via `downloadSchedules` in `lib/calendar.ts`, with events titled `{name} (Pinter N): {stage}`. The same page can save every brew to My brews in one press.
+
+---
+
+## Saved brews
+
+`/brews` is the only place anything persists, and only because a person pressed **Save to My brews** under a planner result.
+
+| File | Role |
+|---|---|
+| `lib/storage.ts` | The only code that touches `localStorage` (key `tap-planner:v1`). zod schemas, add/update/remove, backup build and parse, restore, and the backup-reminder rule. No React. |
+| `lib/useBrewStore.ts` | `useSyncExternalStore` binding. Server and first client render see an empty store, so hydration matches. |
+| `lib/brews.ts` | Derived facts: a brew's stage and next milestone come from its dates and today and are never stored. Also rebuilds a calendar export from a saved brew. |
+| `components/SaveBrewButton.tsx` | Save button used by the three planners. "Already saved" is derived from the store, not local state. |
+| `components/WelcomeDialog.tsx` | One-time first-visit explainer (native `<dialog>`). Re-enable from the backup panel. |
+| `components/BackupReminder.tsx` | Strip on every page (except `/brews`, and never printed) while saved brews have never been exported, or have changed since an export two weeks old. Has a working Back up now button. |
+| `components/BrewCard.tsx`, `BackupPanel.tsx` | The list entries and the export/restore panel on `/brews`. |
+
+**Promises to keep** (the README and welcome dialog state them): nothing leaves the browser; saving is opt-in; export stays obvious.
+
+**Failure handling.** Storage can be blocked (private mode) or full, so every write returns a boolean and the UI says so instead of pretending. Unreadable stored data is copied to `tap-planner:v1:unreadable` before any write could replace it. A restored file is validated with zod and rejected whole if invalid; restore offers *add* (file wins on matching ids) or *replace*.
+
+**Backup file.** `tap-planner-backup-YYYY-MM-DD.json`, `{ format: "tap-planner-backup", version: 1, exportedAt, brews: [...] }`. It carries brews only, not settings. Changing the brew schema means bumping `version` and migrating in `parseBackup` and on read.
 
 ---
 

@@ -22,10 +22,11 @@ if you want it ready for a particular day. Tap Planner does that arithmetic
 (fermentation, an optional cold crash, and conditioning, counted backward from
 your tap date) and then gets out of the way.
 
-No accounts, no database, nothing stored. Every calculation happens in your
-browser.
+No accounts, no database, no server storage. Every calculation happens in your
+browser. If you choose to save a brew, it is kept in your own browser on your own
+device and nowhere else (see [My brews](#my-brews)).
 
-## Six ways to use it
+## Seven ways to use it
 
 | | Page | Use it when |
 |---|---|---|
@@ -35,6 +36,28 @@ browser.
 | 📅 | **[Release timeline](https://tap-planner.vercel.app/releases)** at `/releases` | You want to know when a pack appeared, or when a seasonal might return |
 | 🏷️ | **[Brew labels](https://tap-planner.vercel.app/labels)** at `/labels` | You want to know what's actually in the fridge |
 | 📖 | **[Brewing schedule](https://tap-planner.vercel.app/schedule)** at `/schedule` | You want every pack's timing at a glance, or a PDF to hand to someone |
+| 🗂️ | **[My brews](https://tap-planner.vercel.app/brews)** at `/brews` | You want your saved schedules in one place, with tasting notes and a backup |
+
+## My brews
+
+Under any planner's result, **Save to My brews** keeps that schedule on your
+device. `/brews` shows every saved batch with where it stands today (planned,
+brewing, cold crash, conditioning, ready, tasted), and lets you log a rating,
+carbonation, tasting notes, and whether you would brew it again.
+
+**It is stored only in your browser.** There is no account and no sync, and
+nothing is sent anywhere. Because browsers can lose that data (clearing site
+data, a new phone, a private window), the app is deliberately loud about
+backups:
+
+- A one-time welcome pop-up on your first visit explains saving and backing up.
+  It stays off afterwards unless you turn it back on from `/brews`.
+- **Back up my brews** downloads a small JSON file. **Restore from backup**
+  loads one, either adding to what you have or replacing it. A bad or
+  unrecognised file is rejected without touching your saved brews.
+- A reminder strip appears on every page while you have saved brews that were
+  never backed up, with a **Back up now** button, so exporting is one tap.
+- Brews also export as a calendar file.
 
 ## Brewing schedule
 

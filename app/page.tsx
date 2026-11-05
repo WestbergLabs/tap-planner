@@ -12,6 +12,7 @@ import Image from "next/image";
 
 import BrewPackPicker from "@/components/BrewPackPicker";
 import PackThumb from "@/components/PackThumb";
+import SaveBrewButton from "@/components/SaveBrewButton";
 import SiteNav from "@/components/SiteNav";
 import PinterNotice from "@/components/PinterNotice";
 import { brewPacks } from "@/data/brewpacks.generated";
@@ -37,6 +38,7 @@ type ScheduleType = "recommended" | "minimum";
 type ColdCrashDays = 0 | 1 | 2 | 3;
 
 type CalculationResult = {
+  packId: string;
   packName: string;
   packStyle: string;
   abv: number;
@@ -310,6 +312,7 @@ export default function Home() {
     setError("");
 
     setResult({
+      packId: selectedPack.id,
       packName: selectedPack.name,
       packStyle: selectedPack.style,
       abv: selectedPack.abv,
@@ -754,7 +757,29 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="border-t border-border p-5 sm:p-6">
+            <div className="space-y-4 border-t border-border p-5 sm:p-6">
+              <SaveBrewButton
+                brews={[
+                  {
+                    name: result.packName,
+                    style: result.packStyle,
+                    abv: result.abv,
+                    source: "pack",
+                    packId: result.packId,
+                    timingMode: result.schedule,
+                    brewDate: toDateInputValue(result.brewDate),
+                    coldCrashDate: result.coldCrashDate
+                      ? toDateInputValue(result.coldCrashDate)
+                      : null,
+                    conditioningDate: toDateInputValue(result.conditioningDate),
+                    tapDate: toDateInputValue(result.tapDate),
+                    brewDays: result.brewDays,
+                    coldCrashDays: result.coldCrashDays,
+                    conditioningDays: result.conditioningDays,
+                  },
+                ]}
+              />
+
               <button
                 type="button"
                 onClick={handleExportCalendar}

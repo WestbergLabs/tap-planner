@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 import BackToTop from "@/components/BackToTop";
+import BackupReminder from "@/components/BackupReminder";
+import WelcomeDialog from "@/components/WelcomeDialog";
 
 const siteUrl = "https://tap-planner.vercel.app";
 
@@ -50,8 +52,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <BackupReminder />
         {children}
         <BackToTop />
+        <WelcomeDialog />
       </body>
     </html>
   );
