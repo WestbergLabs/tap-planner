@@ -8,7 +8,13 @@ import { useRef, useState } from "react";
 
 import RecipeCard from "@/components/RecipeCard";
 import { cardPngBlob, triggerDownload } from "@/lib/labelImage";
-import { CARD_H, CARD_W, layoutRecipeCard, type RecipeCardData } from "@/lib/recipeCard";
+import {
+  CARD_H,
+  CARD_W,
+  layoutRecipeCard,
+  recipeToText,
+  type RecipeCardData,
+} from "@/lib/recipeCard";
 import { safeFileName } from "@/lib/calendar";
 
 const buttonClass =
@@ -52,34 +58,54 @@ export default function RecipeCardPanel({ data }: { data: RecipeCardData }) {
     }
   }
 
+  // One button for "send this somewhere". On a phone the share sheet lists
+  // Facebook, Messages, WhatsApp and so on, and takes the image together with
+  // the recipe text. Where files cannot be shared it sends the text alone, and
+  // where nothing can be shared it copies the text.
   async function handleShare() {
     setBusy(true);
     setMessage("");
 
+    const title = `${data.name} recipe`;
+    const text = recipeToText(data);
+
     try {
       const blob = await makePng();
 
-      if (!blob) {
+      if (blob && typeof navigator.canShare === "function") {
+        const file = new File([blob], fileName, { type: "image/png" });
+
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title, text });
+          return;
+        }
+      }
+
+      if (typeof navigator.share === "function") {
+        await navigator.share({ title, text });
         return;
       }
 
-      const file = new File([blob], fileName, { type: "image/png" });
-
-      // The phone share sheet can take the image itself; elsewhere fall back to
-      // a download.
-      if (typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: `${data.name} recipe` });
-      } else {
-        triggerDownload(blob, fileName);
-        setMessage("This browser cannot share an image directly, so it was saved instead.");
-      }
+      await navigator.clipboard.writeText(text);
+      setMessage("Recipe copied. Paste it into a post or message, or use Download image.");
     } catch (error) {
       // Closing the share sheet is not a failure.
       if (!(error instanceof DOMException && error.name === "AbortError")) {
-        setMessage("Could not make the image in this browser.");
+        setMessage("Could not share from this browser. Try Copy text or Download image.");
       }
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleCopy() {
+    setMessage("");
+
+    try {
+      await navigator.clipboard.writeText(recipeToText(data));
+      setMessage("Recipe copied. Paste it anywhere.");
+    } catch {
+      setMessage("Could not copy from this browser.");
     }
   }
 
@@ -112,8 +138,16 @@ export default function RecipeCardPanel({ data }: { data: RecipeCardData }) {
           )}
 
           <div className="flex flex-wrap gap-3">
-            <button type="button" onClick={handleShare} disabled={busy} className={buttonClass}>
-              Share image
+            <button
+              type="button"
+              onClick={handleShare}
+              disabled={busy}
+              className="rounded-xl bg-accent px-5 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white transition hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Share
+            </button>
+            <button type="button" onClick={handleCopy} className={buttonClass}>
+              Copy text
             </button>
             <button type="button" onClick={handleDownload} disabled={busy} className={buttonClass}>
               Download image

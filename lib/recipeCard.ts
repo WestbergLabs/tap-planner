@@ -327,3 +327,40 @@ export function layoutRecipeCard(data: RecipeCardData): RecipeCardLayout {
 /** Where the footer begins, so the component and the test agree. */
 export const RECIPE_FOOTER_TOP = FOOTER_TOP;
 export const RECIPE_MARGIN = MARGIN;
+
+/**
+ * The recipe as plain text, for pasting into a post, message or note. It is
+ * the same content as the card, but copyable and editable.
+ */
+export function recipeToText(data: RecipeCardData): string {
+  const meta = [
+    data.style.trim(),
+    data.abv.trim() ? `${data.abv.trim()}% ABV` : "",
+    data.system.trim(),
+  ].filter(Boolean);
+
+  const timings = [
+    `Ferment ${pluralDays(data.fermentationDays)}`,
+    data.coldCrashDays > 0 ? `Cold crash ${pluralDays(data.coldCrashDays)}` : "",
+    `Condition ${pluralDays(data.conditioningDays)}`,
+  ].filter(Boolean);
+
+  const total = data.fermentationDays + data.coldCrashDays + data.conditioningDays;
+
+  const blocks = [
+    [data.name.trim(), meta.join(" \u00B7 ")].filter(Boolean).join("\n"),
+    `${timings.join(", ")} (${pluralDays(total)} in all)`,
+  ];
+
+  if (data.ingredients.trim()) {
+    blocks.push(`Ingredients\n${data.ingredients.trim()}`);
+  }
+
+  if (data.method.trim()) {
+    blocks.push(`Method and notes\n${data.method.trim()}`);
+  }
+
+  blocks.push("Made with Tap Planner \u00B7 tap-planner.vercel.app");
+
+  return blocks.join("\n\n");
+}
