@@ -205,11 +205,46 @@ function buildDescription(
   return lines.map(escapeICSText).join("\\n");
 }
 
+// All-day events start at 00:00 local time, so a reminder is an offset from
+// midnight: -PT6H is 6 pm the evening before, PT8H is 8 am that morning.
+const EVENING_BEFORE = "-PT6H";
+const MORNING_OF = "PT8H";
+
+/**
+ * The reminder for a stage, or null. Only the two moments you must act on get
+ * one: the first stage (start the brew; reminded the evening before so you can
+ * get set up) and the last (tap day; reminded that morning). Middle stages are
+ * left alone so a calendar is not full of alerts.
+ */
+function reminderLines(
+  schedule: CalendarSchedule,
+  stageName: string,
+  index: number,
+): string[] {
+  const last = schedule.stages.length - 1;
+  const isFirst = index === 0 && last > 0;
+  const isLast = index === last;
+
+  if (!isFirst && !isLast) {
+    return [];
+  }
+
+  const when = isFirst ? "Tomorrow" : "Today";
+
+  return [
+    "BEGIN:VALARM",
+    "ACTION:DISPLAY",
+    `DESCRIPTION:${escapeICSText(`${when}: ${schedule.name} (${stageName})`)}`,
+    `TRIGGER:${isFirst ? EVENING_BEFORE : MORNING_OF}`,
+    "END:VALARM",
+  ];
+}
+
 // The VEVENT lines for a single schedule's stages, sharing one DTSTAMP.
 function scheduleEventLines(schedule: CalendarSchedule, dtStamp: string): string[] {
   const lines: string[] = [];
 
-  for (const stage of schedule.stages) {
+  for (const [index, stage] of schedule.stages.entries()) {
     const duration = daysBetween(stage.start, stage.end);
 
     lines.push(
@@ -220,6 +255,7 @@ function scheduleEventLines(schedule: CalendarSchedule, dtStamp: string): string
       `DTEND;VALUE=DATE:${formatICSDate(stage.end)}`,
       `SUMMARY:${escapeICSText(`${schedule.name}: ${stage.name}`)}`,
       `DESCRIPTION:${buildDescription(schedule, stage.name, duration)}`,
+      ...reminderLines(schedule, stage.name, index),
       "END:VEVENT",
     );
   }

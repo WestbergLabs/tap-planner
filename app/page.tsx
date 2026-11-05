@@ -35,6 +35,7 @@ import {
   exclusiveEndDate,
   type CalendarStage,
 } from "@/lib/calendar";
+import { buildShareHref, parseTapParam } from "@/lib/share";
 
 type ScheduleType = "recommended" | "minimum";
 type ColdCrashDays = 0 | 1 | 2 | 3;
@@ -58,8 +59,9 @@ type CalculationResult = {
 function HomePlanner() {
   const resultRef = useRef<HTMLElement>(null);
 
-  // "Brew again" from My brews links here with ?pack=<id>&schedule=<mode>&crash=<days>.
-  // Only the beer and timing are prefilled; the tap date is always a new choice.
+  // "Brew again" from My brews links here with ?pack=<id>&schedule=<mode>&crash=<days>
+  // and no tap date (a repeat brew is for a new date). A share link also carries
+  // &tap=YYYY-MM-DD. Either way nothing is calculated until Calculate is pressed.
   const searchParams = useSearchParams();
 
   const sortedBrewPacks = useMemo(
@@ -76,7 +78,9 @@ function HomePlanner() {
       ? requested
       : "";
   });
-  const [tapDate, setTapDate] = useState("");
+  const [tapDate, setTapDate] = useState(() =>
+    parseTapParam(searchParams.get("tap"), getTodayString()),
+  );
 
   const [schedule, setSchedule] = useState<ScheduleType>(() =>
     searchParams.get("schedule") === "minimum" ? "minimum" : "recommended",
@@ -207,6 +211,37 @@ function HomePlanner() {
     setDownloadMessage(
       "Calendar file downloaded. Open it to add the schedule to your calendar.",
     );
+  }
+
+  async function handleShare() {
+    if (!result) {
+      return;
+    }
+
+    const url = buildShareHref(window.location.origin, {
+      packId: result.packId,
+      schedule: result.schedule,
+      coldCrashDays: result.coldCrashDays,
+      tapDate: toDateInputValue(result.tapDate),
+    });
+
+    // The phone share sheet where there is one, otherwise the clipboard.
+    try {
+      if (typeof navigator.share === "function") {
+        await navigator.share({ title: `${result.packName} schedule`, url });
+        return;
+      }
+
+      await navigator.clipboard.writeText(url);
+      setDownloadMessage("Link copied. Anyone who opens it gets this beer and tap date filled in.");
+    } catch (shareError) {
+      // Closing the share sheet is not a failure.
+      if (shareError instanceof DOMException && shareError.name === "AbortError") {
+        return;
+      }
+
+      setDownloadMessage(`Could not copy automatically. Copy this link: ${url}`);
+    }
   }
 
   function handleSelectBrewPack(pack: (typeof sortedBrewPacks)[number]) {
@@ -802,6 +837,14 @@ function HomePlanner() {
                 className="w-full rounded-xl border border-border-strong bg-field px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface sm:w-auto"
               >
                 Add schedule to calendar
+              </button>
+
+              <button
+                type="button"
+                onClick={handleShare}
+                className="w-full rounded-xl border border-border-strong bg-field px-4 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-foreground transition hover:border-accent hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface sm:ml-3 sm:w-auto"
+              >
+                Share this schedule
               </button>
 
               <p className="mt-3 text-xs leading-5 text-muted">
