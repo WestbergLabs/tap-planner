@@ -167,7 +167,23 @@ function pluralDays(count: number): string {
   return `${count} day${count === 1 ? "" : "s"}`;
 }
 
+/** Height kept free above the footer for the "shortened" note. */
+const CUT_NOTE_ROOM = 26;
+
+/** Baseline of the "shortened" note, just above the footer rule. */
+export const RECIPE_CUT_NOTE_Y = FOOTER_TOP - 14;
+
+export const RECIPE_CUT_NOTE = "Shortened to fit. The full recipe is in the text version.";
+
 export function layoutRecipeCard(data: RecipeCardData): RecipeCardLayout {
+  const first = layoutWithReserve(data, 0);
+
+  // When the recipe has to be cut, win back a line of room for a note saying
+  // so, so someone who only sees the picture knows there is more.
+  return first.truncated ? layoutWithReserve(data, CUT_NOTE_ROOM) : first;
+}
+
+function layoutWithReserve(data: RecipeCardData, reserve: number): RecipeCardLayout {
   let y = 92;
 
   // Title: the biggest size that fits two lines, otherwise the smallest size
@@ -241,7 +257,7 @@ export function layoutRecipeCard(data: RecipeCardData): RecipeCardLayout {
     parts.push({ heading: "METHOD AND NOTES", text: data.method.trim() });
   }
 
-  const available = FOOTER_TOP - 18 - y;
+  const available = FOOTER_TOP - 18 - y - reserve;
   const HEADING_BLOCK = 40;
   const GAP = 20;
 

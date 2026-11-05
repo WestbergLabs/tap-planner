@@ -1,6 +1,8 @@
 import {
   CARD_H,
   CARD_W,
+  RECIPE_CUT_NOTE,
+  RECIPE_CUT_NOTE_Y,
   RECIPE_FOOTER_TOP,
   RECIPE_MARGIN,
   layoutRecipeCard,
@@ -103,6 +105,18 @@ export default function RecipeCard({ data }: { data: RecipeCardData }) {
           ))}
         </g>
       ))}
+
+      {layout.truncated && (
+        <text
+          x={RECIPE_MARGIN}
+          y={RECIPE_CUT_NOTE_Y}
+          fontSize="13"
+          fontStyle="italic"
+          fill="#6f6a61"
+        >
+          {RECIPE_CUT_NOTE}
+        </text>
+      )}
 
       <line
         x1={RECIPE_MARGIN}
