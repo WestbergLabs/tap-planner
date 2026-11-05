@@ -11,6 +11,7 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 
 import PackThumb from "@/components/PackThumb";
+import RecipeCardPanel from "@/components/RecipeCardPanel";
 import { downloadSchedule } from "@/lib/calendar";
 import {
   brewAgainHref,
@@ -179,6 +180,22 @@ export default function BrewCard({ brew, today }: { brew: SavedBrew; today: stri
             </div>
           )}
         </details>
+      )}
+
+      {brew.recipe && (brew.recipe.ingredients || brew.recipe.method) && !editing && (
+        <RecipeCardPanel
+          data={{
+            name: brew.name,
+            style: brew.style,
+            abv: brew.abv === null ? "" : String(brew.abv),
+            system: brew.recipe.system,
+            ingredients: brew.recipe.ingredients,
+            method: brew.recipe.method,
+            fermentationDays: brew.brewDays,
+            coldCrashDays: brew.coldCrashDays,
+            conditioningDays: brew.conditioningDays,
+          }}
+        />
       )}
 
       {brew.note && !editing && (

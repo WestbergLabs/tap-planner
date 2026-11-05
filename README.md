@@ -58,6 +58,14 @@ and, if you like, tick **Record the recipe** to keep the ingredients and method
 with the brew. They are saved with it in My brews, included in your backup file,
 and come back when you press **Brew again**.
 
+**Recipe card:** a saved recipe has a **Recipe card** button (also shown right
+under a freshly built custom schedule) that draws a one-page card with the name,
+style, ABV, system, timings, ingredients and method. **Share** opens your
+phone's share sheet (Facebook, Messages, WhatsApp and so on) with the image and
+the recipe text together; on a browser with no share sheet it copies the text.
+**Copy text** and **Download image** (a PNG) are there too. Very long recipes are
+cut to fit the card, and the card says so; the full text stays in My brews.
+
 **It is stored only in your browser.** There is no account and no sync, and
 nothing is sent anywhere. Because browsers can lose that data (clearing site
 data, a new phone, a private window), the app is deliberately loud about

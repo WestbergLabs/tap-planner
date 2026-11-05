@@ -65,7 +65,7 @@ async function buildStandaloneSvg(
 }
 
 /** Trigger a normal browser download of a blob. */
-function triggerDownload(blob: Blob, fileName: string) {
+export function triggerDownload(blob: Blob, fileName: string) {
   const url = URL.createObjectURL(blob);
 
   const link = document.createElement("a");
@@ -89,14 +89,16 @@ export async function downloadLabelSvg(card: SVGSVGElement, fileName: string) {
   );
 }
 
-export async function downloadLabelPng(
+/**
+ * Rasterise a rendered card SVG to a PNG at the given pixel size. Shared by the
+ * label cards and the recipe card.
+ */
+export async function cardPngBlob(
   card: SVGSVGElement,
-  fileName: string,
-  size: CardSize = CARD_SIZES[0],
-  bleedIn = 0,
-) {
-  const { width: PNG_WIDTH, height: PNG_HEIGHT } = cardPixels(size, bleedIn);
-  const markup = await buildStandaloneSvg(card, PNG_WIDTH, PNG_HEIGHT);
+  width: number,
+  height: number,
+): Promise<Blob> {
+  const markup = await buildStandaloneSvg(card, width, height);
   const source = URL.createObjectURL(
     new Blob([markup], { type: "image/svg+xml;charset=utf-8" }),
   );
@@ -111,8 +113,8 @@ export async function downloadLabelPng(
     });
 
     const canvas = document.createElement("canvas");
-    canvas.width = PNG_WIDTH;
-    canvas.height = PNG_HEIGHT;
+    canvas.width = width;
+    canvas.height = height;
 
     const context = canvas.getContext("2d");
 
@@ -120,7 +122,7 @@ export async function downloadLabelPng(
       throw new Error("This browser has no 2D canvas");
     }
 
-    context.drawImage(image, 0, 0, PNG_WIDTH, PNG_HEIGHT);
+    context.drawImage(image, 0, 0, width, height);
 
     const blob = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, "image/png"),
@@ -130,8 +132,19 @@ export async function downloadLabelPng(
       throw new Error("The image could not be encoded");
     }
 
-    triggerDownload(blob, fileName);
+    return blob;
   } finally {
     URL.revokeObjectURL(source);
   }
+}
+
+export async function downloadLabelPng(
+  card: SVGSVGElement,
+  fileName: string,
+  size: CardSize = CARD_SIZES[0],
+  bleedIn = 0,
+) {
+  const { width, height } = cardPixels(size, bleedIn);
+
+  triggerDownload(await cardPngBlob(card, width, height), fileName);
 }
