@@ -45,8 +45,12 @@ field label and a missing space that lint, build, and the HTML all passed.
 
 ## Layout
 
-- `app/` — five pages, all `"use client"`: `/` (official planner), `/custom`,
-  `/rotation`, `/releases`, `/labels`.
+- `app/` — pages, all `"use client"`: `/` (official planner), `/custom`,
+  `/rotation`, `/releases`, `/labels`, `/schedule`, `/brews` (saved brews and backup).
+- `lib/storage.ts` — the only code that touches `localStorage`; `lib/useBrewStore.ts`
+  subscribes components; `lib/brews.ts` derives a saved brew's stage from its dates.
+- `components/WelcomeDialog`, `BackupReminder` (both mounted in `app/layout.tsx`),
+  `SaveBrewButton`, `BrewCard`, `BackupPanel` — the saved-brews UI.
 - `lib/schedule.ts` — all date math. `lib/calendar.ts` — `.ics` generation.
   `lib/labels.ts` — style→artwork mapping. `lib/releases.ts` — timeline
   grouping. `lib/brewpackImages.ts` — pack id → captured shot.
@@ -71,9 +75,22 @@ a legal notice that drifts between pages is worse than none.
 `border-border`, `text-accent`, and the `stage-*` families. Defined once in
 `app/globals.css` under `:root` and re-exported through `@theme inline`.
 
-**Everything is client-side and nothing persists.** No database, no accounts, no
-analytics. Schedules, calendar files, and labels are all generated in the browser.
-Keep it that way — the README makes this promise to users explicitly.
+**Everything is client-side, and the only thing that persists is what a person
+chooses to save.** No server storage, no accounts, no analytics. Schedules,
+calendar files, and labels are generated in the browser. The one exception is
+*My brews* (`/brews`): saved brews live in this browser's `localStorage` under
+`tap-planner:v1`, through `lib/storage.ts` only. Keep these promises, because the
+README and the welcome dialog make them to users:
+
+- Nothing is ever sent anywhere. No sync, no cloud, no tracking.
+- Storage is opt-in: a planner never saves unless the person presses Save.
+- Because browser storage is fragile, export must stay obvious. Do not remove the
+  welcome dialog, the backup reminder strip, or the Back up button without
+  replacing them with something as clear. The welcome dialog shows each visit
+  until the person opts out, and must always say where to turn it back on.
+- Anything read back (`localStorage`, a restored file) is untrusted and goes
+  through the zod schemas in `lib/storage.ts`. A schema change needs a version
+  bump and a migration, or old saved diaries stop loading.
 
 ## Gotchas
 

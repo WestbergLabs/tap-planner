@@ -14,6 +14,7 @@ import { useSearchParams } from "next/navigation";
 
 import BrewPackPicker from "@/components/BrewPackPicker";
 import PackThumb from "@/components/PackThumb";
+import SaveBrewButton from "@/components/SaveBrewButton";
 import SiteNav from "@/components/SiteNav";
 import PinterNotice from "@/components/PinterNotice";
 import { brewPacks, type BrewPack } from "@/data/brewpacks.generated";
@@ -959,6 +960,28 @@ function CustomPlanner() {
                 </div>
               )}
 
+              <div className="mb-4">
+                <SaveBrewButton
+                  brews={[
+                    {
+                      name: result.scheduleName,
+                      style: result.style,
+                      abv: result.abv === "" ? null : Number(result.abv),
+                      source: "custom",
+                      brewDate: toDateInputValue(result.fermentationDate),
+                      coldCrashDate: result.coldCrashDate
+                        ? toDateInputValue(result.coldCrashDate)
+                        : null,
+                      conditioningDate: toDateInputValue(result.conditioningDate),
+                      tapDate: toDateInputValue(result.tapDate),
+                      brewDays: result.fermentationDays,
+                      coldCrashDays: result.coldCrashDays,
+                      conditioningDays: result.conditioningDays,
+                    },
+                  ]}
+                />
+              </div>
+
               <button
                 type="button"
                 onClick={handleExportCalendar}
@@ -982,7 +1005,8 @@ function CustomPlanner() {
         <footer className="mt-6 space-y-2 text-center text-xs leading-5 text-muted">
           <p>
             Planning only. Custom schedules are calculated in your browser and
-            are not stored.
+            are stored only if you choose Save to My brews, and then only on
+            this device.
           </p>
 
           <PinterNotice />

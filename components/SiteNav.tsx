@@ -47,7 +47,7 @@ const LINKS: NavLink[] = [
   },
   {
     href: "/rotation",
-    short: "Multi-Pinter",
+    short: "Pinters",
     label: "Multi-Pinter planner",
     description: "Plan several Pinters at once",
   },
@@ -68,6 +68,12 @@ const LINKS: NavLink[] = [
     short: "Labels",
     label: "Brew labels",
     description: "Print a fridge card",
+  },
+  {
+    href: "/brews",
+    short: "Saved",
+    label: "My brews",
+    description: "Saved schedules, tasting notes, backup",
   },
 ];
 
@@ -125,7 +131,7 @@ export default function SiteNav({
           `sm` the bar would wrap, so the menu takes over. */}
       <nav
         aria-label="Site"
-        className="hidden rounded-full bg-black/35 p-1 backdrop-blur sm:flex sm:items-center sm:gap-0.5"
+        className="hidden max-w-full flex-wrap justify-center rounded-3xl bg-black/35 p-1 backdrop-blur sm:flex sm:items-center sm:gap-0.5"
       >
         {LINKS.map((link) => {
           const isCurrent = link.href === current;
@@ -136,7 +142,7 @@ export default function SiteNav({
               href={link.href}
               aria-current={isCurrent ? "page" : undefined}
               title={link.description}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black/40 ${
+              className={`whitespace-nowrap rounded-full px-2 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] transition focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black/40 ${
                 isCurrent
                   ? "bg-surface text-foreground"
                   : "text-white/90 hover:bg-black/45 hover:text-white"
@@ -153,7 +159,7 @@ export default function SiteNav({
           href={ISSUES_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white/90 transition hover:bg-black/45 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black/40"
+          className="whitespace-nowrap rounded-full px-2 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-white/90 transition hover:bg-black/45 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-black/40"
         >
           Help
           <span aria-hidden="true"> &#8599;</span>

@@ -12,6 +12,7 @@ import Image from "next/image";
 
 import BeerPicker, { CUSTOM_BEER } from "@/components/BeerPicker";
 import PackThumb from "@/components/PackThumb";
+import SaveBrewButton from "@/components/SaveBrewButton";
 import SiteNav from "@/components/SiteNav";
 import PinterNotice from "@/components/PinterNotice";
 import { brewPacks } from "@/data/brewpacks.generated";
@@ -71,6 +72,10 @@ type Batch = {
   abv: string;
   timingMode?: "Recommended" | "Minimum";
   firstStageLabel: "Start brewing" | "Start fermentation";
+  packId?: string;
+  brewDays: number;
+  coldCrashDays: number;
+  conditioningDays: number;
   totalLeadTime: number;
   startDate: Date;
   coldCrashDate: Date | null;
@@ -84,6 +89,7 @@ type ResolvedSlot = {
   abv: string;
   timingMode?: "Recommended" | "Minimum";
   firstStageLabel: "Start brewing" | "Start fermentation";
+  packId?: string;
   brewDays: number;
   coldCrashDays: number;
   conditioningDays: number;
@@ -190,6 +196,7 @@ export default function RotationPage() {
         abv: String(pack.abv),
         timingMode: slot.useMinimum ? "Minimum" : "Recommended",
         firstStageLabel: "Start brewing",
+        packId: pack.id,
         brewDays: slot.useMinimum ? pack.minimumBrewDays : pack.recommendedBrewDays,
         coldCrashDays: Number(slot.coldCrashDays) || 0,
         conditioningDays: slot.useMinimum
@@ -267,6 +274,10 @@ export default function RotationPage() {
         abv: item.abv,
         timingMode: item.timingMode,
         firstStageLabel: item.firstStageLabel,
+        packId: item.packId,
+        brewDays: item.brewDays,
+        coldCrashDays: item.coldCrashDays,
+        conditioningDays: item.conditioningDays,
         totalLeadTime: stages.totalLeadTime,
         startDate: stages.fermentationDate,
         coldCrashDate: stages.coldCrashDate,
@@ -717,7 +728,33 @@ export default function RotationPage() {
               </table>
             </div>
 
-            <div className="border-t border-border p-5 sm:p-6">
+            <div className="space-y-4 border-t border-border p-5 sm:p-6">
+              <SaveBrewButton
+                brews={batches.map((batch) => ({
+                  name: batch.name,
+                  style: batch.style,
+                  abv: batch.abv === "" ? null : Number(batch.abv),
+                  source: "rotation" as const,
+                  packId: batch.packId,
+                  pinter: batch.index,
+                  timingMode:
+                    batch.timingMode === undefined
+                      ? undefined
+                      : batch.timingMode === "Recommended"
+                        ? ("recommended" as const)
+                        : ("minimum" as const),
+                  brewDate: toDateInputValue(batch.startDate),
+                  coldCrashDate: batch.coldCrashDate
+                    ? toDateInputValue(batch.coldCrashDate)
+                    : null,
+                  conditioningDate: toDateInputValue(batch.conditioningDate),
+                  tapDate: toDateInputValue(batch.readyDate),
+                  brewDays: batch.brewDays,
+                  coldCrashDays: batch.coldCrashDays,
+                  conditioningDays: batch.conditioningDays,
+                }))}
+              />
+
               <button
                 type="button"
                 onClick={handleExportCalendar}
@@ -738,8 +775,9 @@ export default function RotationPage() {
 
         <footer className="mt-6 space-y-2 text-center text-xs leading-5 text-muted">
           <p>
-            Planning only. Everything is calculated in your browser and nothing
-            is stored.
+            Planning only. Everything is calculated in your browser. Nothing is
+            stored unless you choose Save to My brews, and then only on this
+            device.
           </p>
 
           <PinterNotice />
