@@ -12,7 +12,24 @@ import SiteNav from "@/components/SiteNav";
 import UpcomingPanel from "@/components/UpcomingPanel";
 import { getBrewStage, sortBrews } from "@/lib/brews";
 import { getTodayString } from "@/lib/schedule";
+import type { SavedBrew } from "@/lib/storage";
 import { useBrewStore } from "@/lib/useBrewStore";
+
+type GroupKey = "inProgress" | "ready" | "tasted";
+
+const GROUPS: { key: GroupKey; id: string; label: string; tone: string }[] = [
+  { key: "inProgress", id: "in-progress", label: "In progress", tone: "text-stage-brew" },
+  { key: "ready", id: "ready-to-pour", label: "Ready to pour", tone: "text-stage-tap" },
+  { key: "tasted", id: "tasted", label: "Tasted", tone: "text-accent" },
+];
+
+function groupOf(brew: SavedBrew, today: string): GroupKey {
+  const stage = getBrewStage(brew, today);
+
+  if (stage === "tasted") return "tasted";
+  if (stage === "ready") return "ready";
+  return "inProgress";
+}
 
 export default function BrewsPage() {
   const { loaded, available, store } = useBrewStore();
@@ -105,23 +122,43 @@ export default function BrewsPage() {
         )}
 
         <section aria-label="Summary" className="grid grid-cols-3 gap-3">
-          {[
-            { label: "In progress", value: counts.inProgress, tone: "text-stage-brew" },
-            { label: "Ready to pour", value: counts.ready, tone: "text-stage-tap" },
-            { label: "Tasted", value: counts.tasted, tone: "text-accent" },
-          ].map((tile) => (
-            <div
-              key={tile.label}
-              className="rounded-2xl border border-border bg-surface px-3 py-4 text-center shadow-card"
-            >
-              <p className={`font-display text-4xl leading-none ${tile.tone}`}>
-                {loaded ? tile.value : " "}
-              </p>
-              <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
-                {tile.label}
-              </p>
-            </div>
-          ))}
+          {GROUPS.map((group) => {
+            const value = counts[group.key];
+            const jumpable = loaded && value > 0;
+            const body = (
+              <>
+                <p className={`font-display text-4xl leading-none ${group.tone}`}>
+                  {loaded ? value : " "}
+                </p>
+                <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted">
+                  {group.label}
+                </p>
+                <p
+                  aria-hidden="true"
+                  className={`mt-1 text-xs leading-none text-muted ${jumpable ? "" : "invisible"}`}
+                >
+                  &#8595;
+                </p>
+              </>
+            );
+            const base =
+              "block rounded-2xl border border-border bg-surface px-3 py-4 text-center shadow-card";
+
+            return jumpable ? (
+              <a
+                key={group.key}
+                href={`#${group.id}`}
+                aria-label={`${value} ${group.label.toLowerCase()}, jump to list`}
+                className={`${base} transition hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent`}
+              >
+                {body}
+              </a>
+            ) : (
+              <div key={group.key} className={base}>
+                {body}
+              </div>
+            );
+          })}
         </section>
 
         {loaded && store.brews.length > 0 && (
@@ -165,11 +202,30 @@ export default function BrewsPage() {
               </p>
             </div>
           ) : (
-            <ul className="space-y-5">
-              {brews.map((brew) => (
-                <BrewCard key={brew.id} brew={brew} today={today} />
-              ))}
-            </ul>
+            <div className="space-y-8">
+              {GROUPS.map((group) => {
+                const groupBrews = brews.filter((brew) => groupOf(brew, today) === group.key);
+
+                if (groupBrews.length === 0) return null;
+
+                return (
+                  <div key={group.key}>
+                    <h3
+                      id={group.id}
+                      tabIndex={-1}
+                      className="mb-3 scroll-mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-muted outline-none"
+                    >
+                      {group.label} ({groupBrews.length})
+                    </h3>
+                    <ul className="space-y-5">
+                      {groupBrews.map((brew) => (
+                        <BrewCard key={brew.id} brew={brew} today={today} />
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </section>
 

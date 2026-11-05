@@ -86,7 +86,7 @@ export default function UpcomingPanel({
             return (
               <li
                 key={day.date}
-                className="grid grid-cols-[5.5rem_1fr] gap-4 px-5 py-4 sm:px-6"
+                className="grid grid-cols-[7.5rem_minmax(0,1fr)] gap-4 px-5 py-4 sm:px-6"
               >
                 <div>
                   <p className="font-display text-lg uppercase leading-tight">
@@ -95,7 +95,7 @@ export default function UpcomingPanel({
                   <p className="text-xs text-muted">{label.sub}</p>
                 </div>
 
-                <ul className="space-y-2">
+                <ul className="min-w-0 space-y-2">
                   {day.items.map((item) => (
                     <li
                       key={`${item.brew.id}-${item.kind}`}
@@ -105,7 +105,7 @@ export default function UpcomingPanel({
                         aria-hidden="true"
                         className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${DOT[item.kind]}`}
                       />
-                      <span>
+                      <span className="min-w-0 break-words">
                         <span className={`font-semibold ${TEXT[item.kind]}`}>
                           {item.label}
                         </span>
