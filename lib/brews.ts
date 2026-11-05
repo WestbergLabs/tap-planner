@@ -162,6 +162,62 @@ export function getUpcomingMilestones(
   );
 }
 
+export type PinterClash = {
+  pinter: number;
+  first: SavedBrew;
+  second: SavedBrew;
+};
+
+type Occupancy = Pick<SavedBrew, "name" | "brewDate" | "tapDate" | "pinter">;
+
+/**
+ * A Pinter is occupied from brew day until tap day. Two brews clash when they
+ * are assigned the same Pinter number and those windows overlap. A brew that
+ * starts on the day another taps is not flagged (that is a same-day handoff),
+ * and the drinking period after tap day is not counted. Brews with no Pinter
+ * number are never compared, because there is no way to know which device
+ * they use.
+ */
+export function overlapsOnPinter(a: Occupancy, b: Occupancy): boolean {
+  return (
+    a.pinter !== undefined &&
+    a.pinter === b.pinter &&
+    a.brewDate < b.tapDate &&
+    b.brewDate < a.tapDate
+  );
+}
+
+/** Every pair of untasted saved brews that need the same Pinter at the same time. */
+export function findPinterClashes(brews: SavedBrew[]): PinterClash[] {
+  const active = brews.filter((brew) => !brew.tasting && brew.pinter !== undefined);
+  const clashes: PinterClash[] = [];
+
+  for (let i = 0; i < active.length; i += 1) {
+    for (let j = i + 1; j < active.length; j += 1) {
+      if (overlapsOnPinter(active[i], active[j])) {
+        const [first, second] =
+          active[i].brewDate <= active[j].brewDate
+            ? [active[i], active[j]]
+            : [active[j], active[i]];
+
+        clashes.push({ pinter: first.pinter as number, first, second });
+      }
+    }
+  }
+
+  return clashes.sort(
+    (a, b) =>
+      a.pinter - b.pinter ||
+      a.first.brewDate.localeCompare(b.first.brewDate) ||
+      a.second.brewDate.localeCompare(b.second.brewDate),
+  );
+}
+
+/** Saved, untasted brews that would share a Pinter with `candidate`. */
+export function findClashesWith(candidate: Occupancy, saved: SavedBrew[]): SavedBrew[] {
+  return saved.filter((brew) => !brew.tasting && overlapsOnPinter(candidate, brew));
+}
+
 /**
  * Where "Brew again" sends you. Official packs reopen the BrewPack planner with
  * the same pack, timing mode and cold crash; custom recipes reopen the custom
